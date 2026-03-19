@@ -1,0 +1,6 @@
+/daily_tasks.xlsx
+*.pyc
+*.pyo
+__pycache__
+/.vscode
+/.lingma
