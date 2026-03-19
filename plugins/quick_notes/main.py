@@ -33,7 +33,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QAction, QTextCursor
 
 # 导入配置
-from app_qt.configs import DATA_PATHS
+from app_qt.configs import PLUGIN_DATA_DIR
 
 
 class QuickNotesTab(QWidget):
@@ -43,7 +43,7 @@ class QuickNotesTab(QWidget):
         super().__init__()
 
         # 从配置获取笔记数据目录
-        self.notes_dir = DATA_PATHS["quick_notes_dir"]
+        self.notes_dir = os.path.join(PLUGIN_DATA_DIR, "quick_notes")
 
         # 确保目录存在
         if not os.path.exists(self.notes_dir):

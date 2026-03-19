@@ -10,6 +10,8 @@ IPython 插件桥接层
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication
 import time
+import functools
+import inspect
 
 
 class PluginCallWrapper:
@@ -50,7 +52,12 @@ class PluginCallWrapper:
             raise AttributeError(f"插件 '{self.plugin_name}' 中没有找到方法 '{attr}'")
         
         # 返回一个包装后的调用函数，在 UI 线程中执行
-        return lambda *args, **kwargs: execute_in_ui_thread(method, *args, **kwargs)
+        # 使用 functools.wraps 保留原始函数的签名和文档字符串
+        @functools.wraps(method)
+        def wrapper(*args, **kwargs):
+            return execute_in_ui_thread(method, *args, **kwargs)
+        
+        return wrapper
 
 
 class PluginsAPI:
@@ -86,7 +93,7 @@ class PluginsAPI:
             print(f"\n插件名称：{name}")
             print(f"版本号：{info.get('version', 'unknown')}")
             print(f"描述：{info.get('config', {}).get('description', '无')}")
-            print(f"作者：{info.get('config', {}).get('author', '未知')}")
+            print(f"作者：{info.get('config', {}).get('author', '无')}")
             
             # 显示该插件注册的方法
             methods = self.plugin_manager.methods_registry.get(name, {})

@@ -42,3 +42,8 @@ for key, path in DATA_PATHS.items():
 # 确保插件目录存在
 if not os.path.exists(PLUGINS_DIR):
     os.makedirs(PLUGINS_DIR)
+
+# 插件数据目录
+PLUGIN_DATA_DIR = os.path.join(MYHELPER_ROOT, "plugin_data")
+if not os.path.exists(PLUGIN_DATA_DIR):
+    os.makedirs(PLUGIN_DATA_DIR)

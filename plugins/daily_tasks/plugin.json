@@ -1,0 +1,160 @@
+{
+  "name": "daily_tasks",
+  "description": "每日任务提醒器 - 提供任务管理和提醒功能",
+  "version": "1.0.0",
+  "author": "MyHelper Team",
+  "main": "main",
+  
+  "dependencies": [
+  ],
+  "exports": {
+    "namespace": "daily_tasks",
+    "description": "任务管理核心组件",
+    "methods": [
+      {
+        "name": "add_task",
+        "description": "添加新任务",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "task_data",
+            "type": "dict",
+            "description": "任务数据字典，包含 category、subcategory、description、due_date、reminder_type、reminder_time、status、notes 等字段",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "int",
+          "description": "新任务的 ID，失败返回 -1"
+        }
+      },
+      {
+        "name": "delete_task",
+        "description": "删除任务",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "task_id",
+            "type": "int",
+            "description": "任务 ID",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否删除成功"
+        }
+      },
+      {
+        "name": "get_tasks",
+        "description": "获取任务列表",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "filters",
+            "type": "dict",
+            "description": "过滤条件（可选），支持 category、subcategory、status、due_date_from、due_date_to",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "list",
+          "description": "任务列表"
+        }
+      },
+      {
+        "name": "get_task_by_id",
+        "description": "根据 ID 获取任务",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "task_id",
+            "type": "int",
+            "description": "任务 ID",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "任务数据，不存在返回 None"
+        }
+      },
+      {
+        "name": "update_task",
+        "description": "更新任务",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "task_id",
+            "type": "int",
+            "description": "任务 ID",
+            "required": true
+          },
+          {
+            "name": "task_data",
+            "type": "dict",
+            "description": "新的任务数据",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否更新成功"
+        }
+      },
+      {
+        "name": "filter_tasks_by_date",
+        "description": "按日期过滤任务",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "start_date",
+            "type": "str",
+            "description": "开始日期 (格式：yyyy-MM-dd)",
+            "required": true
+          },
+          {
+            "name": "end_date",
+            "type": "str",
+            "description": "结束日期（可选，格式：yyyy-MM-dd）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "list",
+          "description": "任务列表"
+        }
+      },
+      {
+        "name": "mark_task_complete",
+        "description": "标记任务为完成",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "task_id",
+            "type": "int",
+            "description": "任务 ID",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否成功"
+        }
+      }
+    ]
+  },
+  
+  "callbacks": {
+    "on_load": "load_plugin",
+    "on_unload": "unload_plugin"
+  },
+  
+  "tabs": [
+    {
+      "name": "📋 任务管理",
+      "class": "TasksManagerTab",
+      "position": 1
+    }
+  ]
+}

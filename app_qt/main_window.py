@@ -12,7 +12,7 @@ from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor, QAction
 
 # 导入标签页模块
 from app_qt.ipython_console_tab import IPythonConsoleTab
-from app_qt.tasks_manager import TasksManagerTab  # 暂时注释
+# 任务管理器已迁移到插件
 
 class QuickAssistant(QMainWindow):
     """快捷助手主窗口"""
@@ -87,9 +87,6 @@ class QuickAssistant(QMainWindow):
         self.ipython_console = IPythonConsoleTab()
         self.notebook.addTab(self.ipython_console, "🐍 IPython")
         
-        # 插入任务管理器标签页
-        self.tasks_manager = TasksManagerTab()
-        self.notebook.addTab(self.tasks_manager, "任务管理")
         # 启动剪贴板监控
         self.clipboard_timer = QTimer()
         self.clipboard_timer.timeout.connect(self.check_clipboard)
