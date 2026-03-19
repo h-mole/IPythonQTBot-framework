@@ -1,0 +1,90 @@
+{
+  "name": "quick_notes",
+  "description": "快速笔记插件 - 支持树状结构管理的笔记编辑器",
+  "version": "1.0.0",
+  "author": "MyHelper Team",
+  "main": "main",
+  
+  "exports": {
+    "namespace": "quick_notes",
+    "description": "快速笔记核心 API",
+    "methods": [
+      {
+        "name": "create_note",
+        "description": "创建新笔记",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "name",
+            "type": "str",
+            "description": "笔记名称",
+            "required": true
+          },
+          {
+            "name": "folder",
+            "type": "str",
+            "description": "所属文件夹路径（可选）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "str",
+          "description": "返回创建的笔记完整路径"
+        }
+      },
+      {
+        "name": "load_note",
+        "description": "加载笔记内容",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "path",
+            "type": "str",
+            "description": "笔记文件路径",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "str",
+          "description": "返回笔记文本内容"
+        }
+      },
+      {
+        "name": "save_note",
+        "description": "保存笔记",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "path",
+            "type": "str",
+            "description": "笔记文件路径",
+            "required": true
+          },
+          {
+            "name": "content",
+            "type": "str",
+            "description": "笔记内容",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "保存是否成功"
+        }
+      }
+    ]
+  },
+  
+  "callbacks": {
+    "on_load": "load_plugin",
+    "on_unload": "unload_plugin"
+  },
+  
+  "tabs": [
+    {
+      "name": "📝 快速笔记",
+      "class": "QuickNotesTab",
+      "position": 2
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "name": "text_helper",
+  "description": "文本处理插件 - 提供多种文本转换和剪贴板管理功能",
+  "version": "1.0.0",
+  "author": "MyHelper Team",
+  "main": "main",
+  
+  "dependencies": [
+  ],
+  "exports": {
+    "namespace": "text_helper",
+    "description": "文本处理核心组件",
+    "methods": [
+      {
+        "name": "create_menu",
+        "description": "创建新的顶部菜单",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "menu_name",
+            "type": "str",
+            "description": "菜单名称",
+            "required": true
+          },
+          {
+            "name": "menu_items",
+            "type": "list",
+            "description": "菜单项列表，格式：[{\"text\": \"菜单项\", \"callback\": func, \"shortcut\": \"Ctrl+X\"}, ...]",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否创建成功"
+        }
+      },
+      {
+        "name": "register_text_action",
+        "description": "注册自定义文本处理菜单项",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "name",
+            "type": "str",
+            "description": "菜单项名称",
+            "required": true
+          },
+          {
+            "name": "callback",
+            "type": "function",
+            "description": "回调函数，接收当前文本作为参数，返回处理后的文本",
+            "required": true
+          },
+          {
+            "name": "shortcut",
+            "type": "str",
+            "description": "快捷键（可选），如 'Ctrl+Alt+X'",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否注册成功"
+        }
+      },
+      {
+        "name": "get_text",
+        "description": "获取当前输入框中的文本",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "str",
+          "description": "当前输入框中的文本"
+        }
+      },
+      {
+        "name": "set_text",
+        "description": "设置输入框中的文本",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "要设置的文本",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否设置成功"
+        }
+      }
+    ]
+  },
+  
+  "callbacks": {
+    "on_load": "load_plugin",
+    "on_unload": "unload_plugin"
+  },
+  
+  "tabs": [
+    {
+      "name": "📝 文本处理",
+      "class": "TextHelperTab",
+      "position": 0
+    }
+  ]
+}

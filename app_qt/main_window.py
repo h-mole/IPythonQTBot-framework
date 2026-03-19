@@ -11,10 +11,8 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor, QAction
 
 # 导入标签页模块
-from app_qt.text_helper_tab import TextHelperTab
 from app_qt.ipython_console_tab import IPythonConsoleTab
-from app_qt.quicknotes_tab import QuickNotesTab
-from app_qt.tasks_manager import TasksManagerTab
+from app_qt.tasks_manager import TasksManagerTab  # 暂时注释
 
 class QuickAssistant(QMainWindow):
     """快捷助手主窗口"""
@@ -30,12 +28,36 @@ class QuickAssistant(QMainWindow):
         self.clipboard_history = []
         self.max_clipboard_history = 50
         
+        # 先加载插件（在主线程中）
+        self._load_plugins_before_ui()
+        
         # 创建界面组件
         self.create_widgets()
         
         # 系统托盘
         self.tray_icon = None
         self.create_tray()
+    
+    def _load_plugins_before_ui(self):
+        """在创建 UI 之前加载插件（确保在主线程中）"""
+        try:
+            from app_qt.plugin_manager import get_plugin_manager
+            
+            # 获取插件管理器实例
+            plugin_manager = get_plugin_manager()
+            
+            # 设置主窗口引用（此时 notebook 还未创建）
+            plugin_manager.set_main_window(self, None, None)
+            
+            # 加载所有插件（在主线程中）
+            plugin_manager.load_plugins()
+            
+            print("[MainWindow] 插件预加载完成")
+            
+        except Exception as e:
+            print(f"[MainWindow] 插件预加载失败：{e}")
+            import traceback
+            traceback.print_exc()
     
     def create_widgets(self):
         """构建主界面"""
@@ -55,22 +77,19 @@ class QuickAssistant(QMainWindow):
         self.notebook = QTabWidget()
         main_layout.addWidget(self.notebook)
         
-        # 第一个标签页：文本处理
-        self.text_helper = TextHelperTab(clipboard_callback=self.on_clipboard_update)
-        self.notebook.addTab(self.text_helper, "📝 文本处理")
+        # 更新插件管理器的 notebook 引用（此时已创建）
+        from app_qt.plugin_manager import get_plugin_manager
+        plugin_manager = get_plugin_manager()
+        plugin_manager.set_main_window(self, self.notebook, None)
+
         
-        # 第三个标签页：IPython 控制台
+        # 第四个标签页：IPython 控制台
         self.ipython_console = IPythonConsoleTab()
         self.notebook.addTab(self.ipython_console, "🐍 IPython")
-
-        # 第四个标签页：快速笔记
-        self.text_editor = QuickNotesTab()
-        self.notebook.addTab(self.text_editor, "📝 快速笔记")
         
-        # 第五个标签页：任务管理器
+        # 插入任务管理器标签页
         self.tasks_manager = TasksManagerTab()
-        self.notebook.addTab(self.tasks_manager, "✅ 每日任务")
-        
+        self.notebook.addTab(self.tasks_manager, "任务管理")
         # 启动剪贴板监控
         self.clipboard_timer = QTimer()
         self.clipboard_timer.timeout.connect(self.check_clipboard)

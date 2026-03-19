@@ -1,0 +1,185 @@
+{
+  "name": "pandoc_utils",
+  "description": "Pandoc 文档转换工具 - 提供 Markdown 与 DOCX 互转功能",
+  "version": "1.0.0",
+  "author": "MyHelper Team",
+  "main": "main",
+  
+  "dependencies": [
+    {
+      "name": "plugin:text_helper",
+      "version": ">=1.0.0",
+      "required": true,
+      "description": "文本处理插件，用于提供 UI 菜单界面"
+    },
+    {
+      "name": "system:pandoc",
+      "version": ">=2.0",
+      "required": true,
+      "description": "Pandoc 命令行工具，用于文档格式转换"
+    }
+  ],
+  
+  "exports": {
+    "namespace": "pandoc_utils",
+    "description": "Pandoc 转换核心 API",
+    "methods": [
+      {
+        "name": "convert_markdown_to_docx",
+        "description": "将 Markdown 文本转换为 DOCX 文档",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "markdown_text",
+            "type": "str",
+            "description": "Markdown 文本内容",
+            "required": true
+          },
+          {
+            "name": "template_path",
+            "type": "str",
+            "description": "Word 模板文件路径（可选）",
+            "required": false
+          },
+          {
+            "name": "output_dir",
+            "type": "str",
+            "description": "输出目录（可选）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "包含 success(bool), output_path(str), error(str) 等字段"
+        }
+      },
+      {
+        "name": "convert_markdown_to_html",
+        "description": "将 Markdown 文本转换为 HTML 文档",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "markdown_text",
+            "type": "str",
+            "description": "Markdown 文本内容",
+            "required": true
+          },
+          {
+            "name": "output_dir",
+            "type": "str",
+            "description": "输出目录（可选）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "包含 success(bool), output_path(str), error(str) 等字段"
+        }
+      },
+      {
+        "name": "convert_markdown_to_latex",
+        "description": "将 Markdown 文本转换为 LaTeX 文档",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "markdown_text",
+            "type": "str",
+            "description": "Markdown 文本内容",
+            "required": true
+          },
+          {
+            "name": "output_dir",
+            "type": "str",
+            "description": "输出目录（可选）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "包含 success(bool), output_path(str), error(str) 等字段"
+        }
+      },
+      {
+        "name": "convert_docx_to_markdown",
+        "description": "将 DOCX 文档转换为 Markdown 文本",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "docx_path",
+            "type": "str",
+            "description": "DOCX 文件路径",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "包含 success(bool), markdown(str), error(str) 等字段"
+        }
+      },
+      {
+        "name": "is_pandoc_available",
+        "description": "检查 Pandoc 是否可用",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "bool",
+          "description": "Pandoc 是否可用"
+        }
+      },
+      {
+        "name": "get_pandoc_version",
+        "description": "获取 Pandoc 版本号",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "str",
+          "description": "Pandoc 版本号，如果不可用则返回 None"
+        }
+      },
+      {
+        "name": "list_templates",
+        "description": "列出所有可用的 DOCX 模板",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "list",
+          "description": "模板名称列表"
+        }
+      },
+      {
+        "name": "set_template",
+        "description": "设置当前使用的模板",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "template_name",
+            "type": "str",
+            "description": "模板名称（不带 .docx 后缀），传 None 清除模板",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否设置成功"
+        }
+      },
+      {
+        "name": "get_template_path",
+        "description": "获取当前选中的模板路径",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "str",
+          "description": "模板文件路径，如果未选择则返回 None"
+        }
+      }
+    ]
+  },
+  
+  "callbacks": {
+    "on_load": "load_plugin",
+    "on_unload": "unload_plugin"
+  },
+  
+  "tabs": []
+}

@@ -2,6 +2,7 @@
 快捷助手 - PySide6 版本
 应用入口文件
 """
+
 import sys
 import os
 
@@ -19,23 +20,23 @@ def main():
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
-    
+
     app = QApplication(sys.argv)
-    
+
     # 设置应用信息
     app.setApplicationName("快捷助手")
     app.setOrganizationName("MyHelper")
     app.setApplicationVersion("1.0.0")
-    
+
     # 设置样式
     app.setStyle("Fusion")
-    
+
     window = QuickAssistant()
     window.show()
-    
+
     # 初始隐藏到托盘
-    window.hide()
-    
+    # window.hide()
+
     sys.exit(app.exec())
 
 
