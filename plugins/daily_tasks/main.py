@@ -731,18 +731,17 @@ class TasksManagerTab(QWidget):
     def apply_filters(self):
         """应用筛选条件"""
         # 获取选中的项目
-        selected_categories = self.category_filter.get_selected()
-        selected_subcategories = self.subcategory_filter.get_selected()
-        selected_statuses = self.status_filter.get_selected()
-        print("selected_categories", selected_categories)
-        print("selected_subcategories", selected_subcategories)
-        print("selected_statuses", selected_statuses)
+        ALL = object()
+        selected_categories = self.category_filter.get_selected() if not self.category_filter.is_select_all() else ALL
+        selected_subcategories = self.subcategory_filter.get_selected() if not self.subcategory_filter.is_select_all() else ALL
+        selected_statuses = self.status_filter.get_selected() if not self.status_filter.is_select_all() else ALL
+
         filtered = []
         for task in self.tasks_data:
             # 检查是否符合筛选条件（全选时不过滤）
-            category_match = (task.get("category") in selected_categories) 
-            subcategory_match = (task.get("subcategory") in selected_subcategories) 
-            status_match = (task.get("status") in selected_statuses) 
+            category_match = (task.get("category") in selected_categories) if selected_categories is not ALL else True
+            subcategory_match = (task.get("subcategory") in selected_subcategories) if selected_subcategories is not ALL else True
+            status_match = (task.get("status") in selected_statuses) if selected_statuses is not ALL else True
 
             if category_match and subcategory_match and status_match:
                 filtered.append(task)
