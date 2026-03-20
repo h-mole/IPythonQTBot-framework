@@ -10,7 +10,8 @@ from PySide6.QtCore import QThread, Signal
 from qtconsole.rich_jupyter_widget import RichJupyterWidget
 from qtconsole.inprocess import QtInProcessKernelManager
 import sys
-
+from app_qt.plugin_manager import get_plugin_manager
+from IPython.utils.capture import capture_output
 # 导入变量表格组件
 from .widgets.variables_table import VariablesTable
 
@@ -66,12 +67,6 @@ class IPythonConsoleTab(QWidget):
         main_layout = QVBoxLayout()
         self.setLayout(main_layout)
 
-        # 标题
-        title_label = QLabel("🐍 IPython 交互式控制台")
-        title_label.setFont(QFont("Microsoft YaHei UI", 12, 75))  # 75 = QFont::Bold
-        title_label.setStyleSheet("padding: 5px;")
-        main_layout.addWidget(title_label)
-
         # 创建分割器（左右布局）
         splitter = QSplitter()
         splitter.setOrientation(Qt.Horizontal)
@@ -104,6 +99,88 @@ class IPythonConsoleTab(QWidget):
         splitter.setStretchFactor(1, 3)
 
         main_layout.addWidget(splitter)
+        
+        self.register_system_methods()
+
+    def register_system_methods(self):
+        """注册系统方法，可以获得ipython中的变量"""
+        pm = get_plugin_manager()
+        pm._register_system_method(
+            "set_variable", self.set_variable, {"enable_mcp": True}
+        )
+        pm._register_system_method(
+            "get_variable", self.get_variable, {"enable_mcp": True}
+        )
+        pm._register_system_method(
+            "execute_code", self.execute_code, {"enable_mcp": True}
+        )
+
+    def execute_code(self, code: str):
+        """
+        在IPython内核中执行代码
+        
+        Args:
+            code: (str) 要执行的代码，可以是语句或者代码块。注意如果只是赋值，请使用专门的设置变量的工具
+        
+        Returns:
+            dict: {"success": bool, "output": str, "result": object, "error": str} 
+            success: 是否执行成功，output: print输出的内容，result: IPython代码块执行的返回值，error: 错误信息
+        """
+        from PySide6.QtCore import QTimer
+        if self.kernel_manager:
+            with capture_output() as captured:
+                result = self.kernel_manager.kernel.shell.run_cell(code, store_history=True, silent=True)
+                if self.variables_table:
+                    # 获取当前线程对象
+                    current_qthread = QThread.currentThread()
+
+                    # 打印线程信息
+                    print(f"当前QThread对象: {current_qthread}")
+                    print(f"线程对象名称: {current_qthread.objectName()}")
+                    print(f"线程ID: {QThread.currentThreadId()}")
+                    QTimer.singleShot(0, self.variables_table.refresh_variables)
+            return {
+                "success": True,
+                "output": captured.stdout,
+                "result": result.result,
+                "error": result.error_in_exec if result.error_in_exec else captured.stderr
+            }
+        else:
+            print("[IPythonConsoleTab] 警告：kernel_manager 未就绪，无法执行代码")
+            return {"success": False, "output": "", "result": "", "error": "警告：kernel_manager 未就绪，无法执行代码"}
+
+    def get_variable(self, name: str):
+        """
+        获取IPython内核中的变量
+        Args:
+            name (str): 变量名
+
+        Returns:
+            object: 变量值，任意类型的值均可
+        """
+        if self.kernel_manager:
+            return self.kernel_manager.kernel.shell.user_ns.get(name)
+        return None
+
+    def set_variable(self, name: str, value: object):
+        """
+        为IPython内核设置变量，可以用于记忆一些数据
+
+        Args:
+            name (str): 变量名
+            value (object): 变量值，任意类型的值均可
+
+        Returns:
+            bool: 设置是否成功
+        """
+        from PySide6.QtCore import QTimer
+        if self.kernel_manager:
+            self.kernel_manager.kernel.shell.push({name: value})
+            if self.variables_table:
+                QTimer.singleShot(0, self.variables_table.refresh_variables)
+            return True
+        else:
+            return False
 
     def init_kernel_async(self):
         """在后台线程中异步初始化内核"""
@@ -142,7 +219,7 @@ class IPythonConsoleTab(QWidget):
 
         # ========== 注入 IPython 插件 API ==========
         self._inject_plugins_api()
-        
+
         # ========== 注入 IPython LLM Agent API ==========
         self._inject_llm_agent_api()
 
@@ -159,28 +236,31 @@ class IPythonConsoleTab(QWidget):
         try:
             from app_qt.ipython_plugins_bridge import init_ipython_plugins_api
             from app_qt.plugin_manager import get_plugin_manager
-            
+
             # 获取插件管理器实例
             plugin_manager = get_plugin_manager()
-            
+
             # 创建插件 API 对象
             plugins_api = init_ipython_plugins_api(plugin_manager)
-            
+
             # 获取 IPython shell 的命名空间
             # kernel_manager 已经在 _on_kernel_ready 中设置好了
-            if self.kernel_manager and hasattr(self.kernel_manager, 'kernel'):
+            if self.kernel_manager and hasattr(self.kernel_manager, "kernel"):
                 shell = self.kernel_manager.kernel.shell
-                
+
                 # 将 plugins 对象注入到用户命名空间
-                shell.user_ns['plugins'] = plugins_api
-                
+                shell.user_ns["plugins"] = plugins_api
+
                 print("[IPythonConsoleTab] 已注入 plugins API 到 IPython 命名空间")
             else:
-                print("[IPythonConsoleTab] 警告：kernel_manager 未就绪，无法注入插件 API")
-            
+                print(
+                    "[IPythonConsoleTab] 警告：kernel_manager 未就绪，无法注入插件 API"
+                )
+
         except Exception as e:
             print(f"[IPythonConsoleTab] 注入插件 API 失败：{e}")
             import traceback
+
             traceback.print_exc()
 
     def _inject_llm_agent_api(self):
@@ -188,18 +268,19 @@ class IPythonConsoleTab(QWidget):
         try:
             from app_qt.ipython_llm_bridge import init_ipython_llm_agent_api
             from app_qt.plugin_manager import get_plugin_manager
-            
+
             # 获取插件管理器实例
             plugin_manager = get_plugin_manager()
-            
+
             # 初始化 LLM Agent API
             agent = init_ipython_llm_agent_api(plugin_manager=plugin_manager)
-            
+
             print("[IPythonConsoleTab] 已注入 agent API 到 IPython 命名空间")
-            
+
         except Exception as e:
             print(f"[IPythonConsoleTab] 注入 LLM Agent API 失败：{e}")
             import traceback
+
             traceback.print_exc()
 
     def _on_command_executed(self, result=None):

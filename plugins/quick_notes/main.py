@@ -9,6 +9,7 @@
 
 import os
 import json
+import re
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -34,6 +35,7 @@ from PySide6.QtGui import QFont, QAction, QTextCursor
 
 # 导入配置
 from app_qt.configs import PLUGIN_DATA_DIR
+from app_qt.plugin_manager import PluginManager
 
 
 class QuickNotesTab(QWidget):
@@ -54,7 +56,7 @@ class QuickNotesTab(QWidget):
         self.is_modified = False
 
         # 插件管理器引用
-        self.plugin_manager = None
+        self.plugin_manager: PluginManager = None
 
         self.init_ui()
         self.load_note_tree()
@@ -692,17 +694,37 @@ class QuickNotesTab(QWidget):
         self.load_note_content(file_path)
 
         return file_path
+    
+    def load_note_to_ipython_api(self, variable_name: str, path: str)->str:
+        """
+        API: 加载笔记内容到IPython，变量名自拟。在不需要读取笔记全部内容，或需要将该内容加载到ipython使用时，推荐优先使用该方法
+
+        Args:
+            variable_name: str, 笔记内容保存的变量名
+            path: 笔记文件路径(相对路径)
+
+        Returns:
+            str: 笔记文本内容，返回'success'表示成功加载到IPython，返回其他错误日志表示失败
+        """
+        content = self.load_note_api(path)
+        method = self.plugin_manager.get_method("system.set_variable")
+        if method:
+            ret = method(variable_name, content)
+            return "success" if ret else "set variable failed"
+        else:
+            return f"method not found for system.set_variable"
 
     def load_note_api(self, path):
         """
         API: 加载笔记内容
 
         Args:
-            path: 笔记文件路径
+            path: 笔记文件相对路径，如 "folder/notes.txt"
 
         Returns:
             str: 笔记文本内容
         """
+        path = os.path.join(self.notes_dir, path)
         if not os.path.exists(path):
             raise FileNotFoundError(f"笔记不存在：{path}")
 
@@ -731,6 +753,82 @@ class QuickNotesTab(QWidget):
             print(f"保存笔记失败：{e}")
             return False
 
+    def query_note_by_name_api(self, name_query: str):
+        """
+        API: 查询笔记名称
+
+        Args:
+            name_query: str 笔记名称查询字符串，模糊匹配
+
+        Returns:
+            str: 笔记相对路径，如果找到多个匹配项，则返回第一个匹配项的路径。若无匹配则为空字符串
+        """
+        for root, dirs, files in os.walk(self.notes_dir):
+            for file in files:
+                if file.find(name_query) != -1:
+                    return os.path.relpath(os.path.join(root, file), self.notes_dir)
+        return ""
+
+    def query_notes_by_text_api(
+        self,
+        text_query: str,
+        limit: int = 10,
+        chunk_size: int = 1000,
+        regex: bool = False,
+    ) -> list[tuple[str, str]]:
+        """
+        API: 全局查询笔记内容，支持正则表达式、限制条数和字符数，默认情况下不需要调整。
+
+        Args:
+            text_query: str 笔记内容查询字符串，模糊匹配
+            limit: int = 10: 返回的结果条数限制
+            chunk_size: int = 1000: 每个笔记块的字符数限制
+            regex: bool = False: 是否使用正则表达式匹配
+
+        Returns:
+            list[tuple[str, str]]: 笔记的相对路径和内容的列表
+        """
+        ret = []
+        count = 0
+
+        for root, dirs, files in os.walk(self.notes_dir):
+            for file in files:
+                # 如果已经达到限制，提前退出
+                if count >= limit:
+                    break
+
+                file_path = os.path.join(root, file)
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    position = -1
+                    # 检查内容是否包含查询文本（模糊匹配）
+                    if regex:
+                        searched = re.search(text_query, content)
+                        if searched:
+                            position = searched.start()
+                    else:
+                        position =  content.find(text_query)    
+                    if position != -1:
+                        chunk_start = max(0, position - chunk_size // 2)
+                        chunk_end = min(len(content), position + chunk_size // 2)
+                        # 获取相对路径
+                        rel_path = os.path.relpath(file_path, self.notes_dir)
+                        ret.append((rel_path, content[chunk_start:chunk_end]))
+                        count += 1
+
+                except Exception as e:
+                    # 跳过读取失败的文件
+                    print(f"[Quick Notes] 读取文件失败 {file_path}: {e}")
+                    continue
+
+            # 外层循环也需要检查是否已经达到限制
+            if count >= limit:
+                break
+
+        return ret
+
+
 
 # ==================== 插件入口函数 ====================
 
@@ -756,7 +854,14 @@ def load_plugin(plugin_manager):
         "quick_notes", "create_note", notes_tab.create_note_api
     )
     plugin_manager.register_method("quick_notes", "load_note", notes_tab.load_note_api)
+    plugin_manager.register_method("quick_notes", "load_note_to_ipython", notes_tab.load_note_to_ipython_api)
     plugin_manager.register_method("quick_notes", "save_note", notes_tab.save_note_api)
+    plugin_manager.register_method(
+        "quick_notes", "query_note_by_name", notes_tab.query_note_by_name_api
+    )
+    plugin_manager.register_method(
+        "quick_notes", "query_notes_by_text", notes_tab.query_notes_by_text_api
+    )
 
     # 添加到标签页（由插件管理器统一管理）
     plugin_manager.add_plugin_tab("quick_notes", "📝 快速笔记", notes_tab, position=2)

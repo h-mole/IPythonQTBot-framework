@@ -4,3 +4,6 @@ ipython>=7.0.0
 qtconsole>=5.0.0
 openpyxl>=3.0.0
 plyer>=2.0.0
+mcp>=1.26.0
+openai>=1.0.0
+python-dotenv>=1.0.0

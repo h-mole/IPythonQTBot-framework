@@ -66,6 +66,20 @@
         }
       },
       {
+        "name": "get_todo_tasks",
+        "description": "获取状态非“完成”的任务列表",
+        "stable": true,
+        "parameters": [
+        ],
+        "returns": {
+          "type": "list",
+          "description": "状态非“完成”的任务列表"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
         "name": "get_task_by_id",
         "description": "根据 ID 获取任务",
         "stable": true,

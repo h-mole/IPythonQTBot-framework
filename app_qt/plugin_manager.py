@@ -133,7 +133,7 @@ class PluginManager(QObject):
     """
 
     _instance = None
-
+    _reserved_namespaces = ["system"]
     @classmethod
     def get_instance(cls):
         """获取单例实例"""
@@ -153,7 +153,7 @@ class PluginManager(QObject):
         self.loaded_plugins = {}
 
         # 方法元数据缓存：{namespace: {method_name: method_info_from_json}}
-        self.methods_metadata_cache = {}
+        self.methods_metadata_cache = {"system": {}}
 
         # 待添加的标签页列表
         self.pending_tabs = []
@@ -728,7 +728,6 @@ class PluginManager(QObject):
         namespace: str,
         method_name: str,
         func: "Callable",
-        extra_data: Optional["MethodExtraData"] = None,
     ):
         """
         注册方法到全局域
@@ -737,22 +736,36 @@ class PluginManager(QObject):
             namespace: 命名空间（通常为插件名）
             method_name: 方法名称
             func: 方法对象
-            extra_data: 额外数据配置（可选），如果提供会覆盖 plugin.json 中的配置
 
         示例：
             plugin_manager.register_method("quick_notes", "create_note", create_note_func)
             调用：plugin_manager.get_method("quick_notes.create_note")
         """
+        assert namespace not in self._reserved_namespaces, f"不允许注册名称与保留命名空间冲突的新命名空间：{namespace}"
         if namespace not in self.methods_registry:
             self.methods_registry[namespace] = {}
-
+        assert method_name not in self.methods_registry[namespace], f"命名空间 {namespace} 下已存在同名方法：{method_name}"
         # 存储方法及其元数据
         self.methods_registry[namespace][method_name] = {
             "func": func,
-            "extra_data": extra_data,  # 可选，用于覆盖 json 配置
         }
         
         print(f"[PluginManager] 注册方法：{namespace}.{method_name}")
+    
+    def _register_system_method(self, method_name: str,
+        func: "Callable", extra_data: MethodExtraData):
+        """
+        注册系统方法，系统方法的命名空间全部都是`system`开头，将会自动添加
+        """
+        if "system" not in self.methods_registry:
+            self.methods_registry["system"] = {}
+        assert method_name not in self.methods_registry["system"], f"系统命名空间 `system` 下已存在同名方法：{method_name}"
+        # 存储方法及其元数据
+        self.methods_registry["system"][method_name] = {
+            "func": func,
+        }
+        self.methods_metadata_cache["system"][method_name] = {"extra_data": extra_data}
+        
 
     def get_method(self, full_name) -> Optional["Callable"]:
         """
@@ -825,10 +838,6 @@ class PluginManager(QObject):
         # 兼容旧版本
         if callable(method_entry):
             return {}
-        
-        # 优先使用 register_method 时提供的 extra_data（如果有）
-        if method_entry.get("extra_data") is not None:
-            return method_entry.get("extra_data")
         
         # 否则从 metadata cache 中读取
         if namespace in self.methods_metadata_cache:
@@ -942,11 +951,6 @@ class PluginManager(QObject):
 
         except Exception as e:
             print(f"[PluginManager] 添加菜单失败：{menu_name}, 错误：{e}")
-
-    def add_text_processing_action_menu(self, plugin_name, menu_name, menu_items):
-        """
-        添加文本处理功能菜单栏，添加到文本处理组件的标签页
-        """
 
     def is_plugin_loaded(self, plugin_name):
         """检查插件是否已加载"""

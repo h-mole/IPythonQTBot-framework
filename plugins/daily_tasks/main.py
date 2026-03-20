@@ -53,6 +53,12 @@ DAILY_TASKS_DATA_DIR = os.path.join(PLUGIN_DATA_DIR, "daily_tasks")
 TASKS_FILE = os.path.join(DAILY_TASKS_DATA_DIR, "daily_tasks.xlsx")
 CATEGORIES_FILE = os.path.join(DAILY_TASKS_DATA_DIR, "task_categories.json")
 
+# 特殊日期映射
+
+SPECIAL_DATES = [
+    ("1999-09-10", "长期", "long_term"),
+    ("1999-09-09", "无固定期限", "no_deadline"),
+]
 
 class MultiSelectFilter(QWidget):
     """多选筛选器组件"""
@@ -262,8 +268,8 @@ class TaskDialog(QDialog):
         # 特殊时间下拉菜单
         self.special_time_combo = QComboBox()
         self.special_time_combo.addItem("一般日期", "normal")
-        self.special_time_combo.addItem("无固定期限", "no_deadline")
-        self.special_time_combo.addItem("长期", "long_term")
+        for date_str, text, optionname in SPECIAL_DATES:
+            self.special_time_combo.addItem(text, optionname)
         self.special_time_combo.currentTextChanged.connect(self.on_special_time_changed)
 
         # 创建水平布局放置时间选择器和下拉菜单
@@ -281,12 +287,11 @@ class TaskDialog(QDialog):
                 time_obj = QTime(reminder_time.hour, reminder_time.minute)
                 self.reminder_time_edit.setTime(time_obj)
                 # 检查是否是特殊日期
-                if "1999-09-09" in self.task_data.get("due_date", ""):
-                    self.special_time_combo.setCurrentIndex(1)  # 无固定期限
-                    self.reminder_time_edit.setEnabled(False)
-                elif "1999-09-10" in self.task_data.get("due_date", ""):
-                    self.special_time_combo.setCurrentIndex(2)  # 长期
-                    self.reminder_time_edit.setEnabled(False)
+                for date_str, text, optionname in SPECIAL_DATES:
+                    if date_str in self.task_data.get("due_date", ""):
+                        self.special_time_combo.setCurrentText(text)
+                        self.reminder_time_edit.setEnabled(False)
+                        break
             except:
                 try:
                     # 尝试从新格式解析（只有时间）
@@ -542,7 +547,6 @@ class TasksManagerTab(QWidget):
                     # 更新筛选器的项目列表
                     self.category_filter.set_items(categories)
                     self.subcategory_filter.set_items(subcategories)
-                    print("Categories loaded:", categories, "Subcategories loaded:", subcategories)
             else:
                 print("Categories file not found. Using default categories.", self.categories_file)
         except Exception as e:
@@ -672,7 +676,6 @@ class TasksManagerTab(QWidget):
     def refresh_table(self, filtered_data=None):
         """刷新表格显示"""
         data_to_show = filtered_data if filtered_data is not None else self.tasks_data
-        print("data_to_show", data_to_show)
         self.table.setRowCount(0)
 
         for task in data_to_show:
@@ -696,10 +699,13 @@ class TasksManagerTab(QWidget):
 
             # 处理特殊日期的显示
             due_date = task.get("due_date", "")
-            if due_date == "1999-09-09":
-                due_date_display = "无固定期限"
-            elif due_date == "1999-09-10":
-                due_date_display = "长期"
+            if due_date.startswith("1999-"):
+                due_date_display = ""
+                for date_str, text, optionname in SPECIAL_DATES:
+                    if due_date.startswith(date_str):
+                        due_date_display = text
+                        break
+                assert due_date_display, f"Special date text {due_date} not found"
             else:
                 due_date_display = due_date
 
@@ -1070,6 +1076,30 @@ class TasksManagerTab(QWidget):
         except Exception as e:
             print(f"[DailyTasks] 删除任务失败：{e}")
             return False
+    
+    def convert_task(self, task: dict) -> dict:
+        """
+        替换任务的特殊日期为文字，例如将1999年9月10日替换为“长期”，并且返回新的task dict
+        """
+        task = task.copy()
+        for date_str, text, optionname in SPECIAL_DATES:
+            if date_str in task.get("due_date", ""):
+                task["due_date"] = text
+                break
+        return task
+    
+    def get_todo_tasks_api(self) -> list:
+        """
+        API: 获取状态非“完成”的任务列表
+
+        Returns:
+            list: 状态非“完成”的任务列表
+        """
+        try:
+            return [self.convert_task(t) for t in self.tasks_data if t.get("status") != "已完成"]
+        except Exception as e:
+            print(f"[DailyTasks] 获取未完成任务列表失败：{e}")
+            return []
 
     def get_tasks_api(self, filters: dict = None) -> list:
         """
@@ -1259,6 +1289,9 @@ def load_plugin(plugin_manager):
     )
     plugin_manager.register_method(
         "daily_tasks", "get_tasks", tasks_tab.get_tasks_api
+    )
+    plugin_manager.register_method(
+        "daily_tasks", "get_todo_tasks", tasks_tab.get_todo_tasks_api
     )
     plugin_manager.register_method(
         "daily_tasks", "get_task_by_id", tasks_tab.get_task_by_id_api

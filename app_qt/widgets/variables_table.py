@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
 )
 from PySide6.QtGui import QFont
+from app_qt.plugin_manager import get_plugin_manager
 from qtconsole.inprocess import QtInProcessKernelManager
 
 
@@ -27,6 +28,16 @@ class VariablesTable(QWidget):
 
         self.init_ui()
         self.refresh_variables()
+        self.register_system_methods()
+
+    def register_system_methods(self):
+        """
+        注册系统方法，可以获得ipython中的变量
+        """
+        pm = get_plugin_manager()
+        pm._register_system_method(
+            "get_variables", self.get_variables, {"enable_mcp": True}
+        )
 
     def init_ui(self):
         """初始化界面"""
@@ -94,11 +105,15 @@ class VariablesTable(QWidget):
 
         main_layout.addWidget(self.table)
 
-    def refresh_variables(self):
-        """从 IPython 内核获取并刷新变量列表"""
-        if not self.kernel_manager:
-            return
-
+    def get_variables(self):
+        """
+        获取 IPython 内核中的变量
+        
+        Args: 
+            无
+        Returns:
+            dict: 变量字典，包含变量名、类型、值和大小信息。比如：{"var1": {"type": "int", "value": "1", "size": "1"}, ...}
+        """
         try:
             # 使用 shell 的用户命名空间直接获取变量信息
             shell = self.kernel_manager.kernel.shell
@@ -155,6 +170,19 @@ class VariablesTable(QWidget):
                             "size": "-",
                         }
 
+            return user_vars
+
+        except Exception as e:
+            print(f"刷新变量失败：{e}")
+            return {}
+
+    def refresh_variables(self):
+        """从 IPython 内核获取并刷新变量列表"""
+        if not self.kernel_manager:
+            return
+
+        try:
+            user_vars = self.get_variables()
             # 更新表格
             self.update_table(user_vars)
 
