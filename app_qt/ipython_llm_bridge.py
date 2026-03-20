@@ -24,6 +24,7 @@ import yaml
 
 from app_qt.plugin_manager import get_plugin_manager
 from qtpy.QtCore import QThread
+from IPython.display import Markdown, display
 
 # 导入 OpenAI SDK
 try:
@@ -155,6 +156,7 @@ class StreamingOutputHandler(QObject):
             messages: 对话历史
             tools: 工具列表（可选）
         """
+        
         thread = threading.Thread(
             target=self._stream_thread, args=(client, messages, tools), daemon=True
         )
@@ -176,7 +178,7 @@ class StreamingOutputHandler(QObject):
             if tools:
                 request_params["tools"] = tools
                 request_params["tool_choice"] = "auto"
-            print(f"请求发起：{request_params['model']}, 等待处理...",)
+            print((f"请求发起，等待处理..."))
             # 发起流式请求
             response = client.chat.completions.create(**request_params)
 
@@ -308,7 +310,7 @@ class StreamingOutputHandler(QObject):
                             )
 
                             self.response_queue.put(
-                                f"\n[系统] 工具 {function_name} 返回：{result_str[:100]}..."
+                                f"\n[系统] 工具 {function_name} 返回：{result_str[:100]}...\n"
                             )
 
                             # 构建 tool 结果消息
@@ -433,7 +435,6 @@ class Agent:
 
         # 构建 MCP 工具列表
         tools = self._build_mcp_tools()
-        current_stdout = sys.stdout
         # 开始流式请求
         print(f"\n[Agent] 提问：{prompt}\n")
         print("-" * 60)

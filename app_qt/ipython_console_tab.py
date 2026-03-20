@@ -14,7 +14,7 @@ from app_qt.plugin_manager import get_plugin_manager
 from IPython.utils.capture import capture_output
 # 导入变量表格组件
 from .widgets.variables_table import VariablesTable
-
+from IPython.display import display, Markdown
 
 class KernelInitThread(QThread):
     """内核初始化线程"""
@@ -127,18 +127,15 @@ class IPythonConsoleTab(QWidget):
             success: 是否执行成功，output: print输出的内容，result: IPython代码块执行的返回值，error: 错误信息
         """
         from PySide6.QtCore import QTimer
+        from .plugin_manager import exec_main_thread_callback
         if self.kernel_manager:
+            print("\n\n")
+            display(Markdown(f"## 开始执行代码块：\n```python\n{code}```" ))
+            print("\n\n")
             with capture_output() as captured:
-                result = self.kernel_manager.kernel.shell.run_cell(code, store_history=True, silent=True)
+                result = self.kernel_manager.kernel.shell.run_cell(code, store_history=True)
                 if self.variables_table:
-                    # 获取当前线程对象
-                    current_qthread = QThread.currentThread()
-
-                    # 打印线程信息
-                    print(f"当前QThread对象: {current_qthread}")
-                    print(f"线程对象名称: {current_qthread.objectName()}")
-                    print(f"线程ID: {QThread.currentThreadId()}")
-                    QTimer.singleShot(0, self.variables_table.refresh_variables)
+                    exec_main_thread_callback(lambda: QTimer.singleShot(0, self.variables_table.refresh_variables))
             return {
                 "success": True,
                 "output": captured.stdout,
@@ -174,10 +171,11 @@ class IPythonConsoleTab(QWidget):
             bool: 设置是否成功
         """
         from PySide6.QtCore import QTimer
+        from .plugin_manager import exec_main_thread_callback
         if self.kernel_manager:
             self.kernel_manager.kernel.shell.push({name: value})
             if self.variables_table:
-                QTimer.singleShot(0, self.variables_table.refresh_variables)
+                exec_main_thread_callback(lambda: QTimer.singleShot(0, self.variables_table.refresh_variables))
             return True
         else:
             return False
@@ -288,8 +286,9 @@ class IPythonConsoleTab(QWidget):
         if hasattr(self, "variables_table") and self.variables_table:
             # 延迟一小段时间刷新，确保内核状态已更新
             from PySide6.QtCore import QTimer
-
-            QTimer.singleShot(100, self.variables_table.refresh_variables)
+            from .plugin_manager import exec_main_thread_callback
+            exec_main_thread_callback(lambda: QTimer.singleShot(100, self.variables_table.refresh_variables))
+            # QTimer.singleShot(100, self.variables_table.refresh_variables)
 
     def closeEvent(self, event):
         """清理资源"""
