@@ -142,6 +142,9 @@ class IPythonConsoleTab(QWidget):
 
         # ========== 注入 IPython 插件 API ==========
         self._inject_plugins_api()
+        
+        # ========== 注入 IPython LLM Agent API ==========
+        self._inject_llm_agent_api()
 
         if self.console_widget:
             self.console_widget._append_plain_text("IPython 内核已就绪！\n\n")
@@ -177,6 +180,25 @@ class IPythonConsoleTab(QWidget):
             
         except Exception as e:
             print(f"[IPythonConsoleTab] 注入插件 API 失败：{e}")
+            import traceback
+            traceback.print_exc()
+
+    def _inject_llm_agent_api(self):
+        """向 IPython 命名空间注入 LLM Agent API（在主线程中执行）"""
+        try:
+            from app_qt.ipython_llm_bridge import init_ipython_llm_agent_api
+            from app_qt.plugin_manager import get_plugin_manager
+            
+            # 获取插件管理器实例
+            plugin_manager = get_plugin_manager()
+            
+            # 初始化 LLM Agent API
+            agent = init_ipython_llm_agent_api(plugin_manager=plugin_manager)
+            
+            print("[IPythonConsoleTab] 已注入 agent API 到 IPython 命名空间")
+            
+        except Exception as e:
+            print(f"[IPythonConsoleTab] 注入 LLM Agent API 失败：{e}")
             import traceback
             traceback.print_exc()
 

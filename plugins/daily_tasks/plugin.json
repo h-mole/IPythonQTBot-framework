@@ -60,6 +60,9 @@
         "returns": {
           "type": "list",
           "description": "任务列表"
+        },
+        "extra_data": {
+          "enable_mcp": true
         }
       },
       {

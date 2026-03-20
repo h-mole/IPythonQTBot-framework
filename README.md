@@ -5,6 +5,7 @@
 - **终端嵌入**: qtconsole (可选，用于高级 IPython 功能)
 - **剪贴板管理**: pyperclip
 - **IPython 支持**: ipython
+- **LLM 集成**: openai (支持 Kimi、OpenAI、智谱等)
 
 ## 项目结构
 ```
@@ -13,7 +14,9 @@ myhelper/
 │   ├── __init__.py             # 应用入口
 │   ├── main_window.py          # 主窗口（包含标签页管理）
 │   ├── text_helper_tab.py      # 文本处理标签页
-│   └── ipython_console_tab.py  # IPython 控制台标签页
+│   ├── ipython_console_tab.py  # IPython 控制台标签页
+│   ├── ipython_plugins_bridge.py  # IPython 插件桥接
+│   └── ipython_llm_bridge.py   # IPython LLM 对话框架
 ├── tabs/                        # Tkinter 版本标签页（保留）
 │   ├── __init__.py
 │   ├── ipython_tk.py
@@ -80,6 +83,40 @@ python helperscript.py
 - 实时输出显示
 - 错误信息追踪
 - 清空输出功能
+- **插件 API**: `plugins.list()`, `plugins.call.plugin_name.method()`
+- **LLM 对话**: `agent.ask()`, `%agent_ask` 流式对话
+
+## 新增功能：IPython LLM Agent
+
+### 快速开始
+
+1. **配置 API Key**
+   ```bash
+   # 在 .env 文件中配置
+   API_KEY=your_kimi_api_key_here
+   ```
+
+2. **在 IPython 控制台中使用**
+   ```python
+   # 提问（流式输出）
+   agent.ask("你好，请介绍一下自己")
+   
+   # 清除历史
+   agent.clear()
+   
+   # 或使用 Magic 命令
+   %agent_ask 什么是 Python 的装饰器？
+   %agent_clear
+   ```
+
+### 主要特性
+- ✅ 流式输出 - 实时显示 LLM 响应
+- ✅ 历史记忆 - 自动保存对话上下文
+- ✅ 多 LLM 支持 - Kimi、OpenAI、智谱等
+- ✅ MCP 工具集成 - 自动调用启用的插件方法
+- ✅ Magic 命令 - 便捷的命令行接口
+
+详细文档：[docs/llm_agent_usage.md](docs/llm_agent_usage.md)
 
 ## 使用说明
 

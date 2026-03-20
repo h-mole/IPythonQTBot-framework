@@ -12,12 +12,113 @@ import sys
 import json
 import importlib.util
 import re
-from typing import Callable
+from typing import Callable, Optional, Any
+from typing_extensions import TypedDict
 from PySide6.QtWidgets import QMenuBar
 from PySide6.QtCore import QObject
 
 # 导入配置
 from app_qt.configs import PLUGINS_DIR, PLUGINS_CONFIG_FILE
+
+
+# ============ TypedDict 类型定义 ============
+
+class MethodExtraData(TypedDict, total=False):
+    """
+    方法额外数据配置
+    
+    Attributes:
+        enable_mcp: 是否启用 MCP (Model Context Protocol)
+        allow_remote_call: 是否允许远程调用
+        rate_limit: 调用频率限制（次/分钟）
+        timeout: 超时时间（秒）
+        retry_count: 重试次数
+        tags: 标签列表
+        metadata: 其他元数据
+    """
+    enable_mcp: bool
+    allow_remote_call: bool
+    rate_limit: int
+    timeout: float
+    retry_count: int
+    tags: list
+    metadata: dict[str, Any]
+
+
+class MethodInfo(TypedDict, total=False):
+    """
+    方法信息结构
+    
+    Attributes:
+        name: 方法名称
+        description: 方法描述
+        stable: 是否稳定版本
+        parameters: 参数列表
+        returns: 返回值信息
+        extra_data: 额外数据配置
+    """
+    name: str
+    description: str
+    stable: bool
+    parameters: list[dict[str, Any]]
+    returns: dict[str, Any]
+    extra_data: MethodExtraData
+
+
+class PluginExports(TypedDict, total=False):
+    """
+    插件导出配置
+    
+    Attributes:
+        namespace: 命名空间
+        description: 描述
+        methods: 方法列表
+    """
+    namespace: str
+    description: str
+    methods: list[MethodInfo]
+
+
+class PluginConfig(TypedDict, total=False):
+    """
+    插件配置结构
+    
+    Attributes:
+        name: 插件名称
+        description: 插件描述
+        version: 版本号
+        author: 作者
+        main: 入口模块
+        dependencies: 依赖列表
+        exports: 导出配置
+        callbacks: 回调函数配置
+        tabs: 标签页配置
+    """
+    name: str
+    description: str
+    version: str
+    author: str
+    main: str
+    dependencies: list[dict[str, Any]]
+    exports: PluginExports
+    callbacks: dict[str, str]
+    tabs: list[dict[str, Any]]
+
+
+class RegisteredMethod(TypedDict):
+    """
+    已注册的方法信息
+    
+    Attributes:
+        func: 方法对象
+        plugin_name: 插件名称
+        method_info: 方法信息（来自 plugin.json）
+        extra_data: 额外数据配置
+    """
+    func: Callable
+    plugin_name: str
+    method_info: Optional[MethodInfo]
+    extra_data: Optional[MethodExtraData]
 
 
 class PluginManager(QObject):
@@ -50,6 +151,9 @@ class PluginManager(QObject):
 
         # 已加载的插件：{plugin_name: plugin_info}
         self.loaded_plugins = {}
+
+        # 方法元数据缓存：{namespace: {method_name: method_info_from_json}}
+        self.methods_metadata_cache = {}
 
         # 待添加的标签页列表
         self.pending_tabs = []
@@ -362,6 +466,18 @@ class PluginManager(QObject):
         if hasattr(plugin_module, "load_plugin"):
             result = plugin_module.load_plugin(self)
 
+            # 缓存方法的元数据（从 plugin.json 的 exports.methods）
+            exports = plugin_config.get("exports", {})
+            methods_list = exports.get("methods", [])
+            namespace = exports.get("namespace", plugin_name)
+            
+            # 构建方法元数据缓存
+            self.methods_metadata_cache[namespace] = {}
+            for method_info in methods_list:
+                method_name = method_info.get("name")
+                if method_name:
+                    self.methods_metadata_cache[namespace][method_name] = method_info
+
             # 记录已加载的插件
             self.loaded_plugins[plugin_name] = {
                 "name": plugin_name,
@@ -607,7 +723,13 @@ class PluginManager(QObject):
 
         return 0
 
-    def register_method(self, namespace, method_name, func):
+    def register_method(
+        self,
+        namespace: str,
+        method_name: str,
+        func: "Callable",
+        extra_data: Optional["MethodExtraData"] = None,
+    ):
         """
         注册方法到全局域
 
@@ -615,6 +737,7 @@ class PluginManager(QObject):
             namespace: 命名空间（通常为插件名）
             method_name: 方法名称
             func: 方法对象
+            extra_data: 额外数据配置（可选），如果提供会覆盖 plugin.json 中的配置
 
         示例：
             plugin_manager.register_method("quick_notes", "create_note", create_note_func)
@@ -623,10 +746,15 @@ class PluginManager(QObject):
         if namespace not in self.methods_registry:
             self.methods_registry[namespace] = {}
 
-        self.methods_registry[namespace][method_name] = func
+        # 存储方法及其元数据
+        self.methods_registry[namespace][method_name] = {
+            "func": func,
+            "extra_data": extra_data,  # 可选，用于覆盖 json 配置
+        }
+        
         print(f"[PluginManager] 注册方法：{namespace}.{method_name}")
 
-    def get_method(self, full_name) -> "Callable":
+    def get_method(self, full_name) -> Optional["Callable"]:
         """
         获取已注册的方法
 
@@ -654,7 +782,91 @@ class PluginManager(QObject):
             print(f"[PluginManager] 未找到方法：{namespace}.{method_name}")
             return None
 
-        return self.methods_registry[namespace][method_name]
+        method_entry = self.methods_registry[namespace][method_name]
+        
+        # 兼容旧版本（直接是函数对象）
+        if callable(method_entry):
+            return method_entry
+        
+        # 新版本返回字典中的 func
+        return method_entry.get("func")
+
+    def get_method_extra_data(self, full_name) -> Optional["MethodExtraData"]:
+        """
+        获取方法的额外数据配置
+        优先从 plugin.json 中读取，如果 register_method 时提供了 extra_data 则覆盖
+
+        Args:
+            full_name: 完整方法名（格式："namespace.method_name"）
+
+        Returns:
+            MethodExtraData: 额外数据配置，不存在则返回 None
+
+        示例：
+            extra_data = plugin_manager.get_method_extra_data("quick_notes.create_note")
+            if extra_data and extra_data.get("enable_mcp"):
+                # 启用 MCP 功能
+                pass
+        """
+        parts = full_name.split(".", 1)
+        if len(parts) != 2:
+            return None
+
+        namespace, method_name = parts
+
+        if namespace not in self.methods_registry:
+            return None
+
+        if method_name not in self.methods_registry[namespace]:
+            return None
+
+        method_entry = self.methods_registry[namespace][method_name]
+        
+        # 兼容旧版本
+        if callable(method_entry):
+            return {}
+        
+        # 优先使用 register_method 时提供的 extra_data（如果有）
+        if method_entry.get("extra_data") is not None:
+            return method_entry.get("extra_data")
+        
+        # 否则从 metadata cache 中读取
+        if namespace in self.methods_metadata_cache:
+            if method_name in self.methods_metadata_cache[namespace]:
+                method_info = self.methods_metadata_cache[namespace][method_name]
+                return method_info.get("extra_data", {})
+        
+        return {}
+
+    def get_method_info(self, full_name) -> Optional[dict]:
+        """
+        获取方法的完整信息（包括函数和额外数据）
+
+        Args:
+            full_name: 完整方法名（格式："namespace.method_name"）
+
+        Returns:
+            dict: 方法信息字典，包含 func 和 extra_data，不存在则返回 None
+        """
+        parts = full_name.split(".", 1)
+        if len(parts) != 2:
+            return None
+
+        namespace, method_name = parts
+
+        if namespace not in self.methods_registry:
+            return None
+
+        if method_name not in self.methods_registry[namespace]:
+            return None
+
+        method_entry = self.methods_registry[namespace][method_name]
+        
+        # 兼容旧版本
+        if callable(method_entry):
+            return {"func": method_entry, "extra_data": {}}
+        
+        return method_entry
 
     def add_plugin_tab(self, plugin_name, tab_name, tab_instance, position=None):
         """
@@ -744,12 +956,45 @@ class PluginManager(QObject):
         """获取插件信息"""
         return self.loaded_plugins.get(plugin_name)
 
-    def get_all_methods(self):
-        """获取所有已注册方法的列表"""
+    def get_all_methods(self, include_extra_data: bool = False):
+        """
+        获取所有已注册方法的列表
+        
+        Args:
+            include_extra_data: 是否包含 extra_data 信息，默认为 False
+            
+        Returns:
+            如果 include_extra_data 为 False，返回方法名列表：["namespace.method1", ...]
+            如果 include_extra_data 为 True，返回方法信息列表：[{"name": "namespace.method1", "extra_data": {...}}, ...]
+        """
         all_methods = []
         for namespace, methods in self.methods_registry.items():
-            for method_name in methods.keys():
-                all_methods.append(f"{namespace}.{method_name}")
+            for method_name, method_entry in methods.items():
+                if include_extra_data:
+                    # 兼容旧版本
+                    if callable(method_entry):
+                        extra_data = {}
+                    else:
+                        # 优先使用 register_method 时提供的 extra_data
+                        if method_entry.get("extra_data") is not None:
+                            extra_data = method_entry.get("extra_data")
+                        else:
+                            # 否则从 metadata cache 中读取
+                            if namespace in self.methods_metadata_cache:
+                                if method_name in self.methods_metadata_cache[namespace]:
+                                    method_info = self.methods_metadata_cache[namespace][method_name]
+                                    extra_data = method_info.get("extra_data", {})
+                                else:
+                                    extra_data = {}
+                            else:
+                                extra_data = {}
+                    
+                    all_methods.append({
+                        "name": f"{namespace}.{method_name}",
+                        "extra_data": extra_data
+                    })
+                else:
+                    all_methods.append(f"{namespace}.{method_name}")
         return all_methods
 
     def unload_plugin(self, plugin_name):
