@@ -12,19 +12,25 @@ IPython LLM Bridge - 流式对话框架
 import os
 import queue
 import sys
+import textwrap
 import threading
 from typing import Literal, Optional, List, Dict, Any
-from venv import logger
 from IPython.core.getipython import get_ipython
 from PySide6.QtCore import QObject, Signal, QTimer
 from PySide6.QtWidgets import QApplication
 import json
 import sys
 import yaml
-
-from app_qt.plugin_manager import get_plugin_manager
+from rich import print
+from rich.text import Text
+from app_qt.plugin_manager import PluginManager, get_plugin_manager
 from qtpy.QtCore import QThread
 from IPython.display import Markdown, display
+from app_qt.configs import (
+    format_app_config_file_path,
+    ensure_app_config_file,
+    app_config,
+)
 
 # 导入 OpenAI SDK
 try:
@@ -35,6 +41,9 @@ except ImportError:
 from dotenv import load_dotenv
 
 load_dotenv()
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class LLMConfig:
@@ -120,7 +129,10 @@ class StreamingOutputHandler(QObject):
         str
     )  # 表征stream已经结束，str的意思是下一步怎么办，如 "CALL_TOOL" 指的是需要调用工具，而"FINISH"代表直接结束即可。
     error_occurred = Signal(str)  # 发射错误信息
-    
+
+    IMPORTANT_STYLE = "bold"
+    DIM_STYLE = "#999999"
+
     def __init__(self, ipython_shell=None, agent_instance=None):
         super().__init__()
         self.is_streaming = False
@@ -156,7 +168,7 @@ class StreamingOutputHandler(QObject):
             messages: 对话历史
             tools: 工具列表（可选）
         """
-        
+
         thread = threading.Thread(
             target=self._stream_thread, args=(client, messages, tools), daemon=True
         )
@@ -188,6 +200,9 @@ class StreamingOutputHandler(QObject):
             # 使用字典按 index 存储工具调用碎片，解决流式拼接问题
             tool_calls_map = {}
 
+            # 记忆当前正在输出的内容
+            current_output: Literal["content", "reasoning_content", "tool_call"] = ""
+
             # ===========================
             # 第一阶段：接收并拼接流式数据
             # ===========================
@@ -203,15 +218,35 @@ class StreamingOutputHandler(QObject):
 
                 # 1. 处理文本内容
                 if delta.content:
+                    if current_output != "content":
+                        current_output = "content"
+                        self.response_queue.put(
+                            Text("\n\n输出结果:\n\n", style=self.IMPORTANT_STYLE)
+                        )
                     full_response += delta.content
                     self.response_queue.put(delta.content)
                 #   处理reasoning_content
-                if hasattr(delta, "reasoning_content") and delta.reasoning_content is not None:
-                    self.response_queue.put(delta.reasoning_content)
+                if (
+                    hasattr(delta, "reasoning_content")
+                    and delta.reasoning_content is not None
+                ):
+                    if current_output != "reasoning_content":
+                        current_output = "reasoning_content"
+                        self.response_queue.put(
+                            Text("\n\n思维过程:\n\n", style=self.IMPORTANT_STYLE)
+                        )
+                    self.response_queue.put(
+                        Text(delta.reasoning_content, style=self.DIM_STYLE)
+                    )
                     # reasoning_enabled = True
                     reasoning_content += delta.reasoning_content
                 # 2. 处理工具调用碎片
                 if hasattr(delta, "tool_calls") and delta.tool_calls:
+                    if current_output != "tool_call":
+                        current_output = "tool_call"
+                        self.response_queue.put(
+                            Text("\n\n工具调用过程:\n\n", style=self.IMPORTANT_STYLE)
+                        )
                     for tool_call_chunk in delta.tool_calls:
                         # 获取索引，OpenAI 流式返回通过 index 标识不同的工具调用
                         idx = getattr(tool_call_chunk, "index", 0)
@@ -229,6 +264,12 @@ class StreamingOutputHandler(QObject):
                         # 拼接 ID (通常在第一个 chunk)
                         if hasattr(tool_call_chunk, "id") and tool_call_chunk.id:
                             current_tc["id"] = tool_call_chunk.id
+                            self.response_queue.put(
+                                Text(
+                                    f"\nTool Call ID: {tool_call_chunk.id}",
+                                    style=self.DIM_STYLE,
+                                )
+                            )
 
                         # 拼接 Function 信息
                         if (
@@ -239,6 +280,12 @@ class StreamingOutputHandler(QObject):
 
                             if hasattr(func_chunk, "name") and func_chunk.name:
                                 current_tc["function"]["name"] = func_chunk.name
+                                self.response_queue.put(
+                                    Text(
+                                        f"Tool Call Function Name: {func_chunk.name}\n",
+                                        style=self.DIM_STYLE,
+                                    )
+                                )
 
                             if (
                                 hasattr(func_chunk, "arguments")
@@ -248,7 +295,12 @@ class StreamingOutputHandler(QObject):
                                 current_tc["function"][
                                     "arguments"
                                 ] += func_chunk.arguments
-
+                                self.response_queue.put(
+                                    Text(
+                                        f"Tool Call Function Arguments: {func_chunk.arguments}\n",
+                                        style=self.DIM_STYLE,
+                                    )
+                                )
             # ===========================
             # 第二阶段：构建 Assistant 消息并保存
             # ===========================
@@ -260,7 +312,6 @@ class StreamingOutputHandler(QObject):
             assistant_message = {
                 "role": "assistant",
                 "content": full_response if full_response else None,
-                
                 # 必须转为 None，或者不包含该字段，避免发送空字符串
             }
             if reasoning_content:
@@ -270,7 +321,9 @@ class StreamingOutputHandler(QObject):
                 assistant_message["tool_calls"] = final_tool_calls
                 # 加上这句试试看有没有问题
                 # if "reasoning_content" not in assistant_message and reasoning_enabled:
-                assistant_message["reasoning_content"] = reasoning_content if reasoning_content else None
+                assistant_message["reasoning_content"] = (
+                    reasoning_content if reasoning_content else None
+                )
             elif reasoning_content:
                 assistant_message["reasoning_content"] = reasoning_content
             # ===========================
@@ -278,7 +331,9 @@ class StreamingOutputHandler(QObject):
             # ===========================
             tool_results_messages_storage = []
             if final_tool_calls:
-                self.response_queue.put("\n\n[系统] 检测到工具调用，正在处理...")
+                self.response_queue.put(
+                    Text("\n\n[系统] 检测到工具调用，正在处理...", style="bold")
+                )
 
                 for tool_call in final_tool_calls:
                     tool_call_id = tool_call["id"]
@@ -288,13 +343,17 @@ class StreamingOutputHandler(QObject):
                     if not function_name:
                         continue
 
-                    self.response_queue.put(f"\n[系统] 调用工具：{function_name}")
+                    self.response_queue.put(
+                        Text(f"\n[系统] 调用工具：{function_name}", style="bold")
+                    )
 
                     # 解析参数
                     try:
                         arguments = json.loads(arguments_str) if arguments_str else {}
                     except json.JSONDecodeError as e:
-                        self.response_queue.put(f"\n[警告] 参数解析失败：{e}")
+                        self.response_queue.put(
+                            Text(f"\n[警告] 参数解析失败：{e}", style="red")
+                        )
                         arguments = {}
 
                     # 执行工具
@@ -310,7 +369,10 @@ class StreamingOutputHandler(QObject):
                             )
 
                             self.response_queue.put(
-                                f"\n[系统] 工具 {function_name} 返回：{result_str[:100]}...\n"
+                                Text(
+                                    f"\n[系统] 工具 {function_name} 返回：{result_str[:100]}...\n",
+                                    style=self.DIM_STYLE,
+                                )
                             )
 
                             # 构建 tool 结果消息
@@ -325,12 +387,15 @@ class StreamingOutputHandler(QObject):
                             # 2. 发送信号 (供 UI 显示)
                             # self.llm_message_finish.emit(tool_result_message)
                         else:
-                            err_msg = "\n[错误] Agent 实例未初始化"
+                            err_msg = Text("\n[错误] Agent 实例未初始化", style="red")
                             self.response_queue.put(err_msg)
 
                     except Exception as e:
+                        import traceback
+
+                        traceback.print_exc()
                         error_msg = f"\n[错误] 执行工具失败：{e}"
-                        self.response_queue.put(error_msg)
+                        self.response_queue.put(Text(error_msg, style="red"))
                         # 将错误信息反馈给模型
                         messages.append(
                             {
@@ -366,6 +431,24 @@ class StreamingOutputHandler(QObject):
             self.response_queue.put(None)
 
 
+AGENT_SYSTEM_PROMPT_INITIAL = """
+
+You are a helpful assistant that have various functions.
+
+## Knowledge Source
+- Online: You may search online if needed.
+- Local: 
+    - For something that is not tasks, you may query from the local notes or textfiles;
+    - For tasks involving coding, file operations, or multi-step processes: You MUST FIRST check task_requirements/
+      For other simple tasks, you may proceed but should mention if task_requirements/ check is needed
+
+## Notice
+
+- For all tasks that you think is complex, please refer to the notes in `task_requirements/` first, or you may waste a lot of time to solve that.
+
+"""
+
+
 class Agent:
     """LLM Agent - 管理对话历史和调用"""
 
@@ -383,6 +466,10 @@ class Agent:
             plugin_manager: 插件管理器实例（用于获取 MCP 工具）
             ipython_shell: IPython shell 实例（用于正确输出到 IPython 控制台）
         """
+        self.system_prompt_file = ensure_app_config_file(
+            f"prompt-templates/{app_config.llm_config.customization_name}/System.md",
+            AGENT_SYSTEM_PROMPT_INITIAL,
+        )
         if OpenAI is None:
             raise ImportError("请先安装 openai 库：pip install openai")
 
@@ -393,10 +480,13 @@ class Agent:
         self.client = OpenAI(api_key=self.config.api_key, base_url=self.config.base_url)
 
         # 对话历史
-        self.messages: List[Dict[str, str]] = []
+        self.messages: List[Dict[str, str]] = [{
+            "role": "system",
+            "content": self.system_prompt_file.read_text(),
+        }]
 
         # 插件管理器
-        self.plugin_manager = plugin_manager
+        self.plugin_manager: "PluginManager" = plugin_manager
 
         # 流式输出处理器
         self.output_handler = StreamingOutputHandler(
@@ -455,10 +545,14 @@ class Agent:
                     f"{i+1}. {tool["function"]['name']}:\n{tool["function"]['description']}"
                 )
             print(f"[Agent] 可用工具：\n{'\n'.join(tools_brief_info)}")
-        
+
     def clear(self):
         """清除历史对话"""
         self.messages.clear()
+        self.messages.append({
+            "role": "system",
+            "content": self.system_prompt_file.read_text(),
+        })
         print("[Agent] 已清除历史对话，可以开始新对话")
 
     def set_system_prompt(self, system_prompt: str):
@@ -505,10 +599,15 @@ class Agent:
             if not method_func:
                 continue
 
-            # 构建工具定义
-            tool_def = self._method_to_openai_tool(method_name, method_func)
-            if tool_def:
-                tools.append(tool_def)
+            # 获取详细信息，如果信息中已经包含了 LLM Tool 的信息，那么就直接读取
+            method_metadata = self.plugin_manager.get_method_metadata(method_name)
+            if method_metadata and "llm_tool_info" in method_metadata:
+                tools.append(method_metadata["llm_tool_info"])
+            else:
+                # 构建工具定义
+                tool_def = self._method_to_openai_tool(method_name, method_func)
+                if tool_def:
+                    tools.append(tool_def)
 
         return tools
 
@@ -631,32 +730,6 @@ class Agent:
                 return "object"
 
         return "string"
-
-    # def _infer_param_type_basic(self, annotation) -> str:
-    #     """
-    #     基础类型推断（向后兼容）
-
-    #     Args:
-    #         annotation: 类型注解
-
-    #     Returns:
-    #         str: OpenAI 支持的类型名称
-    #     """
-    #     import inspect as inspect_module
-
-    #     if annotation == inspect_module.Parameter.empty:
-    #         return "string"
-
-    #     basic_mapping = {
-    #         int: "integer",
-    #         float: "number",
-    #         bool: "boolean",
-    #         str: "string",
-    #         list: "array",
-    #         dict: "object",
-    #     }
-
-    #     return basic_mapping.get(annotation, "string")
 
     def _extract_param_description(self, method_func, param_name: str, sig) -> str:
         """
@@ -821,6 +894,50 @@ class Agent:
         """错误处理的回调（在主线程中执行）"""
         print(error_msg)
 
+    def show_messages(self):
+        """
+        将消息列表渲染为Markdown形式,调用text_helper里面的接口方法进行显示
+        """
+        message_strs = []
+        for i, msg in enumerate(self.messages):
+            msg_new = msg.copy()
+            if "content" in msg_new:
+                msg_new["content"] = f"..."
+            if "reasoning_content" in msg_new:
+                msg_new["reasoning_content"] = f"..."
+            text = f"""
+# {i+1}. {msg['role']}:
+
+## Metadata:
+
+```json
+{json.dumps(msg_new, ensure_ascii=False, indent=4)}
+```
+
+            """
+            text += (f"""               
+## Content:
+{msg.get('content', '[No content]')}
+
+            """) if "content" in msg else ""
+            text += (f"""             
+## Reasoning:
+{msg.get('reasoning_content', '[No Reasoning Content]')}
+
+            """) if "reasoning_content" in msg else ""
+
+            message_strs.append(text)
+        method = self.plugin_manager.get_method(
+            "text_helper.render_markdown",
+        )
+        if method:
+            method("\n".join(message_strs))
+            logger.info("[LLM Bridge] 消息已渲染为 Markdown 并显示")
+        else:
+            logger.error(
+                "[LLM Bridge] 未找到 text_helper.render_markdown 方法，无法显示消息"
+            )
+
 
 # ==================== Magic 命令注册 ====================
 
@@ -886,7 +1003,7 @@ def init_ipython_llm_agent_api(
 
             # 注册 magic 命令
             register_llm_magics(shell, agent)
-            
+
             # 注册自省方法，获取所有的能力
             pm = get_plugin_manager()
             pm._register_system_method(

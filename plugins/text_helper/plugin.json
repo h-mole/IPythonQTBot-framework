@@ -89,6 +89,23 @@
           "type": "bool",
           "description": "是否设置成功"
         }
+      },
+      {
+        "name": "render_markdown",
+        "description": "渲染 Markdown 文本并显示预览窗口",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "text",
+            "type": "str",
+            "description": "要渲染的文本",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否成功显示预览窗口"
+        }
       }
     ]
   },

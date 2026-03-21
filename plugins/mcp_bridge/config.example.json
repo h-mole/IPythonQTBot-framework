@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "web-search-prime": {
+      "type": "streamable-http",
+      "url": "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp",
+      "headers": {
+        "Authorization": "Bearer your_api_key"
+      }
+    },
+    "example-stdio-server": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-m", "your_mcp_server"],
+      "env": {
+        "API_KEY": "your_api_key_here"
+      }
+    }
+  }
+}

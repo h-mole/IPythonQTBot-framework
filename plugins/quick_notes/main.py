@@ -29,13 +29,16 @@ from PySide6.QtWidgets import (
     QFrame,
     QMenu,
     QStyle,
+    QApplication,
 )
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QFont, QAction, QTextCursor
+from PySide6.QtCore import Qt, QTimer, QSignalMapper
+from PySide6.QtGui import QFont, QAction, QTextCursor, QKeySequence, QIcon
 
 # 导入配置
 from app_qt.configs import PLUGIN_DATA_DIR
 from app_qt.plugin_manager import PluginManager
+
+allowed_file_extensions = (".md", ".txt", ".py")
 
 
 class QuickNotesTab(QWidget):
@@ -168,6 +171,14 @@ class QuickNotesTab(QWidget):
         self.editor.setFont(QFont("Consolas", 10))
         self.editor.setPlaceholderText("在此输入笔记内容...")
         self.editor.textChanged.connect(self.on_text_changed)
+        
+        # 设置编辑器接受上下文菜单
+        self.editor.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.editor.customContextMenuRequested.connect(self.show_editor_context_menu)
+        
+        # 创建编辑器的快捷键
+        self.create_editor_shortcuts()
+        
         right_layout.addWidget(self.editor)
 
         # 查找替换面板（默认隐藏）
@@ -263,7 +274,7 @@ class QuickNotesTab(QWidget):
                             parent_items[0].addChild(item)
 
             for file_name in sorted(files):
-                if file_name.endswith(".txt") or file_name.endswith(".md"):
+                if file_name.endswith(allowed_file_extensions):
                     file_path = os.path.join(root, file_name)
                     item = QTreeWidgetItem([file_name])
                     item.setData(0, Qt.ItemDataRole.UserRole, file_path)
@@ -362,7 +373,7 @@ class QuickNotesTab(QWidget):
             self,
             "另存为",
             self.notes_dir,
-            "文本文件 (*.txt);;Markdown 文件 (*.md);;所有文件 (*)",
+            "文本文件 (*".join(allowed_file_extensions) + ");;所有文件 (*)",
         )
 
         if file_path:
@@ -391,7 +402,10 @@ class QuickNotesTab(QWidget):
             return
 
         # 构建完整路径
-        file_name = f"{name.strip()}.txt"
+        if not name.strip().endswith(allowed_file_extensions):
+            file_name = f"{name.strip()}.md"
+        else:
+            file_name = name.strip()
         file_path = os.path.join(parent_path, file_name)
 
         # 检查是否已存在
@@ -659,6 +673,102 @@ class QuickNotesTab(QWidget):
         # 可以在未来添加状态栏
         print(f"状态：{message}")
 
+    # ==================== 编辑器上下文菜单和快捷键 ====================
+
+    def show_editor_context_menu(self, pos):
+        """显示编辑器右键菜单"""
+        menu = QMenu(self.editor)
+
+        # 撤销/重做
+        undo_action = menu.addAction("↶ 撤销")
+        undo_action.setShortcut(QKeySequence.Undo)
+        undo_action.triggered.connect(self.editor.undo)
+        undo_action.setEnabled(self.editor.document().isUndoAvailable())
+
+        redo_action = menu.addAction("↷ 重做")
+        redo_action.setShortcut(QKeySequence.Redo)
+        redo_action.triggered.connect(self.editor.redo)
+        redo_action.setEnabled(self.editor.document().isRedoAvailable())
+
+        menu.addSeparator()
+
+        # 剪切/复制/粘贴
+        cut_action = menu.addAction("✂ 剪切")
+        cut_action.setShortcut(QKeySequence.Cut)
+        cut_action.triggered.connect(self.editor.cut)
+        cut_action.setEnabled(self.editor.textCursor().hasSelection())
+
+        copy_action = menu.addAction("📋 复制")
+        copy_action.setShortcut(QKeySequence.Copy)
+        copy_action.triggered.connect(self.editor.copy)
+        copy_action.setEnabled(self.editor.textCursor().hasSelection())
+
+        paste_action = menu.addAction("📌 粘贴")
+        paste_action.setShortcut(QKeySequence.Paste)
+        paste_action.triggered.connect(self.editor.paste)
+        paste_action.setEnabled(not self.editor.toPlainText().strip() == "" or 
+                               QApplication.clipboard().text() != "")
+
+        menu.addSeparator()
+
+        # 全选
+        select_all_action = menu.addAction("☑ 全选")
+        select_all_action.setShortcut(QKeySequence.SelectAll)
+        select_all_action.triggered.connect(self.editor.selectAll)
+
+        menu.addSeparator()
+
+        # 查找/替换
+        find_action = menu.addAction("🔍 查找")
+        find_action.setShortcut(QKeySequence.Find)
+        find_action.triggered.connect(self.show_find_dialog)
+
+        replace_action = menu.addAction("🔄 替换")
+        replace_action.setShortcut(QKeySequence.Replace)
+        replace_action.triggered.connect(self.show_replace_dialog)
+
+        menu.addSeparator()
+
+        # 保存
+        save_action = menu.addAction("💾 保存")
+        save_action.setShortcut(QKeySequence.Save)
+        save_action.triggered.connect(self.save_current_note)
+
+        # 显示菜单
+        menu.exec_(self.editor.viewport().mapToGlobal(pos))
+
+    def create_editor_shortcuts(self):
+        """创建编辑器快捷键"""
+        # 保存快捷键
+        save_shortcut = QAction("保存", self)
+        save_shortcut.setShortcut(QKeySequence.Save)  # Ctrl+S
+        save_shortcut.triggered.connect(self.save_current_note)
+        self.editor.addAction(save_shortcut)
+
+        # 查找快捷键
+        find_shortcut = QAction("查找", self)
+        find_shortcut.setShortcut(QKeySequence.Find)  # Ctrl+F
+        find_shortcut.triggered.connect(self.show_find_dialog)
+        self.editor.addAction(find_shortcut)
+
+        # 替换快捷键
+        replace_shortcut = QAction("替换", self)
+        replace_shortcut.setShortcut(QKeySequence.Replace)  # Ctrl+H
+        replace_shortcut.triggered.connect(self.show_replace_dialog)
+        self.editor.addAction(replace_shortcut)
+
+        # 撤销快捷键
+        undo_shortcut = QAction("撤销", self)
+        undo_shortcut.setShortcut(QKeySequence.Undo)  # Ctrl+Z
+        undo_shortcut.triggered.connect(self.editor.undo)
+        self.editor.addAction(undo_shortcut)
+
+        # 重做快捷键
+        redo_shortcut = QAction("重做", self)
+        redo_shortcut.setShortcut(QKeySequence.Redo)  # Ctrl+Y 或 Ctrl+Shift+Z
+        redo_shortcut.triggered.connect(self.editor.redo)
+        self.editor.addAction(redo_shortcut)
+
     # ==================== API 接口方法（暴露给其他插件调用） ====================
 
     def create_note_api(self, name, folder=None):
@@ -676,8 +786,8 @@ class QuickNotesTab(QWidget):
             parent_path = os.path.join(self.notes_dir, folder)
         else:
             parent_path = self.notes_dir
-
-        file_name = f"{name}.txt"
+        if not name.strip().endswith(allowed_file_extensions):
+            file_name = f"{name.strip()}.md"
         file_path = os.path.join(parent_path, file_name)
 
         # 检查是否已存在
@@ -694,8 +804,8 @@ class QuickNotesTab(QWidget):
         self.load_note_content(file_path)
 
         return file_path
-    
-    def load_note_to_ipython_api(self, variable_name: str, path: str)->str:
+
+    def load_note_to_ipython_api(self, variable_name: str, path: str) -> str:
         """
         API: 加载笔记内容到IPython，变量名自拟。在不需要读取笔记全部内容，或需要将该内容加载到ipython使用时，推荐优先使用该方法
 
@@ -753,6 +863,28 @@ class QuickNotesTab(QWidget):
             print(f"保存笔记失败：{e}")
             return False
 
+    def _is_path_allowed(self, relpath):
+        return relpath.lstrip("/\\").startswith(("scripts",))
+
+    def save_textfile_safe_api(self, path, content):
+        """
+        API: 保存文本文件,仅允许操作allow list路径下面的文件. 目前allow_list=["scripts"],比如"scripts/demo.py"是允许创建的, "abc/demo.py"就是不允许创建的
+
+        Args:
+            path: str, 文件相对路径
+            content: str, 文件内容
+
+        Returns:
+            str: 保存是否成功,状态信息
+        """
+        if not self._is_path_allowed(path):
+            return f"path not allowed: {path}"
+        return (
+            "success"
+            if self.save_note_api(os.path.join(self.notes_dir, path), content)
+            else "save failed"
+        )
+
     def query_note_by_name_api(self, name_query: str):
         """
         API: 查询笔记名称
@@ -775,6 +907,7 @@ class QuickNotesTab(QWidget):
         limit: int = 10,
         chunk_size: int = 1000,
         regex: bool = False,
+        folder: str = "",
     ) -> list[tuple[str, str]]:
         """
         API: 全局查询笔记内容，支持正则表达式、限制条数和字符数，默认情况下不需要调整。
@@ -783,7 +916,8 @@ class QuickNotesTab(QWidget):
             text_query: str 笔记内容查询字符串，模糊匹配
             limit: int = 10: 返回的结果条数限制
             chunk_size: int = 1000: 每个笔记块的字符数限制
-            regex: bool = False: 是否使用正则表达式匹配
+            regex: bool = False: 是否使用正则表达式匹配,正则匹配时将直接用正则匹配,否则文本将被以空格切分后按照or的逻辑匹配返回.
+            folder: str = "": 查询的文件夹相对路径,如"scripts/",默认为空,则从根目录开始查询
 
         Returns:
             list[tuple[str, str]]: 笔记的相对路径和内容的列表
@@ -791,7 +925,13 @@ class QuickNotesTab(QWidget):
         ret = []
         count = 0
 
-        for root, dirs, files in os.walk(self.notes_dir):
+        if folder != "":
+            folder_path = os.path.join(self.notes_dir, folder)
+            if not os.path.exists(folder_path):
+                raise FileNotFoundError(f"查询文件夹不存在：{folder_path}")
+        else:
+            folder_path = self.notes_dir
+        for root, dirs, files in os.walk(folder_path):
             for file in files:
                 # 如果已经达到限制，提前退出
                 if count >= limit:
@@ -808,7 +948,8 @@ class QuickNotesTab(QWidget):
                         if searched:
                             position = searched.start()
                     else:
-                        position =  content.find(text_query)    
+                        text_query_words = text_query.split()
+                        position = any(content.find(word) != -1 for word in text_query_words)
                     if position != -1:
                         chunk_start = max(0, position - chunk_size // 2)
                         chunk_end = min(len(content), position + chunk_size // 2)
@@ -829,11 +970,10 @@ class QuickNotesTab(QWidget):
         return ret
 
 
-
 # ==================== 插件入口函数 ====================
 
 
-def load_plugin(plugin_manager):
+def load_plugin(plugin_manager: "PluginManager"):
     """
     插件加载入口函数
 
@@ -854,13 +994,18 @@ def load_plugin(plugin_manager):
         "quick_notes", "create_note", notes_tab.create_note_api
     )
     plugin_manager.register_method("quick_notes", "load_note", notes_tab.load_note_api)
-    plugin_manager.register_method("quick_notes", "load_note_to_ipython", notes_tab.load_note_to_ipython_api)
+    plugin_manager.register_method(
+        "quick_notes", "load_note_to_ipython", notes_tab.load_note_to_ipython_api
+    )
     plugin_manager.register_method("quick_notes", "save_note", notes_tab.save_note_api)
     plugin_manager.register_method(
         "quick_notes", "query_note_by_name", notes_tab.query_note_by_name_api
     )
     plugin_manager.register_method(
         "quick_notes", "query_notes_by_text", notes_tab.query_notes_by_text_api
+    )
+    plugin_manager.register_method(
+        "quick_notes", "save_textfile_safe", notes_tab.save_textfile_safe_api
     )
 
     # 添加到标签页（由插件管理器统一管理）

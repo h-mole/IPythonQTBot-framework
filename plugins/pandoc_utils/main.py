@@ -23,6 +23,8 @@ import tempfile
 import subprocess
 from typing import TYPE_CHECKING
 
+from app_qt.configs import PLUGIN_DATA_DIR
+
 if TYPE_CHECKING:
     from app_qt.plugin_manager import PluginManager
 
@@ -43,7 +45,7 @@ class PandocUtilsWidget(QWidget):
         """获取模板目录路径"""
         # 数据文件夹/pandoc_utils/templates/docx
         base_dir = os.path.join(
-            os.path.expanduser("~"), ".myhelper", "pandoc_utils", "templates", "docx"
+            PLUGIN_DATA_DIR, "pandoc_utils", "templates", "docx"
         )
         # 确保目录存在
         os.makedirs(base_dir, exist_ok=True)
@@ -66,7 +68,7 @@ class PandocUtilsWidget(QWidget):
 
         builtin_dir = self._get_builtin_templates_dir()
         data_dir = os.path.join(
-            os.path.expanduser("~"), ".myhelper", "pandoc_utils", "templates", "docx"
+            PLUGIN_DATA_DIR, "pandoc_utils", "templates", "docx"
         )
 
         # 确保数据目录存在

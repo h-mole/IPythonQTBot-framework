@@ -57,6 +57,7 @@ class MethodInfo(TypedDict, total=False):
         parameters: 参数列表
         returns: 返回值信息
         extra_data: 额外数据配置
+        llm_tool_info: LLM Tool 相关的签名信息
     """
 
     name: str
@@ -65,6 +66,7 @@ class MethodInfo(TypedDict, total=False):
     parameters: list[dict[str, Any]]
     returns: dict[str, Any]
     extra_data: MethodExtraData
+    llm_tool_info: dict[str, Any]
 
 
 class PluginExports(TypedDict, total=False):
@@ -164,7 +166,7 @@ class PluginManager(QObject):
         self.loaded_plugins = {}
 
         # 方法元数据缓存：{namespace: {method_name: method_info_from_json}}
-        self.methods_metadata_cache = {"system": {}}
+        self.methods_metadata_cache: dict[str, dict[str, MethodInfo]] = {"system": {}}
 
         # 待添加的标签页列表
         self.pending_tabs = []
@@ -490,8 +492,10 @@ class PluginManager(QObject):
             for method_info in methods_list:
                 method_name = method_info.get("name")
                 if method_name:
-                    self.methods_metadata_cache[namespace][method_name] = method_info
-
+                    if method_name not in self.methods_metadata_cache[namespace]:
+                        self.methods_metadata_cache[namespace][method_name] = method_info
+                    else:
+                        raise Exception(f"[PluginManager] 方法 {namespace}.{method_name} 的 extra_data 禁止重复定义")
             # 记录已加载的插件
             self.loaded_plugins[plugin_name] = {
                 "name": plugin_name,
@@ -742,6 +746,8 @@ class PluginManager(QObject):
         namespace: str,
         method_name: str,
         func: "Callable",
+        extra_data: MethodExtraData | None = None,
+        llm_tool_info: dict[str, Any] | None = None,
     ):
         """
         注册方法到全局域
@@ -769,6 +775,10 @@ class PluginManager(QObject):
         }
 
         print(f"[PluginManager] 注册方法：{namespace}.{method_name}")
+        if extra_data:
+            self.methods_metadata_cache[namespace][method_name] = {
+                "extra_data": extra_data, "llm_tool_info": llm_tool_info
+            }
 
     def _register_system_method(
         self, method_name: str, func: "Callable", extra_data: MethodExtraData
@@ -866,7 +876,25 @@ class PluginManager(QObject):
                 return method_info.get("extra_data", {})
 
         return {}
+    
+    def get_method_metadata(self, full_name) -> Optional[MethodInfo]:
+        """
+        获取方法的元数据
 
+        Args:
+            full_name: 完整方法名（格式："namespace.method_name"）
+
+        Returns:
+            MethodMetadata: 方法元数据，不存在则返回 None
+        """
+        parts = full_name.split(".", 1)
+        if len(parts) != 2:
+            return None
+        namespace, method_name = parts
+        if namespace in self.methods_metadata_cache:
+            if method_name in self.methods_metadata_cache[namespace]:
+                return self.methods_metadata_cache[namespace][method_name]
+        return None
     def get_method_info(self, full_name) -> Optional[dict]:
         """
         获取方法的完整信息（包括函数和额外数据）

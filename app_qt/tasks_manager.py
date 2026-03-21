@@ -42,7 +42,7 @@ from openpyxl.utils import get_column_letter
 import plyer
 
 # 导入配置
-from app_qt.configs import DATA_PATHS
+from app_qt.configs import PLUGIN_DATA_DIR
 
 # 默认分类
 DEFAULT_CATEGORIES = ["论文", "项目"]
@@ -183,7 +183,7 @@ class TaskDialog(QDialog):
         """加载用户自定义的分类"""
         try:
             categories_file = os.path.join(
-                os.path.dirname(DATA_PATHS["tasks_file"]), "task_categories.json"
+                PLUGIN_DATA_DIR, "daily_tasks", "task_categories.json"
             )
             if os.path.exists(categories_file):
                 with open(categories_file, "r", encoding="utf-8") as f:
@@ -372,7 +372,7 @@ class TasksManagerTab(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.tasks_file = DATA_PATHS["tasks_file"]
+        self.tasks_file = os.path.join(PLUGIN_DATA_DIR, "daily_tasks","daily_tasks.xlsx")
         self.categories_file = os.path.join(
             os.path.dirname(self.tasks_file), "task_categories.json"
         )

@@ -81,6 +81,32 @@
         }
       },
       {
+        "name": "save_textfile_safe",
+        "description": "保存笔记,仅允许操作allow list路径下面的文件",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "path",
+            "type": "str",
+            "description": "文件相对路径",
+            "required": true
+          },
+          {
+            "name": "content",
+            "type": "str",
+            "description": "文件内容",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "保存是否成功"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
         "name": "query_note_by_name",
         "description": "查询笔记名称",
         "stable": true,
@@ -127,6 +153,12 @@
             "name": "regex",
             "type": "bool",
             "description": "是否使用正则表达式匹配",
+            "required": false
+          },
+          {
+            "name": "folder",
+            "type": "str",
+            "description": "查询的文件夹路径,默认为空,则从根目录开始查询",
             "required": false
           }
         ],

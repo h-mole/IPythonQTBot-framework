@@ -20,7 +20,7 @@
 - PySide6 的某些枚举值可能被 linter 误报，这是正常现象
 - 避免剪贴板污染问题
 - 使用原位替换时确保文本一致性
-
+- 日志打印全部用logging.getLogger()来做,不使用print.
 ## 常用命令
 - 使用的解释器：`venv`下面的虚拟环境
 - 运行 Qt 版本：`python run_helper_qt.py`

@@ -1,0 +1,81 @@
+{
+    "name": "mcp_bridge",
+    "description": "MCP 工具桥接插件 - 将 MCP 服务器工具映射为 LLM 可调用的 tools",
+    "version": "1.0.0",
+    "author": "MyHelper Team",
+    "main": "main",
+    "dependencies": [
+        {
+            "name": "package:mcp",
+            "version": ">=1.0.0",
+            "required": true,
+            "description": "MCP SDK，用于连接 MCP 服务器"
+        }
+    ],
+    "exports": {
+        "namespace": "mcp_bridge",
+        "description": "MCP 工具桥接核心 API",
+        "methods": [
+            {
+                "name": "load_mcp_config",
+                "description": "从 JSON 文件加载 MCP 服务器配置",
+                "stable": true,
+                "parameters": [
+                    {
+                        "name": "config_path",
+                        "type": "str",
+                        "description": "配置文件路径",
+                        "required": true
+                    }
+                ],
+                "returns": {
+                    "type": "bool",
+                    "description": "是否加载成功"
+                }
+            },
+            {
+                "name": "get_mcp_tools",
+                "description": "获取所有已连接 MCP 服务器的工具列表（转换为 OpenAI Tool 格式）",
+                "stable": true,
+                "parameters": [],
+                "returns": {
+                    "type": "list",
+                    "description": "OpenAI Tool 格式的工具列表"
+                }
+            },
+            {
+                "name": "list_servers",
+                "description": "列出所有已配置的 MCP 服务器",
+                "stable": true,
+                "parameters": [],
+                "returns": {
+                    "type": "list",
+                    "description": "服务器名称列表"
+                }
+            },
+            {
+                "name": "get_tools_info",
+                "description": "获取工具信息文本",
+                "stable": true,
+                "parameters": [
+                    {
+                        "name": "detailed",
+                        "type": "bool",
+                        "description": "是否显示详细信息",
+                        "required": false,
+                        "default": false
+                    }
+                ],
+                "returns": {
+                    "type": "str",
+                    "description": "工具信息文本"
+                }
+            }
+        ]
+    },
+    "callbacks": {
+        "on_load": "load_plugin",
+        "on_unload": "unload_plugin"
+    },
+    "tabs": []
+}
