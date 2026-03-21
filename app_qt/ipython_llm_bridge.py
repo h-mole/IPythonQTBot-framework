@@ -14,7 +14,7 @@ import queue
 import sys
 import textwrap
 import threading
-from typing import Literal, Optional, List, Dict, Any
+from typing import Literal, Optional, List, Dict, Any, TYPE_CHECKING
 from IPython.core.getipython import get_ipython
 from PySide6.QtCore import QObject, Signal, QTimer
 from PySide6.QtWidgets import QApplication
@@ -31,6 +31,8 @@ from app_qt.configs import (
     ensure_app_config_file,
     app_config,
 )
+if TYPE_CHECKING:
+    from .ipython_console_tab import IPythonConsoleTab
 
 # 导入 OpenAI SDK
 try:
@@ -133,7 +135,7 @@ class StreamingOutputHandler(QObject):
     IMPORTANT_STYLE = "bold"
     DIM_STYLE = "#999999"
 
-    def __init__(self, ipython_shell=None, agent_instance=None):
+    def __init__(self, ipython_shell=None, agent_instance: "Agent"=None):
         super().__init__()
         self.is_streaming = False
         self.ipython_shell = ipython_shell  # IPython shell 引用
@@ -141,6 +143,7 @@ class StreamingOutputHandler(QObject):
         self.current_stdout = sys.stdout
         self.agent_instance = agent_instance  # Agent 实例引用
         self.start_timer()
+        
 
     def start_timer(self):
         def timer_func():
@@ -208,6 +211,7 @@ class StreamingOutputHandler(QObject):
             # ===========================
             for chunk in response:
                 if not self.is_streaming:
+                    self.response_queue.put(Text("Streaming has been canceled by user.", style="cyan"))
                     break
 
                 # 安全检查
@@ -414,10 +418,14 @@ class StreamingOutputHandler(QObject):
             self.is_streaming = False
             if len(tool_results_messages_storage) > 0:
                 self.stream_finish.emit("CALL_TOOL")
+            else:
+                self.stream_finish.emit("FINISH")
 
         except Exception as e:
             self.is_streaming = False
             error_msg = f"\n[错误] {type(e).__name__}: {str(e)}"
+            self.response_queue.put(Text(error_msg, style="red"))
+            self.agent_instance.ipython_tab.ipython_status_change.emit("idle")
             self.error_occurred.emit(error_msg)
             print(f"[LLM Bridge] 流式请求错误：{e}", file=sys.stderr)
             import traceback
@@ -451,9 +459,10 @@ You are a helpful assistant that have various functions.
 
 class Agent:
     """LLM Agent - 管理对话历史和调用"""
-
+    
     def __init__(
         self,
+        ipython_tab: "IPythonConsoleTab" ,
         config: Optional[LLMConfig] = None,
         plugin_manager=None,
         ipython_shell=None,
@@ -466,6 +475,8 @@ class Agent:
             plugin_manager: 插件管理器实例（用于获取 MCP 工具）
             ipython_shell: IPython shell 实例（用于正确输出到 IPython 控制台）
         """
+        self.ipython_tab = ipython_tab
+        
         self.system_prompt_file = ensure_app_config_file(
             f"prompt-templates/{app_config.llm_config.customization_name}/System.md",
             AGENT_SYSTEM_PROMPT_INITIAL,
@@ -504,6 +515,10 @@ class Agent:
 
         # 当前是否在处理工具调用
         self._processing_tool_calls = False
+        
+        # MCP 工具过滤条件
+        self.mcp_tools_enabled = set()  # 启用的工具集合，如果为空则表示全部启用
+        self.mcp_tools_disabled = set()  # 禁用的工具集合
 
         print(
             f"[Agent] 已初始化，使用提供商：{self.config.provider}, 模型：{self.config.model}"
@@ -522,12 +537,18 @@ class Agent:
         if prompt != "":
             # 添加用户消息到历史
             self.messages.append({"role": "user", "content": prompt})
-
+        
+        # 通知开始生成
+        self.ipython_tab.ipython_status_change.emit("generating")
+        
         # 构建 MCP 工具列表
         tools = self._build_mcp_tools()
         # 开始流式请求
         print(f"\n[Agent] 提问：{prompt}\n")
         print("-" * 60)
+        
+        
+        
         self.output_handler.set_current_stdout_stream(sys.stdout)
         self.output_handler.stream_response(
             self.client, self.messages.copy(), tools if tools else None
@@ -570,45 +591,68 @@ class Agent:
             self.messages.insert(0, {"role": "system", "content": system_prompt})
         print(f"[Agent] 已设置系统提示词：{system_prompt[:50]}...")
 
+    def update_mcp_tools_filter(self, enabled_tools: list, disabled_tools: list):
+        """
+        更新 MCP 工具的过滤条件
+            
+        Args:
+            enabled_tools: 启用的工具名称列表
+            disabled_tools: 禁用的工具名称列表
+        """
+        self.mcp_tools_enabled = set(enabled_tools)
+        self.mcp_tools_disabled = set(disabled_tools)
+        print(f"[Agent] MCP 工具过滤已更新：启用 {len(self.mcp_tools_enabled)} 个，禁用 {len(self.mcp_tools_disabled)} 个")
+            
+        # 重新构建工具列表
+        mcp_tools = self._build_mcp_tools()
+        print(f"[Agent] 当前可用 MCP 工具数量：{len(mcp_tools)}")
+    
     def _build_mcp_tools(self) -> List[Dict]:
         """
         从插件管理器构建 MCP 工具列表
-
+    
         Returns:
             OpenAI Tools 格式的工具列表
         """
         if not self.plugin_manager:
             return []
-
+    
         tools = []
-
+    
         # 遍历所有注册的方法
         all_methods = self.plugin_manager.get_all_methods(include_extra_data=True)
-
+    
         for method_info in all_methods:
-            extra_data = method_info.get("extra_data", {})
-
+            extra_data = method_info.get('extra_data', {})
+    
             # 只选择启用了 MCP 的方法
-            if not extra_data.get("enable_mcp", False):
+            if not extra_data.get('enable_mcp', False):
                 continue
-
-            method_name = method_info["name"]
-
+                
+            # 检查是否在禁用列表中
+            method_name = method_info['name']
+            if method_name in self.mcp_tools_disabled:
+                continue
+                
+            # 如果启用了过滤（enabled_tools 不为空），则只包含在启用列表中的工具
+            if self.mcp_tools_enabled and method_name not in self.mcp_tools_enabled:
+                continue
+    
             # 获取方法对象
             method_func = self.plugin_manager.get_method(method_name)
             if not method_func:
                 continue
-
+    
             # 获取详细信息，如果信息中已经包含了 LLM Tool 的信息，那么就直接读取
             method_metadata = self.plugin_manager.get_method_metadata(method_name)
-            if method_metadata and "llm_tool_info" in method_metadata:
-                tools.append(method_metadata["llm_tool_info"])
+            if method_metadata and 'llm_tool_info' in method_metadata:
+                tools.append(method_metadata['llm_tool_info'])
             else:
                 # 构建工具定义
                 tool_def = self._method_to_openai_tool(method_name, method_func)
                 if tool_def:
                     tools.append(tool_def)
-
+    
         return tools
 
     def _on_stream_finish(self, next_action: Literal["FINISH", "CALL_TOOL"]):
@@ -616,13 +660,16 @@ class Agent:
         处理流式输出完成事件
         """
         if next_action == "CALL_TOOL":
+            # 需要调用工具，继续发送请求
             tools = self._build_mcp_tools()
 
             self.output_handler.stream_response(
                 self.client, self.messages.copy(), tools if tools else None
             )
-
+            self.ipython_tab.ipython_status_change.emit("generating")
         else:
+            # 没有 CALL_TOOL，说明生成完全结束，通知 UI 更新为完成状态
+            self.ipython_tab.ipython_status_change.emit("finished")
             return
 
     def _method_to_openai_tool(self, method_name: str, method_func) -> Optional[Dict]:
@@ -952,12 +999,12 @@ def register_llm_magics(shell, agent: Agent):
     """
     from IPython.core.magic import register_line_magic
 
-    # 注册 %agent_ask
+    # 注册 %ask
     @register_line_magic
-    def agent_ask(line):
+    def ask(line):
         """向 LLM 提问（流式输出）"""
         if not line.strip():
-            print("用法：%agent_ask <你的问题>")
+            print("用法：%aask <你的问题>")
             return
         agent.ask(line.strip())
 
@@ -966,15 +1013,21 @@ def register_llm_magics(shell, agent: Agent):
     def agent_clear(line):
         """清除历史对话"""
         agent.clear()
+    
+    # 注册 %agent_messages
+    @register_line_magic
+    def agent_messages(line):
+        """显示历史对话"""
+        agent.show_messages()
 
-    print("[LLM Bridge] 已注册 magic 命令：%agent_ask, %agent_clear")
+    print("[LLM Bridge] 已注册 magic 命令：%ask, %agent_clear, %agent_messages")
 
 
 # ==================== 初始化函数 ====================
 
 
 def init_ipython_llm_agent_api(
-    plugin_manager=None, llm_config: Optional[LLMConfig] = None
+    ipython_tab: "IPythonConsoleTab", plugin_manager=None, llm_config: Optional[LLMConfig] = None, 
 ):
     """
     初始化 IPython LLM Agent API
@@ -995,6 +1048,7 @@ def init_ipython_llm_agent_api(
         if shell:
             # 创建 Agent 实例（传入 shell 引用）
             agent = Agent(
+                ipython_tab=ipython_tab,
                 config=llm_config, plugin_manager=plugin_manager, ipython_shell=shell
             )
 
@@ -1007,7 +1061,7 @@ def init_ipython_llm_agent_api(
             # 注册自省方法，获取所有的能力
             pm = get_plugin_manager()
             pm._register_system_method(
-                "list_all_tools", agent._build_mcp_tools, {"enable_mcp": True}
+                "list_all_tools", agent._build_mcp_tools, {"enable_mcp": True}, "override"
             )
 
             print("\n" + "=" * 60)

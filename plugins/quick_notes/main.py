@@ -38,7 +38,7 @@ from PySide6.QtGui import QFont, QAction, QTextCursor, QKeySequence, QIcon
 from app_qt.configs import PLUGIN_DATA_DIR
 from app_qt.plugin_manager import PluginManager
 
-allowed_file_extensions = (".md", ".txt", ".py")
+allowed_file_extensions = (".md", ".txt", ".py", ".json")
 
 
 class QuickNotesTab(QWidget):

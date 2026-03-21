@@ -1,0 +1,14 @@
+{
+    "accounts": [
+        {
+            "name": "示例邮箱",
+            "username": "your_email@example.com",
+            "password": "your_password_or_app_token",
+            "imap_server": "imap.example.com",
+            "imap_port": 993,
+            "smtp_server": "smtp.example.com",
+            "smtp_port": 587,
+            "use_ssl": true
+        }
+    ]
+}

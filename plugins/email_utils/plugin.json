@@ -1,0 +1,190 @@
+{
+  "name": "email_utils",
+  "description": "邮箱工具 - 提供邮件收发、管理和预览功能",
+  "version": "1.0.0",
+  "author": "MyHelper Team",
+  "main": "main",
+  
+  "dependencies": [
+  ],
+  "exports": {
+    "namespace": "email_utils",
+    "description": "邮箱管理核心组件",
+    "methods": [
+      {
+        "name": "get_recent_emails",
+        "description": "获取最近的邮件列表",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "account_name",
+            "type": "str",
+            "description": "邮箱账号名称（配置中的名称）",
+            "required": true
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "获取邮件数量限制，默认 20",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "list",
+          "description": "邮件列表，每项包含 id, subject, from, date, preview 等字段"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
+        "name": "get_email_detail",
+        "description": "获取邮件详情",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "account_name",
+            "type": "str",
+            "description": "邮箱账号名称",
+            "required": true
+          },
+          {
+            "name": "email_id",
+            "type": "str",
+            "description": "邮件 ID",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "邮件详细信息，包含 subject, from, to, date, body, attachments 等字段"
+        }
+      },
+      {
+        "name": "send_email",
+        "description": "发送邮件",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "account_name",
+            "type": "str",
+            "description": "发件人邮箱账号名称",
+            "required": true
+          },
+          {
+            "name": "to",
+            "type": "str",
+            "description": "收件人地址，多个用逗号分隔",
+            "required": true
+          },
+          {
+            "name": "subject",
+            "type": "str",
+            "description": "邮件主题",
+            "required": true
+          },
+          {
+            "name": "body",
+            "type": "str",
+            "description": "邮件正文（支持 HTML）",
+            "required": true
+          },
+          {
+            "name": "attachments",
+            "type": "list",
+            "description": "附件文件路径列表（可选）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否发送成功"
+        }
+      },
+      {
+        "name": "get_attachments",
+        "description": "获取邮件附件列表",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "account_name",
+            "type": "str",
+            "description": "邮箱账号名称",
+            "required": true
+          },
+          {
+            "name": "email_id",
+            "type": "str",
+            "description": "邮件 ID",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "list",
+          "description": "附件列表，每项包含 filename, size, content_type 等字段"
+        }
+      },
+      {
+        "name": "download_attachment",
+        "description": "下载附件",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "account_name",
+            "type": "str",
+            "description": "邮箱账号名称",
+            "required": true
+          },
+          {
+            "name": "email_id",
+            "type": "str",
+            "description": "邮件 ID",
+            "required": true
+          },
+          {
+            "name": "filename",
+            "type": "str",
+            "description": "附件文件名",
+            "required": true
+          },
+          {
+            "name": "save_path",
+            "type": "str",
+            "description": "保存路径",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否下载成功"
+        }
+      },
+      {
+        "name": "get_accounts",
+        "description": "获取所有配置的邮箱账号",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "list",
+          "description": "邮箱账号配置列表"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      }
+    ]
+  },
+  
+  "callbacks": {
+    "on_load": "load_plugin",
+    "on_unload": "unload_plugin"
+  },
+  
+  "tabs": [
+    {
+      "name": "📧 邮箱管理",
+      "class": "EmailManagerTab",
+      "position": 2
+    }
+  ]
+}

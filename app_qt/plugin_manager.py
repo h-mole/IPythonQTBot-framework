@@ -7,19 +7,21 @@
 4. UI 组件注入（标签页、菜单）
 """
 
+import logging
+from nt import error
 import os
 import sys
 import json
 import importlib.util
 import re
-from typing import Callable, Optional, Any
+from typing import Callable, Literal, Optional, Any
 from typing_extensions import TypedDict
 from PySide6.QtWidgets import QMenuBar
 from PySide6.QtCore import QObject, Signal
 
 # 导入配置
 from app_qt.configs import PLUGINS_DIR, PLUGINS_CONFIG_FILE
-
+logger = logging.getLogger(__name__)
 # ============ TypedDict 类型定义 ============
 
 
@@ -781,16 +783,31 @@ class PluginManager(QObject):
             }
 
     def _register_system_method(
-        self, method_name: str, func: "Callable", extra_data: MethodExtraData
+        self, method_name: str, func: "Callable", extra_data: MethodExtraData, multi_reg_action: Literal['override', 'ignore', 'error']='error'
     ):
         """
         注册系统方法，系统方法的命名空间全部都是`system`开头，将会自动添加
+        Args:
+            method_name: str
+            func: "Callable"
+            extra_data: MethodExtraData
+            multi_reg_action: 多注册处理方式，可选值有 'override'、'ignore'、'error'，默认 'error'
+                - 'override': 覆盖已存在的方法
+                - 'ignore': 忽略已存在的方法，不进行任何操作
+                - 'error': 抛出错误，表示不允许覆盖已存在的方法
+            
         """
         if "system" not in self.methods_registry:
             self.methods_registry["system"] = {}
-        assert (
-            method_name not in self.methods_registry["system"]
-        ), f"系统命名空间 `system` 下已存在同名方法：{method_name}"
+        if multi_reg_action == 'error':
+            assert (
+                method_name not in self.methods_registry["system"]
+            ), f"系统命名空间 `system` 下已存在同名方法：{method_name}"
+        elif multi_reg_action == 'ignore':
+            logger.warning(f"系统命名空间 `system` 下已存在同名方法：{method_name}")
+            return
+        elif multi_reg_action == 'override':
+            pass
         # 存储方法及其元数据
         self.methods_registry["system"][method_name] = {
             "func": func,

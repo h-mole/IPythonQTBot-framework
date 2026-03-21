@@ -446,6 +446,16 @@ class TextHelperTab(QWidget):
         except:
             pass
 
+    def _send_to_editor(self, text):
+        """
+        将文本发送到主编辑控件
+        
+        Args:
+            text: 要发送的文本内容
+        """
+        self.text_input.setPlainText(text)
+        print(f"[TextHelper] 已将 {len(text)} 字符的内容发送到编辑器")
+
     def show_markdown_preview(self, text=None):
         """
         显示 Markdown 预览窗口
@@ -494,6 +504,11 @@ class TextHelperTab(QWidget):
 
             # 创建按钮区域
             button_layout = QHBoxLayout()
+
+            # 发送到编辑器按钮 - 将原始内容发送到主编辑控件
+            send_btn = QPushButton("发送到编辑器")
+            send_btn.clicked.connect(lambda: self._send_to_editor(markdown_text))
+            button_layout.addWidget(send_btn)
 
             # 刷新按钮
             refresh_btn = QPushButton("刷新")
