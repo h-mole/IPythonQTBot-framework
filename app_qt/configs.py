@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from typing import Callable
 
+from IPython.terminal.embed import make_main_module_type
 from pydantic import BaseModel
 
 # 获取用户主目录
@@ -114,3 +115,4 @@ main_config_file = ensure_app_config_file(
 )
 
 app_config = MainAppConfig(**json.loads(main_config_file.read_text()))
+MAIN_APP_DATA_DIR = Path(MYHELPER_ROOT) / "app_data"

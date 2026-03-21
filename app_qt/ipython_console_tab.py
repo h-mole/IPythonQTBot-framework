@@ -15,6 +15,8 @@ from app_qt.plugin_manager import get_plugin_manager
 from IPython.utils.capture import capture_output
 # 导入变量表格组件
 from .widgets.variables_table import VariablesTable
+# 导入 MCP 工具管理器组件
+from .widgets.mcp_tools_manager import MCPToolsManagerWidget
 from IPython.display import display, Markdown
 logger = logging.getLogger(__name__)
 class KernelInitThread(QThread):
@@ -283,149 +285,25 @@ class IPythonConsoleTab(QWidget):
 
     def show_mcp_tools_manager(self):
         """显示 MCP 工具管理器对话框"""
-        from PySide6.QtWidgets import QDialog, QVBoxLayout, QCheckBox, QPushButton, QLabel, QScrollArea, QWidget
-        from PySide6.QtCore import Qt
-        from app_qt.plugin_manager import get_plugin_manager
+        # 创建 MCP 工具管理器实例，并传入 agent 引用
+        dialog = MCPToolsManagerWidget(parent=self, agent_instance=self.agent_instance)
         
-        dialog = QDialog(self)
-        dialog.setWindowTitle("MCP 工具管理")
-        dialog.setMinimumSize(500, 400)
-        
-        layout = QVBoxLayout()
-        dialog.setLayout(layout)
-        
-        # 获取插件管理器
-        pm = get_plugin_manager()
-        
-        # 获取所有 MCP 工具
-        all_methods = pm.get_all_methods(include_extra_data=True)
-        mcp_tools = [m for m in all_methods if m.get('extra_data', {}).get('enable_mcp', False)]
-        
-        # 按命名空间分组（支持 mcp_bridge 的特殊格式）
-        namespace_groups = {}
-        for tool in mcp_tools:
-            parts = tool['name'].split('.', 1)
-            if len(parts) == 2:
-                namespace = parts[0]
-                method_name = parts[1]
-                
-                # 特殊处理 mcp_bridge 的格式：mcp_bridge.mcd-mcp__xxxx
-                # 需要按照双下划线前面的部分作为子分组
-                if namespace == 'mcp_bridge' and '__' in method_name:
-                    sub_group = method_name.split('__')[0]  # 例如：mcd-mcp
-                    group_key = f"{namespace}.{sub_group}"
-                else:
-                    group_key = namespace
-                
-                if group_key not in namespace_groups:
-                    namespace_groups[group_key] = []
-                namespace_groups[group_key].append(tool)
-        
-        # 创建滚动区域
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll_content = QWidget()
-        content_layout = QVBoxLayout()
-        scroll_content.setLayout(content_layout)
-        scroll.setWidget(scroll_content)
-        
-        # 存储复选框的字典
-        namespace_checkboxes = {}
-        method_checkboxes = {}
-        
-        # 为每个分组创建组
-        for group_key, tools in sorted(namespace_groups.items()):
-            # 分组标题
-            ns_label = QLabel(f"<b>{group_key}</b>")
-            ns_label.setStyleSheet("font-size: 12pt; margin-top: 8px;")
-            content_layout.addWidget(ns_label)
-            
-            # 分组全选复选框
-            ns_checkbox = QCheckBox(f"全选/全不选 {group_key}")
-            ns_checkbox.setChecked(True)  # 默认全选
-            content_layout.addWidget(ns_checkbox)
-            
-            # 存储分组的复选框引用
-            namespace_checkboxes[group_key] = ns_checkbox
-            method_checkboxes[group_key] = []
-            
-            # 该分组下的所有方法
-            for tool in tools:
-                method_cb = QCheckBox(f"  - {tool['name']}")
-                method_cb.setChecked(True)  # 默认启用
-                method_cb.setProperty('tool_name', tool['name'])
-                content_layout.addWidget(method_cb)
-                method_checkboxes[group_key].append(method_cb)
-            
-            # 绑定分组复选框的联动事件
-            def on_ns_toggle(state, group=group_key):
-                """分组全选/全不选切换"""
-                for cb in method_checkboxes[group]:
-                    cb.setChecked(state == Qt.CheckState.Checked)
-            
-            ns_checkbox.stateChanged.connect(on_ns_toggle)
-            
-            # 添加分隔线
-            separator = QLabel()
-            separator.setStyleSheet("background-color: #ddd; height: 1px; margin: 4px 0;")
-            content_layout.addWidget(separator)
-        
-        # 全选和反选按钮
-        btn_layout = QVBoxLayout()
-        
-        select_all_btn = QPushButton("✅ 全选所有")
-        select_all_btn.clicked.connect(lambda: self._set_all_checkboxes(method_checkboxes, True))
-        btn_layout.addWidget(select_all_btn)
-        
-        invert_btn = QPushButton("🔄 反选所有")
-        invert_btn.clicked.connect(lambda: self._invert_all_checkboxes(method_checkboxes))
-        btn_layout.addWidget(invert_btn)
-        
-        layout.addWidget(scroll)
-        layout.addLayout(btn_layout)
-        
-        # 确定按钮
-        ok_btn = QPushButton("确定")
-        ok_btn.clicked.connect(lambda: self._apply_mcp_tools_selection(method_checkboxes, dialog))
-        layout.addWidget(ok_btn)
+        # 连接信号到处理方法
+        dialog.tools_selection_changed.connect(self._on_mcp_tools_selection_changed)
         
         dialog.exec_()
     
-    def _set_all_checkboxes(self, method_checkboxes: dict, state: bool):
-        """设置所有复选框的状态"""
-        for namespace, cbs in method_checkboxes.items():
-            for cb in cbs:
-                cb.setChecked(state)
-    
-    def _invert_all_checkboxes(self, method_checkboxes: dict):
-        """反选所有复选框"""
-        for namespace, cbs in method_checkboxes.items():
-            for cb in cbs:
-                cb.setChecked(not cb.isChecked())
-    
-    def _apply_mcp_tools_selection(self, method_checkboxes: dict, dialog):
-        """应用 MCP 工具的选择状态"""
-        from app_qt.plugin_manager import get_plugin_manager
+    def _on_mcp_tools_selection_changed(self, enabled_tools: list, disabled_tools: list):
+        """
+        处理 MCP 工具选择变化
         
-        pm = get_plugin_manager()
-        enabled_tools = []
-        disabled_tools = []
-        
-        # 收集所有选中的工具
-        for namespace, cbs in method_checkboxes.items():
-            for cb in cbs:
-                tool_name = cb.property('tool_name')
-                if cb.isChecked():
-                    enabled_tools.append(tool_name)
-                else:
-                    disabled_tools.append(tool_name)
-        
+        Args:
+            enabled_tools: 启用的工具名称列表
+            disabled_tools: 禁用的工具名称列表
+        """
         # 更新 Agent 的过滤条件
         if hasattr(self, 'agent_instance') and self.agent_instance:
             self.agent_instance.update_mcp_tools_filter(enabled_tools, disabled_tools)
-        
-        print(f"[MCP 工具管理] 已启用 {len(enabled_tools)} 个工具，禁用 {len(disabled_tools)} 个工具")
-        dialog.accept()
     
     def clear_console(self):
         """清空控制台内容"""

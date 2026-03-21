@@ -99,6 +99,9 @@
         "returns": {
           "type": "bool",
           "description": "是否发送成功"
+        },
+        "extra_data": {
+          "enable_mcp": true
         }
       },
       {

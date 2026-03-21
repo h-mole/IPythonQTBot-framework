@@ -68,12 +68,15 @@ class EmailFetchWorker(QThread):
         super().__init__()
         self.account_config = account_config
         self.limit = limit
+        self.result = []
         
     def run(self):
         """线程运行方法"""
         try:
             emails = self.fetch_emails()
+            logger.info(f"Fetched {len(emails)} emails: {emails} in thread")
             self.emails_fetched.emit(emails)
+            self.result = emails
         except Exception as e:
             logger.error(f"Error fetching emails: {e}", exc_info=True)
             self.error_occurred.emit(str(e))
@@ -1089,8 +1092,17 @@ def get_account_config(account_name):
     raise ValueError(f"未找到账号配置：{account_name}")
 
 
-def get_recent_emails_api(account_name, limit=20):
-    """API: 获取最近的邮件列表 - 直接调用 UI 的获取逻辑"""
+def get_recent_emails_api(account_name: str, limit: int=20):
+    """
+    API: 获取最近的邮件列表 - 直接调用 UI 的获取逻辑
+    
+    Args:
+        account_name: 账号名称
+        limit: int 获取邮件数量限制, 默认为20 建议少一点
+    
+    Returns:
+        list: 邮件列表
+    """
     # 这个方法不需要单独实现，由 UI 通过 EmailFetchWorker 异步获取
     # 如果需要同步版本供其他插件调用，可以这样实现：
     account_config = get_account_config(account_name)
@@ -1098,16 +1110,16 @@ def get_recent_emails_api(account_name, limit=20):
     
     # 使用事件循环等待结果（不推荐在 GUI 线程中使用）
     import time
-    result = []
     error = []
     
-    def on_emails(emails):
-        result.extend(emails)
+    # def on_emails(emails):
+    #     logger.info(f"Received {len(emails)} emails")
+    #     result.extend(emails)
     
     def on_error(err):
         error.append(err)
     
-    worker.emails_fetched.connect(on_emails)
+    # worker.emails_fetched.connect(on_emails)
     worker.error_occurred.connect(on_error)
     worker.start()
     
@@ -1119,12 +1131,21 @@ def get_recent_emails_api(account_name, limit=20):
     
     if error:
         raise Exception(error[0])
-    
-    return result
+    logger.info(worker.result)
+    return worker.result
 
 
 def get_email_detail_api(account_name, email_id):
-    """API: 获取邮件详情"""
+    """
+    API: 获取邮件详情
+    
+    Args:
+        account_name: 账号名称
+        email_id: 邮件 ID
+    
+    Returns:
+        dict: 邮件详情
+    """
     account_config = get_account_config(account_name)
     
     imap_server = account_config.get('imap_server')
@@ -1235,8 +1256,21 @@ def get_email_detail_api(account_name, email_id):
     }
 
 
-def send_email_api(account_name, to, subject, body, attachments=None):
-    """API: 发送邮件"""
+def send_email_api(account_name: str, to: str, subject: str, body: str, attachments: list[str]=None):
+    """
+    API: 发送邮件
+    
+    Args:
+        bool: 发送是否成功
+        account_name: 账号名称
+        to: 收件人邮箱, 注意多个收件人用逗号","分隔
+        subject: 邮件主题
+        body: 邮件正文
+        attachments: 附件文件路径列表
+    
+    Returns:
+        bool: 发送是否成功
+    """
     account_config = get_account_config(account_name)
     
     smtp_server = account_config.get('smtp_server')

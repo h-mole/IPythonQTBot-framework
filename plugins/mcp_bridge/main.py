@@ -25,6 +25,7 @@ try:
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
     from mcp.client.streamable_http import streamablehttp_client
+    from mcp.client.sse import sse_client
     MCP_AVAILABLE = True
 except ImportError:
     MCP_AVAILABLE = False
@@ -137,6 +138,37 @@ class MCPServerManager:
 
                 # 创建 HTTP 客户端并初始化会话
                 client_ctx = streamablehttp_client(url=url, headers=headers)
+                # 进入客户端上下文
+                streams = await client_ctx.__aenter__()
+                read_stream, write_stream = streams[0], streams[1]
+
+                # 创建并初始化会话
+                session = ClientSession(read_stream, write_stream)
+                await session.__aenter__()
+                await session.initialize()
+
+                # 保存会话和客户端上下文
+                self.sessions[server_name] = session
+                self.client_contexts[server_name] = client_ctx
+
+                # 获取工具列表并缓存
+                tools_response = await session.list_tools()
+                self.tools_cache[server_name] = tools_response.tools
+                print(
+                    f"[MCP Bridge] 已连接到服务器：{server_name}，共 {len(tools_response.tools)} 个工具"
+                )
+                return True
+            elif server_type == "sse":
+                # SSE 方式连接
+                url = server_config.get("url")
+                headers = server_config.get("headers", {})
+
+                if not url:
+                    logger.error(f"[MCP Bridge] URL 未配置：{server_name}")
+                    return False
+
+                # 创建 SSE 客户端并初始化会话
+                client_ctx = sse_client(url=url, headers=headers)
                 # 进入客户端上下文
                 streams = await client_ctx.__aenter__()
                 read_stream, write_stream = streams[0], streams[1]
