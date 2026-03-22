@@ -43,9 +43,7 @@ try:
 except ImportError:
     print("[警告] 未安装 openai 库，请运行：pip install openai")
     OpenAI = None
-from dotenv import load_dotenv
 
-load_dotenv()
 import logging
 
 logger = logging.getLogger(__name__)
@@ -54,36 +52,8 @@ logger = logging.getLogger(__name__)
 class LLMConfig:
     """LLM 配置类"""
 
-    # 预定义的 LLM 提供商配置
-    PROVIDERS = {
-        "kimi": {
-            "base_url": "https://api.moonshot.cn/v1",
-            "model": "kimi-k2.5",
-            "env_key": "KIMI_API_KEY",
-        },
-        "openai": {
-            "base_url": "https://api.openai.com/v1",
-            "model": "gpt-3.5-turbo",
-            "env_key": "OPENAI_API_KEY",
-        },
-        "zhipu": {
-            "base_url": "https://open.bigmodel.cn/api/paas/v4",
-            "model": "glm-4",
-            "env_key": "ZHIPU_API_KEY",
-        },
-        "aliyun": {
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-            "model": "glm-5",
-            "env_key": "ALIYUN_API_KEY",
-        },
-    }
-
     def __init__(
-        self,
-        provider: str = "kimi",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        model: Optional[str] = None,
+        self, model: str = None, provider: str = None
     ):
         """
         初始化 LLM 配置
@@ -94,26 +64,22 @@ class LLMConfig:
             base_url: API 基础 URL（可选，会覆盖默认值）
             model: 模型名称（可选，会覆盖默认值）
         """
-        if provider not in self.PROVIDERS:
-            raise ValueError(
-                f"不支持的 LLM 提供商：{provider}，支持的有：{list(self.PROVIDERS.keys())}"
-            )
-
-        self.provider = provider
-        provider_config = self.PROVIDERS[provider]
+        self.provider = provider or app_config.llm_config.provider
 
         # 获取 API Key
-        self.api_key = api_key or os.getenv(provider_config["env_key"])
+        current_llm_config = app_config.llm_config.get_current_llm_config()
+        self.api_key = current_llm_config.api_key
+        self.base_url = current_llm_config.base_url
+        self.model = model or app_config.llm_config.model
         if not self.api_key:
-            raise ValueError(
-                f"未提供 API Key，请设置 api_key 参数或环境变量 {provider_config['env_key']}"
+            logger.error(   
+                f"未提供 API Key，请设置 APIKey 参数"
             )
-
-        # 获取 Base URL
-        self.base_url = base_url or provider_config["base_url"]
-
-        # 获取 Model
-        self.model = model or provider_config["model"]
+            return 
+        if not self.base_url:
+            logger.error(
+                f"未提供 Base URL，请设置 Base URL 参数"
+            )
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -186,9 +152,9 @@ class StreamingOutputHandler(QObject):
 
             # 构建请求参数
             request_params = {
-                "model": os.getenv("MODEL"),
+                "model": app_config.llm_config.model,
                 "messages": messages,
-                "stream": True,
+                "stream": True, 
             }
 
             # 如果提供了工具，添加到请求
@@ -483,7 +449,7 @@ class Agent:
             raise ImportError("请先安装 openai 库：pip install openai")
 
         # 使用默认配置（Kimi）
-        self.config = config or LLMConfig(provider="aliyun")
+        self.config = LLMConfig()
         # 创建 OpenAI 客户端
         self.client = OpenAI(api_key=self.config.api_key, base_url=self.config.base_url)
 
@@ -666,12 +632,7 @@ class Agent:
             # 可选：恢复配置
             if "config" in history_data:
                 config_data = history_data["config"]
-                self.config = LLMConfig(
-                    provider=config_data.get("provider", "kimi"),
-                    api_key=config_data.get("api_key"),
-                    base_url=config_data.get("base_url"),
-                    model=config_data.get("model"),
-                )
+                self.config = LLMConfig(model=config_data.get("model"), provider=config_data.get("provider"))                
                 # 重新创建客户端
                 self.client = OpenAI(
                     api_key=self.config.api_key, base_url=self.config.base_url

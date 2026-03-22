@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QToolBar,
     QSizePolicy,
+    QMessageBox,
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor, QAction
@@ -36,6 +37,8 @@ from app_qt.ipython_console_tab import IPythonConsoleTab
 from app_qt.widgets.custom_titlebar import CustomTitleBar
 # 导入主题管理器
 from app_qt.widgets.theme_manager import get_theme_manager
+# 导入设置面板
+from app_qt.widgets.settings_panel import SettingsDialog, UnconfiguredDialog, check_and_show_unconfigured_dialog
 
 # 任务管理器已迁移到插件
 
@@ -66,6 +69,10 @@ class QuickAssistant(QMainWindow):
         self._drag_pos = None
         self._drag_edge = None
         self._resize_margin = 5  # 边缘检测区域宽度
+        
+        # 设置对话框引用
+        self.settings_dialog = None
+        self.unconfigured_dialog = None
 
         # 先加载插件（在主线程中）
         self._load_plugins_before_ui()
@@ -170,9 +177,20 @@ class QuickAssistant(QMainWindow):
         
         # 帮助菜单 - 关于
         self.about_action = QAction("ℹ️ 关于", self)
-        self.about_action.setToolTip("关于IPythonQTBot")
+        self.about_action.setToolTip("关于 IPythonQTBot")
         self.about_action.triggered.connect(self.show_about)
         self.help_menu.addAction(self.about_action)
+                
+        # 工具菜单 - 设置
+        self.tools_menu = QMenu("🔧 工具", self)
+        menubar.addMenu(self.tools_menu)
+                
+        # 工具菜单 - 设置
+        self.settings_action = QAction("⚙️ 设置", self)
+        self.settings_action.setToolTip("打开系统设置面板")
+        self.settings_action.setShortcut("Ctrl+,")  # Ctrl+逗号快捷键
+        self.settings_action.triggered.connect(self.open_settings_panel)
+        self.tools_menu.addAction(self.settings_action)
         
         # self.
         
@@ -266,6 +284,9 @@ class QuickAssistant(QMainWindow):
 
         plugin_manager = get_plugin_manager()
         plugin_manager.set_main_window(self, self.notebook, None)
+        
+        # 检查配置状态，如果未配置则显示提示
+        self._check_initial_configuration()
 
 
 
@@ -355,6 +376,51 @@ class QuickAssistant(QMainWindow):
         if self.tray_icon:
             self.tray_icon.hide()
         QApplication.quit()
+    
+    def _check_initial_configuration(self):
+        """检查初始配置状态，如果未配置则显示提示"""
+        try:
+            # 使用全局 settings 实例
+            from app_qt.configs import settings as global_settings
+            
+            if not check_and_show_unconfigured_dialog(global_settings, self):
+                # 如果未配置，自动打开设置面板
+                QTimer.singleShot(500, self.open_settings_panel)  # 延迟 500ms 打开
+        except Exception as e:
+            print(f"[MainWindow] 检查配置状态失败：{e}")
+            import traceback
+            traceback.print_exc()
+    
+    def open_settings_panel(self):
+        """打开设置面板"""
+        try:
+            from app_qt.configs import settings as global_settings
+            
+            # 如果对话框已经存在，直接显示
+            if self.settings_dialog and self.settings_dialog.isVisible():
+                self.settings_dialog.raise_()
+                self.settings_dialog.activateWindow()
+                return
+            
+            # 创建新的设置对话框
+            self.settings_dialog = SettingsDialog(global_settings, self)
+            
+            # 显示对话框（模态）
+            self.settings_dialog.exec()
+            
+            print("[MainWindow] 设置对话框已关闭")
+            
+        except Exception as e:
+            print(f"[MainWindow] 打开设置对话框失败：{e}")
+            import traceback
+            traceback.print_exc()
+            
+            # 显示错误提示
+            QMessageBox.critical(
+                self,
+                "错误",
+                f"无法打开设置对话框：{str(e)}"
+            )
     
     def _get_edge_position(self, pos):
         """获取鼠标位置对应的边缘方向"""

@@ -9,6 +9,7 @@ from typing import Callable
 
 from IPython.terminal.embed import make_main_module_type
 from pydantic import BaseModel
+from pyside6_settings import BaseSettings, Field
 
 # 获取用户主目录
 USER_HOME = os.path.expanduser("~")
@@ -79,42 +80,97 @@ def ensure_app_config_file(
     return filepath
 
 
-class LLMConfig(BaseModel):
+# class LLMProvider(BaseSettings):
+#     """
+#     LLM 提供商配置
+#     """
+
+#     name: str = Field(default="", title="Name")
+#     api_key: str = Field(default="", title="API Key")
+#     api_url: str = Field(default="", title="API URL")
+
+
+# class LLMConfig(BaseModel):
+#     """
+#     LLM 配置
+#     """
+
+#     # LLM 提供商, 该字段值需要和provider_list中的<elem>.name一致
+#     provider: str
+#     # 当前使用的模型
+#     model: str
+#     # 最大上下文消息数
+#     max_context_messages: int = 10
+#     # llm定制的名称,默认为"default",不同定制化名称下面可以用不同的提示词模板
+#     customization_name: str = "default"
+#     # llm提供商列表
+#     provider_list: list[LLMProvider] = []
+
+
+class LLMProviderSettingsItem(BaseSettings):
     """
-    LLM 配置
+    LLM 提供商设置
     """
 
-    # LLM 提供商
-    provider: str
+    name: str = Field(default="", title="Name")
+    api_key: str = Field(default="", title="API Key")
+    base_url: str = Field(default="", title="Base URL")
+
+
+class LLMConfigSettings(BaseSettings):
+    """
+    LLM 配置设置
+    """
+
+    provider: str = Field(default="", title="Provider")
     # 当前使用的模型
-    model: str
+    model: str = Field(default="", title="Model")
     # 最大上下文消息数
-    max_context_messages: int = 10
+    max_context_messages: int = Field(default=10, title="Max Context Messages")
     # llm定制的名称,默认为"default",不同定制化名称下面可以用不同的提示词模板
-    customization_name: str = "default"
+    customization_name: str = Field(default="default", title="Customization Name")
+    # llm 提供商列表
+    provider_list: list[LLMProviderSettingsItem] = Field(default=[], title="Provider List")
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def format_providers_list(self) -> str:
+        s = ""
+        for provider in self.provider_list:
+            s += f"Provider: {provider.name}, API Key: '******', Base URL: {provider.base_url}\n"
+        return s
+    
+    def get_current_llm_config(self) -> LLMProviderSettingsItem:
+        if len(self.provider_list) == 0:
+            raise ValueError("Provider list is empty")
+        for provider in self.provider_list:
+            if provider.name == self.provider:
+                return provider
+        raise ValueError(f"Provider {self.provider} not found in provider list: {self.format_providers_list()}")
+class MainAppConfigSettings(BaseSettings):
+    llm_config: LLMConfigSettings = Field(
+        default_factory=LLMConfigSettings, title="LLM Config"
+    )
+
+    def is_provider_configured(self) -> bool:
+        """
+        检查是否已配置 LLM 提供商
+        """
+        return bool(self.llm_config.provider and self.llm_config.provider_list)
 
 
-class MainAppConfig(BaseModel):
-    """
-    主程序配置
-    """
 
-    llm_config: LLMConfig
-
-    def create_default_config_json_str(self) -> str:
-        return self.model_dump_json(indent=4)
-
-
-# 确保主程序配置文件存在,如果不存在,需要用户手动编辑
+# 确保主程序配置文件存在，如果不存在，创建默认配置
 main_config_file = ensure_app_config_file(
     "app_config.json",
-    lambda: MainAppConfig(
-        llm_config=LLMConfig(
-            provider=input("请输入LLM提供商名称:"),
-            model=input("请输入LLM模型名称, 如glm-5: "),
-        )
-    ).create_default_config_json_str(),
+    lambda: json.dumps(MainAppConfigSettings().model_dump(), indent=4),
 )
 
-app_config = MainAppConfig(**json.loads(main_config_file.read_text()))
+# 全局 app_config 实例（用于兼容旧代码）
+# app_config = MainAppConfig(**json.loads(main_config_file.read_text()))
 MAIN_APP_DATA_DIR = Path(MYHELPER_ROOT) / "app_data"
+
+# 创建全局设置实例（用于设置面板）
+settings = MainAppConfigSettings.load(config_file=main_config_file, auto_create=True)
+app_config = settings

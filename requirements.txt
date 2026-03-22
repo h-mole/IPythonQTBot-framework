@@ -12,3 +12,5 @@ tiktoken
 rich
 pandas
 numpy
+pyside6-settings
+toml

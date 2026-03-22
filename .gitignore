@@ -6,3 +6,4 @@ __pycache__
 /.lingma
 .env
 /.mypy_cache
+/*config.json

@@ -89,6 +89,17 @@ python run_helper_qt.py
 ```
 ---
 
+## 🔑 API Key配置和基本操作
+
+![API Key配置](./pics/api-key配置.png)
+
+配置完成后, 
+- 提问: `agent.ask("你的问题")`, 或者 `%ask 你的问题`. 
+    - 特别的,设置了行内命令免输入%后,可以直接输入 `ask 你的问题`进行问答; 设置命令为 `%automagic on`;
+- 清除上下文: agent.clear();
+- 显示上下文详细信息: agent.show_messages();
+- 显示工具: agent.show_tools().
+
 ## 📚 特色亮点
 
 1. **插件加载** - 支持插件配置文件 (`plugins_list.json`) 管理启用状态
@@ -96,3 +107,4 @@ python run_helper_qt.py
 3. **多Tab界面** - 主窗口支持多标签页布局
 4. **API导出** - 插件可导出API供LLM Agent调用
 5. **第三方MCP工具集成** - 快速导入MCP工具支持, 兼容CherryStudio工具的MCP配置格式
+
