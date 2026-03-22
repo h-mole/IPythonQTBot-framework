@@ -12,7 +12,7 @@
 - Easy to deploy with basic Python3 environment knowledge; simple package installation;
 - PySide6 local deployment, small window can be dragged around freely, safe and convenient;
 - Supports LLM operations on IPython, email, schedule and other built-in components, and supports LLM agent calling any third-party MCP;
-- Flexible plugin system;
+- Flexible plugin system:
     - Can develop plugins easily with only Python language, easy to integrate Python functionality;
     - Plugin interface supports automatic MCP exposure;
     - Simple UI+MCP dual-mode operation, seamless communication between humans and AI;
@@ -47,7 +47,6 @@ IPythonQTBot/
 | **🔌 MCP Tools Integration** | Supports external service access via MCP protocol |
 | **📝 Quick Notes** | Intelligent note management feature |
 | **📧 Email Utilities** | Email sending and receiving functionality |
-| **🛒 Taobao Assistant** | Automated Taobao operations (search, add to cart, etc.) |
 
 ---
 
@@ -89,10 +88,21 @@ python run_helper_qt.py
 ```
 ---
 
+## 🔑 API Key Configuration and Basic Operations
+
+![API Key Configuration](./pics/api-key 配置.png)
+
+After configuration is complete:
+- Ask question: `agent.ask("your question")`, or `%ask your question`.
+    - Special: After setting the inline command to avoid inputting %, you can directly input `ask your question` for Q&A; Set command to `%automagic on`;
+- Clear context: `agent.clear()`;
+- Show context details: `agent.show_messages()`;
+- Show tools: `agent.show_tools()`.
+
 ## 📚 Key Features
 
-1. **Plugin Loading** - Supports plugin configuration file (`plugins_list.json`) for managing enabled/disabled state;
-2. **Magic Commands** - Provides APIs like `%ask` for convenient LLM capability invocation;
-3. **Multi-Tab Interface** - Main window supports multi-tab layout;
-4. **API Export** - Plugins can export APIs for LLM Agent invocation;
-5. **Third-party MCP Tools Integration** - Quick import of MCP tools support, compatible with CherryStudio tool MCP configuration format.
+1. **Plugin Loading** - Supports plugin configuration file (`plugins_list.json`) for managing enabled/disabled state
+2. **Magic Commands** - Provides APIs like `%ask` for convenient LLM capability invocation
+3. **Multi-Tab Interface** - Main window supports multi-tab layout
+4. **API Export** - Plugins can export APIs for LLM Agent invocation
+5. **Third-party MCP Tools Integration** - Quick import of MCP tools support, compatible with CherryStudio tool MCP configuration format
