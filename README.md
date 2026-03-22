@@ -1,84 +1,84 @@
-## 📋 项目概览
+## 📋 Project Overview
 
-**IPythonQTBot-framework** 是一个基于 **PySide6 (Qt for Python)** 的智能助手框架，集成了 **IPython 内核** 和 **LLM（大语言模型）Agent** 功能。用户可以很方便的基于CheryStudio兼容格式接入MCP, 同时使用LLM对IPython内核中的变量进行分析, 打通数据处理\笔记管理\大模型中间的鸿沟.
+**IPythonQTBot-framework** is an intelligent assistant framework based on **PySide6 (Qt for Python)**, integrating **IPython kernel** and **LLM (Large Language Model) Agent** functionality. Users can easily connect to MCP services compatible with CherryStudio format, while using LLM to analyze variables in the IPython kernel, bridging the gap between data processing, note management, and large language models.
 
 ---
-## 📷 界面示意图
+## 📷 Interface Screenshot
 
-![主界面示意图](./pics/主界面示意图.png)
+![Main Interface Screenshot](./pics/主界面示意图.png)
 
-## ✨ 项目优势
+## ✨ Project Advantages
 
-- 会一点Python3环境部署即可运行, 包安装简单;
-- PySide本地部署, 小窗口随意拖动操作, 安全便捷;
-- 支持大模型操作IPython, 邮件, 日程等内置组件, 并支持大模型agent调用任何第三方MCP
-- 具有灵活的插件系统
-    - 只需要Python一种语言就能随便开发插件, 便于集成Python功能; 
-    - 插件接口支持自动暴露MCP; 
-    - 简单粗暴实现UI+MCP双模操作, 人与AI无缝沟通;
+- Easy to deploy with basic Python3 environment knowledge; simple package installation;
+- PySide6 local deployment, small window can be dragged around freely, safe and convenient;
+- Supports LLM operations on IPython, email, schedule and other built-in components, and supports LLM agent calling any third-party MCP;
+- Flexible plugin system;
+    - Can develop plugins easily with only Python language, easy to integrate Python functionality;
+    - Plugin interface supports automatic MCP exposure;
+    - Simple UI+MCP dual-mode operation, seamless communication between humans and AI;
 
-## 🏗️ 项目架构
+## 🏗️ Project Architecture
 
-```
+```plaintext
 IPythonQTBot/
-├── app_qt/                    # PySide6 GUI应用（主窗口、标签页等）
-├── plugins/                   # 插件系统
-│   ├── daily_tasks/          # 日常任务管理
-│   ├── email_utils/          # 邮件工具
-│   ├── mcp_bridge/           # MCP协议桥接
-│   ├── pandoc_utils/         # Pandoc工具
-│   ├── quick_notes/          # 快速笔记功能
-│   └── text_helper/          # 文本助手
-├── docs/                      # 详细文档（21个文档文件）
-├── demos/                     # 演示代码
-├── tests/                     # 测试文件
-└── single_component_tests/    # 单组件测试
+├── app_qt/                    # PySide6 GUI application (main window, tabs, etc.)
+├── plugins/                   # Plugin system
+│   ├── daily_tasks/          # Daily task management
+│   ├── email_utils/          # Email utilities
+│   ├── mcp_bridge/           # MCP protocol bridge
+│   ├── pandoc_utils/         # Pandoc utilities
+│   ├── quick_notes/          # Quick notes feature
+│   └── text_helper/          # Text assistant
+├── docs/                      # Detailed documentation (21 documentation files)
+├── demos/                     # Demo code
+├── tests/                     # Test files
+└── single_component_tests/    # Single component tests
 ```
 
 ---
 
-## ✨ 核心功能
+## ✨ Core Features
 
-| 功能模块 | 描述 |
+| Feature Module | Description |
 |---------|------|
-| **🔧 插件系统** | 灵活的插件架构，支持动态加载/卸载、依赖管理 |
-| **🤖 LLM Agent** | 支持 Kimi、OpenAI、智谱AI 等多种大模型 |
-| **💻 IPython控制台** | 嵌入式Python交互环境 |
-| **🔌 MCP工具集成** | 支持MCP协议的外部服务接入 |
-| **📝 快速笔记** | 智能笔记管理功能 |
-| **📧 邮件工具** | 邮件发送和接收功能 |
-| **🛒 淘宝助手** | 自动化淘宝操作（搜索、加购等） |
+| **🔧 Plugin System** | Flexible plugin architecture, supports dynamic loading/unloading, dependency management |
+| **🤖 LLM Agent** | Supports Kimi, OpenAI, Zhipu AI and other large language models |
+| **💻 IPython Console** | Embedded Python interactive environment |
+| **🔌 MCP Tools Integration** | Supports external service access via MCP protocol |
+| **📝 Quick Notes** | Intelligent note management feature |
+| **📧 Email Utilities** | Email sending and receiving functionality |
+| **🛒 Taobao Assistant** | Automated Taobao operations (search, add to cart, etc.) |
 
 ---
 
-## 📦 主要依赖
+## 📦 Main Dependencies
 
 ```
-PySide6 >= 6.0.0        # GUI框架
-pyperclip >= 1.8.0      # 剪贴板操作
-ipython >= 7.0.0        # Python交互环境
-qtconsole >= 5.0.0      # Qt控制台
-openpyxl >= 3.0.0       # Excel处理
-mcp >= 1.26.0           # MCP协议支持
+PySide6 >= 6.0.0        # GUI framework
+pyperclip >= 1.8.0      # Clipboard operations
+ipython >= 7.0.0        # Python interactive environment
+qtconsole >= 5.0.0      # Qt console
+openpyxl >= 3.0.0       # Excel processing
+mcp >= 1.26.0           # MCP protocol support
 openai >= 1.0.0         # OpenAI API
 ```
 
 ---
 
-## 🚗使用效果
+## 🚗 Usage Demonstration
 
-![使用效果gif, 基于IPython自动运行脚本并获取信息](./pics/main_demo.gif)
+![Usage demonstration GIF, automatically run scripts based on IPython and get information](./pics/main_demo.gif)
 ---
 
-## 🚀 启动方式
+## 🚀 Startup Instructions
 
-建议 Python >= 3.12
+Recommended Python >= 3.12
 
 ```bash
 # ssh clone
 git clone git@gitee.com:mole-h-6011/IPythonQTBot-framework.git
 
-# 或者: https clone
+# or: https clone
 git clone https://gitee.com/mole-h-6011/IPythonQTBot-framework.git
 
 cd IPythonQTBot-framework
@@ -89,10 +89,10 @@ python run_helper_qt.py
 ```
 ---
 
-## 📚 特色亮点
+## 📚 Key Features
 
-1. **插件加载** - 支持插件配置文件 (`plugins_list.json`) 管理启用状态
-2. **Magic命令** - 提供 `%ask` 等便捷调用LLM能力的API
-3. **多Tab界面** - 主窗口支持多标签页布局
-4. **API导出** - 插件可导出API供LLM Agent调用
-5. **第三方MCP工具集成** - 快速导入MCP工具支持, 兼容CherryStudio工具的MCP配置格式
+1. **Plugin Loading** - Supports plugin configuration file (`plugins_list.json`) for managing enabled/disabled state;
+2. **Magic Commands** - Provides APIs like `%ask` for convenient LLM capability invocation;
+3. **Multi-Tab Interface** - Main window supports multi-tab layout;
+4. **API Export** - Plugins can export APIs for LLM Agent invocation;
+5. **Third-party MCP Tools Integration** - Quick import of MCP tools support, compatible with CherryStudio tool MCP configuration format.

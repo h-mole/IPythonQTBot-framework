@@ -10,15 +10,17 @@
 }
 
 /* 标题栏渐变背景（可选） */
-#titleBarWidget[gradient="true"] {
+/* #titleBarWidget[gradient="true"] {
     background: qlineargradient(
-        x1: 0, y1: 0, 
-        x2: 1, y2: 0,
+        x1: 0, 
+        y1: 0, 
+        x2: 1, 
+        y2: 0,
         stop: 0 #3498db,
         stop: 0.5 #2c3e50,
         stop: 1 #2c3e50
     );
-}
+} */
 
 /* 应用图标 */
 #appIconLabel {

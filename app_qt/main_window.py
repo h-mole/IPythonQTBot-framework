@@ -259,7 +259,7 @@ class QuickAssistant(QMainWindow):
         
         # 第一标签页：IPython 控制台
         self.ipython_console = IPythonConsoleTab()
-        self.notebook.addTab(self.ipython_console, "🐍 IPython")
+        self.notebook.addTab(self.ipython_console, "🐍 IPythonBot")
         
         # 更新插件管理器的 notebook 引用（此时已创建）
         from app_qt.plugin_manager import get_plugin_manager
