@@ -4,12 +4,12 @@
 
 配置文件位于：
 ```
-~/.myhelper/mcp_bridge/config.json
+~/IPythonQTBot/mcp_bridge/config.json
 ```
 
 在 Windows 上通常是：
 ```
-C:\Users\你的用户名\.myhelper\mcp_bridge\config.json
+C:\Users\你的用户名\IPythonQTBot\mcp_bridge\config.json
 ```
 
 ## 📝 配置示例
@@ -134,10 +134,10 @@ C:\Users\你的用户名\.myhelper\mcp_bridge\config.json
 
 ```bash
 # 创建配置目录
-mkdir -p $HOME\.myhelper\mcp_bridge
+mkdir -p $HOME\IPythonQTBot\mcp_bridge
 
 # 复制示例配置
-copy plugins\mcp_bridge\config.example.json $HOME\.myhelper\mcp_bridge\config.json
+copy plugins\mcp_bridge\config.example.json $HOME\IPythonQTBot\mcp_bridge\config.json
 ```
 
 然后编辑配置文件，填入正确的 API Key。

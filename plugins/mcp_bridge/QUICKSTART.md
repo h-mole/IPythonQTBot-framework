@@ -12,7 +12,7 @@ pip install mcp
 
 首次运行插件时会自动创建配置文件模板，位置在：
 ```
-~/.myhelper/mcp_bridge/config.json
+~/IPythonQTBot/mcp_bridge/config.json
 ```
 
 编辑该文件，添加你的 MCP 服务器配置：
@@ -37,12 +37,12 @@ pip install mcp
 
 ```bash
 # Windows PowerShell
-mkdir -p $HOME\.myhelper\mcp_bridge
-copy config.example.json $HOME\.myhelper\mcp_bridge\config.json
+mkdir -p $HOME\IPythonQTBot\mcp_bridge
+copy config.example.json $HOME\IPythonQTBot\mcp_bridge\config.json
 
 # Linux/Mac
-mkdir -p ~/.myhelper/mcp_bridge
-cp config.example.json ~/.myhelper/mcp_bridge/config.json
+mkdir -p ~/IPythonQTBot/mcp_bridge
+cp config.example.json ~/IPythonQTBot/mcp_bridge/config.json
 ```
 
 然后编辑配置文件。
@@ -133,7 +133,7 @@ print(f"已连接的服务器：{connected}")
 
 ### Q: 如何添加更多 MCP 服务器？
 
-编辑配置文件 `~/.myhelper/mcp_bridge/config.json`，添加新的服务器配置：
+编辑配置文件 `~/IPythonQTBot/mcp_bridge/config.json`，添加新的服务器配置：
 
 ```json
 {
@@ -148,7 +148,7 @@ print(f"已连接的服务器：{connected}")
 然后重新加载：
 
 ```python
-pm.get_method("mcp_bridge.load_mcp_config")("~/.myhelper/mcp_bridge/config.json")
+pm.get_method("mcp_bridge.load_mcp_config")("~/IPythonQTBot/mcp_bridge/config.json")
 ```
 
 ## 7. 进阶技巧

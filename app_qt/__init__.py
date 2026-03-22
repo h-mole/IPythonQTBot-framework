@@ -1,5 +1,5 @@
 """
-快捷助手 - PySide6 版本
+IPythonQTBot - PySide6 版本
 应用入口文件
 """
 
@@ -24,8 +24,8 @@ def main():
     app = QApplication(sys.argv)
 
     # 设置应用信息
-    app.setApplicationName("快捷助手")
-    app.setOrganizationName("MyHelper")
+    app.setApplicationName("IPythonQTBot")
+    app.setOrganizationName("IPythonQTBot")
     app.setApplicationVersion("1.0.0")
 
     # 设置样式

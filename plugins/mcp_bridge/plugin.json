@@ -2,7 +2,7 @@
     "name": "mcp_bridge",
     "description": "MCP 工具桥接插件 - 将 MCP 服务器工具映射为 LLM 可调用的 tools",
     "version": "1.0.0",
-    "author": "MyHelper Team",
+    "author": "IPythonQTBot Team",
     "main": "main",
     "dependencies": [
         {

@@ -27,7 +27,7 @@ pip install mcp
 
 ### 配置文件位置
 
-配置文件默认位于：`~/.myhelper/mcp_bridge/config.json`
+配置文件默认位于：`~/IPythonQTBot/mcp_bridge/config.json`
 
 首次加载插件时会自动创建示例配置文件。
 
@@ -220,11 +220,11 @@ config = {
 }
 
 import json
-with open("~/.myhelper/mcp_bridge/config.json", "w") as f:
+with open("~/IPythonQTBot/mcp_bridge/config.json", "w") as f:
     json.dump(config, f)
 
 # 重新加载配置
-pm.get_method("mcp_bridge.load_mcp_config")("~/.myhelper/mcp_bridge/config.json")
+pm.get_method("mcp_bridge.load_mcp_config")("~/IPythonQTBot/mcp_bridge/config.json")
 ```
 
 ### 手动控制服务器连接

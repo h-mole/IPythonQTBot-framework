@@ -1,5 +1,5 @@
 """
-快捷助手启动脚本 - PySide6 版本
+IPythonQTBot启动脚本 - PySide6 版本
 """
 
 import sys

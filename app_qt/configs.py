@@ -13,8 +13,8 @@ from pydantic import BaseModel
 # 获取用户主目录
 USER_HOME = os.path.expanduser("~")
 
-# myhelper 数据根目录（位于用户主目录下）
-MYHELPER_ROOT = os.path.join(USER_HOME, "myhelper")
+# 数据根目录（位于用户主目录下）
+MYHELPER_ROOT = os.path.join(USER_HOME, "IPythonQTBot")
 
 # 确保根目录存在
 if not os.path.exists(MYHELPER_ROOT):
@@ -88,6 +88,8 @@ class LLMConfig(BaseModel):
     provider: str
     # 当前使用的模型
     model: str
+    # 最大上下文消息数
+    max_context_messages: int = 10
     # llm定制的名称,默认为"default",不同定制化名称下面可以用不同的提示词模板
     customization_name: str = "default"
 

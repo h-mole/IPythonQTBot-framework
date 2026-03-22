@@ -7,7 +7,7 @@
 pip install mcp
 
 # 2. 配置
-# 编辑 ~/.myhelper/mcp_bridge/config.json
+# 编辑 ~/.IPythonQTBot/mcp_bridge/config.json
 
 # 3. 测试
 python test_mcp_bridge.py
@@ -58,7 +58,7 @@ agent.ask("使用 MCP 工具帮我...")
 ## 配置文件位置
 
 ```
-~/.myhelper/mcp_bridge/config.json
+~/.IPythonQTBot/mcp_bridge/config.json
 ```
 
 ## 调试命令
@@ -161,7 +161,7 @@ search_tools = [t for t in tools if "search" in t["function"]["name"]]
 
 ### 重新加载配置
 ```python
-pm.get_method("mcp_bridge.load_mcp_config")("~/.myhelper/mcp_bridge/config.json")
+pm.get_method("mcp_bridge.load_mcp_config")("~/.IPythonQTBot/mcp_bridge/config.json")
 ```
 
 ---

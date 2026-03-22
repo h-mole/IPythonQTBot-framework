@@ -1,12 +1,14 @@
 """
-快捷助手 - PySide6 版本
+IPythonQTBot - PySide6 版本
 迁移自 helperscript.py
 """
 
 import sys
+import os
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
+    QMenuBar,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -21,6 +23,8 @@ from PySide6.QtWidgets import (
     QSplitter,
     QSystemTrayIcon,
     QMenu,
+    QToolBar,
+    QSizePolicy,
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor, QAction
@@ -28,23 +32,40 @@ from PySide6.QtCore import Signal
 
 # 导入标签页模块
 from app_qt.ipython_console_tab import IPythonConsoleTab
+# 导入自定义标题栏
+from app_qt.widgets.custom_titlebar import CustomTitleBar
+# 导入主题管理器
+from app_qt.widgets.theme_manager import get_theme_manager
 
 # 任务管理器已迁移到插件
 
 
 class QuickAssistant(QMainWindow):
-    """快捷助手主窗口"""
+    """IPythonQTBot主窗口"""
 
     def __init__(self):
         super().__init__()
 
+        # 设置窗口为无边框
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        # 允许窗口缩放
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+
         # 窗口设置
-        self.setWindowTitle("快捷助手")
+        self.setWindowTitle("IPythonQTBot")
         self.setGeometry(100, 100, 900, 600)
+        
+        # 加载样式表
+        self._load_stylesheets()
 
         # 剪贴板历史记录
         self.clipboard_history = []
         self.max_clipboard_history = 50
+        
+        # 窗口拖动调整大小相关
+        self._drag_pos = None
+        self._drag_edge = None
+        self._resize_margin = 5  # 边缘检测区域宽度
 
         # 先加载插件（在主线程中）
         self._load_plugins_before_ui()
@@ -78,33 +99,175 @@ class QuickAssistant(QMainWindow):
 
             traceback.print_exc()
 
+    def _load_stylesheets(self):
+        """加载样式表"""
+        try:
+            # 使用主题管理器加载样式到整个应用
+            theme_manager = get_theme_manager()
+            app = QApplication.instance()
+            if app:
+                theme_manager.apply_theme(app, "light")  # 应用到整个应用
+            print(f"[MainWindow] 已应用 {theme_manager.get_current_theme()} 主题")
+        except Exception as e:
+            print(f"[MainWindow] 加载样式表失败：{e}")
+            import traceback
+            traceback.print_exc()
+    
+    def toggle_theme(self):
+        """切换主题"""
+        from app_qt.widgets.theme_manager import toggle_theme
+        app = QApplication.instance()
+        if app:
+            new_theme = toggle_theme(app)  # 应用到整个应用
+            print(f"[MainWindow] 主题已切换为：{new_theme}")
+            # 更新标题栏（如果需要）
+            if hasattr(self, 'title_bar'):
+                self.title_bar.style().unpolish(self.title_bar)
+                self.title_bar.style().polish(self.title_bar)
+    
+    def _create_menubar(self):
+        """创建菜单栏"""
+        
+        # 创建菜单栏
+        menubar = QMenuBar(self)
+        menubar.setStyleSheet("background-color: transparent; border: none;")
+        
+        # 创建菜单按钮
+        # self.view_menu_btn = QPushButton("🌓 查看")
+        # self.view_menu_btn.setObjectName("menuButton")
+        # self.view_menu_btn.setMenu(menubar)
+        
+        # # 设置按钮大小策略 - 根据内容调整大小
+        # self.view_menu_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        
+        # menubar_layout.addWidget(self.view_menu_btn)
+        
+        # 添加拉伸因子，让菜单栏不会占据整个宽度
+        # menubar_layout.addStretch()
+        self.menu_bar = menubar
+        # 查看菜单 - 主题切换
+        self.theme_menu = QMenu("🌓 主题", self)
+        change_theme_action = QAction("🌓 切换主题", self)
+        self.theme_menu.addAction(change_theme_action)
+        change_theme_action.setToolTip("切换浅色/深色主题")
+        change_theme_action.triggered.connect(self.toggle_theme)
+        
+        menubar.addMenu(self.theme_menu)
+        
+        # 编辑菜单
+        self.edit_menu = QMenu("✏️ 编辑", self)
+        menubar.addMenu(self.edit_menu)
+        
+        # 编辑菜单 - 清空剪贴板
+        self.clear_clipboard_action = QAction("🗑️ 清空剪贴板", self)
+        self.clear_clipboard_action.setToolTip("清空剪贴板历史记录")
+        self.clear_clipboard_action.triggered.connect(self.clear_clipboard_history)
+        self.edit_menu.addAction(self.clear_clipboard_action)
+        
+        # 帮助菜单
+        self.help_menu = QMenu("ℹ️ 帮助", self)
+        menubar.addMenu(self.help_menu)
+        
+        # 帮助菜单 - 关于
+        self.about_action = QAction("ℹ️ 关于", self)
+        self.about_action.setToolTip("关于IPythonQTBot")
+        self.about_action.triggered.connect(self.show_about)
+        self.help_menu.addAction(self.about_action)
+        
+        # self.
+        
+        # 添加到主布局
+        main_layout = self.centralWidget().layout()
+        if main_layout: 
+            main_layout.insertWidget(1, self.menu_bar)
+    
+    def clear_clipboard_history(self):
+        """清空剪贴板历史"""
+        self.clipboard_history.clear()
+        self.last_clipboard = ""
+        print("[MainWindow] 剪贴板历史已清空")
+        
+        # 显示提示
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "提示", "剪贴板历史已清空！")
+    
+    def show_about(self):
+        """显示关于对话框"""
+        from PySide6.QtWidgets import QMessageBox
+        about_text = """
+        <h2>🛠️ IPythonQTBot</h2>
+        <p><b>版本：</b> v1.0.0</p>
+        <p><b>现代化 UI 设计</b></p>
+        <hr/>
+        <p>功能特性：</p>
+        <ul>
+            <li>✅ 自定义无边框标题栏</li>
+            <li>✅ 浅色/深色主题切换</li>
+            <li>✅ IPython 控制台集成</li>
+            <li>✅ MCP 工具管理</li>
+            <li>✅ 变量监视器</li>
+            <li>✅ 插件系统支持</li>
+        </ul>
+        <hr/>
+        <p style="color: #666;">采用现代化 UI 设计，提供统一的视觉体验</p>
+        """
+        QMessageBox.about(self, "关于IPythonQTBot", about_text)
+    
+    def update_status(self, status: str, color: str = "#4caf50"):
+        """更新状态栏提示"""
+        # 可以通过状态栏或其他方式显示状态
+        pass
+
     def create_widgets(self):
         """构建主界面"""
+        # 创建中央控件和主布局
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         central_widget.setLayout(main_layout)
 
-        # 顶部标题
-        header = QLabel("🛠️ 快捷助手")
-        header.setFont(QFont("Microsoft YaHei UI", 14, QFont.Bold))
-        header.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(header)
+        # 添加自定义标题栏
+        self.title_bar = CustomTitleBar(
+            parent=self,
+            title="IPythonQTBot",
+            icon="🛠️"
+        )
+        main_layout.addWidget(self.title_bar)
+        
+        # 创建菜单栏 (标题栏下方)
+        self._create_menubar()
+        
+        # 添加菜单栏到布局
+        # 注意：QMainWindow 的 menuBar() 会自动添加到顶部，不需要手动添加到布局
+
+        # 创建内容容器
+        content_widget = QWidget()
+        content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(10, 10, 10, 10)
+        content_layout.setSpacing(10)
+        content_widget.setLayout(content_layout)
+        
+        main_layout.addWidget(content_widget, 1)  # stretch=1 让内容区域占据剩余空间
 
         # 创建标签页控件
         self.notebook = QTabWidget()
-        main_layout.addWidget(self.notebook)
-
+        self.notebook.setObjectName("mainTabWidget")  # 用于样式定位
+        content_layout.addWidget(self.notebook)
+        
+        # 第一标签页：IPython 控制台
+        self.ipython_console = IPythonConsoleTab()
+        self.notebook.addTab(self.ipython_console, "🐍 IPython")
+        
         # 更新插件管理器的 notebook 引用（此时已创建）
         from app_qt.plugin_manager import get_plugin_manager
 
         plugin_manager = get_plugin_manager()
         plugin_manager.set_main_window(self, self.notebook, None)
 
-        # 第四个标签页：IPython 控制台
-        self.ipython_console = IPythonConsoleTab()
-        self.notebook.addTab(self.ipython_console, "🐍 IPython")
+
 
         # 启动剪贴板监控
         self.clipboard_timer = QTimer()
@@ -148,7 +311,7 @@ class QuickAssistant(QMainWindow):
 
         self.tray_icon = QSystemTrayIcon(self)
         self.tray_icon.setIcon(icon)
-        self.tray_icon.setToolTip("快捷助手")
+        self.tray_icon.setToolTip("IPythonQTBot")
 
         # 创建托盘菜单
         tray_menu = QMenu()
@@ -192,6 +355,97 @@ class QuickAssistant(QMainWindow):
         if self.tray_icon:
             self.tray_icon.hide()
         QApplication.quit()
+    
+    def _get_edge_position(self, pos):
+        """获取鼠标位置对应的边缘方向"""
+        rect = self.geometry()
+        x, y = pos.x(), pos.y()
+        
+        # 检测四个角
+        if x <= self._resize_margin and y <= self._resize_margin:
+            return Qt.TopEdge | Qt.LeftEdge
+        elif x >= rect.width() - self._resize_margin and y <= self._resize_margin:
+            return Qt.TopEdge | Qt.RightEdge
+        elif x <= self._resize_margin and y >= rect.height() - self._resize_margin:
+            return Qt.BottomEdge | Qt.LeftEdge
+        elif x >= rect.width() - self._resize_margin and y >= rect.height() - self._resize_margin:
+            return Qt.BottomEdge | Qt.RightEdge
+        
+        # 检测四条边
+        if y <= self._resize_margin:
+            return Qt.TopEdge
+        elif y >= rect.height() - self._resize_margin:
+            return Qt.BottomEdge
+        if x <= self._resize_margin:
+            return Qt.LeftEdge
+        elif x >= rect.width() - self._resize_margin:
+            return Qt.RightEdge
+        
+        return None
+    
+    def _update_cursor(self, pos):
+        """根据鼠标位置更新光标样式"""
+        edge = self._get_edge_position(pos)
+        
+        if edge is None:
+            self.setCursor(Qt.ArrowCursor)
+        elif edge == (Qt.TopEdge | Qt.LeftEdge) or edge == (Qt.BottomEdge | Qt.RightEdge):
+            self.setCursor(Qt.SizeFDiagCursor)
+        elif edge == (Qt.TopEdge | Qt.RightEdge) or edge == (Qt.BottomEdge | Qt.LeftEdge):
+            self.setCursor(Qt.SizeBDiagCursor)
+        elif edge in (Qt.TopEdge, Qt.BottomEdge):
+            self.setCursor(Qt.SizeVerCursor)
+        elif edge in (Qt.LeftEdge, Qt.RightEdge):
+            self.setCursor(Qt.SizeHorCursor)
+    
+    def mouseMoveEvent(self, event):
+        """鼠标移动事件"""
+        if event.buttons() == Qt.LeftButton and self._drag_edge:
+            # 正在拖动边缘调整大小
+            delta = event.globalPos() - self._drag_pos
+            rect = self.geometry()
+            
+            if self._drag_edge & Qt.LeftEdge:
+                rect.setX(rect.x() + delta.x())
+                rect.setWidth(rect.width() - delta.x())
+            if self._drag_edge & Qt.RightEdge:
+                rect.setWidth(rect.width() + delta.x())
+            if self._drag_edge & Qt.TopEdge:
+                rect.setY(rect.y() + delta.y())
+                rect.setHeight(rect.height() - delta.y())
+            if self._drag_edge & Qt.BottomEdge:
+                rect.setHeight(rect.height() + delta.y())
+            
+            self.setGeometry(rect)
+            self._drag_pos = event.globalPos()
+        elif event.buttons() == Qt.LeftButton and self._drag_pos:
+            # 拖动窗口
+            self.move(event.globalPos() - self._drag_pos)
+        else:
+            # 更新光标样式
+            self._update_cursor(event.pos())
+    
+    def mousePressEvent(self, event):
+        """鼠标按下事件"""
+        if event.button() == Qt.LeftButton:
+            edge = self._get_edge_position(event.pos())
+            if edge:
+                # 开始拖动边缘调整大小
+                self._drag_edge = edge
+                self._drag_pos = event.globalPos()
+            else:
+                # 开始拖动窗口
+                self._drag_pos = event.globalPos()
+                self._drag_edge = None
+    
+    def mouseReleaseEvent(self, event):
+        """鼠标释放事件"""
+        self._drag_pos = None
+        self._drag_edge = None
+    
+    def leaveEvent(self, event):
+        """鼠标离开事件"""
+        self.setCursor(Qt.ArrowCursor)
 
 window = None  # 声明全局变量
 def main():
@@ -200,8 +454,8 @@ def main():
     app = QApplication(sys.argv)
 
     # 设置应用信息
-    app.setApplicationName("快捷助手")
-    app.setOrganizationName("MyHelper")
+    app.setApplicationName("IPythonQTBot")
+    app.setOrganizationName("IPythonQTBot")
 
     window = QuickAssistant()
     window.show()

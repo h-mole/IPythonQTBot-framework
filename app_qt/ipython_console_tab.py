@@ -4,7 +4,16 @@ IPython 控制台标签页 - PySide6 版本
 需要安装：pip install ipython qtconsole
 """
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, QHBoxLayout, QPushButton, QToolBar
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QGroupBox,
+    QSplitter,
+    QHBoxLayout,
+    QPushButton,
+    QToolBar,
+)
 from PySide6.QtGui import QFont, QIcon, QKeyEvent
 from PySide6.QtCore import QThread, Signal, Qt
 from qtconsole.rich_jupyter_widget import RichJupyterWidget
@@ -13,12 +22,17 @@ import logging
 import sys
 from app_qt.plugin_manager import get_plugin_manager
 from IPython.utils.capture import capture_output
+
 # 导入变量表格组件
 from .widgets.variables_table import VariablesTable
+
 # 导入 MCP 工具管理器组件
 from .widgets.mcp_tools_manager import MCPToolsManagerWidget
 from IPython.display import display, Markdown
+
 logger = logging.getLogger(__name__)
+
+
 class KernelInitThread(QThread):
     """内核初始化线程"""
 
@@ -54,6 +68,8 @@ class IPythonConsoleTab(QWidget):
     """IPython 控制台前端界面 - 使用 RichJupyterWidget"""
 
     ipython_status_change = Signal(str)
+    agent_context_length_change = Signal(int)
+
     def __init__(self):
         super().__init__()
         self.kernel_manager = None
@@ -68,7 +84,7 @@ class IPythonConsoleTab(QWidget):
         self.init_ui()
         # 在后台线程中初始化内核
         self.init_kernel_async()
-        
+
         # 安装事件过滤器以捕获 Ctrl+C
         self.installEventFilter(self)
 
@@ -91,8 +107,10 @@ class IPythonConsoleTab(QWidget):
         console_group.setLayout(console_layout)
 
         self.console_widget = RichJupyterWidget(parent=self)
-        # 设置字体（通过样式表）
+        # 设置字体和背景色（通过样式表）
+        # 注意：背景色由主题管理器统一控制，这里只设置字体
         self.console_widget.setStyleSheet("font-family: Consolas; font-size: 10pt;")
+        self.console_widget.setObjectName("consoleWidget")
         console_layout.addWidget(self.console_widget)
 
         # 右侧：变量表格
@@ -113,7 +131,7 @@ class IPythonConsoleTab(QWidget):
         splitter.setStretchFactor(1, 3)
 
         main_layout.addWidget(splitter)
-        
+
         self.register_system_methods()
 
     def _create_toolbar(self) -> QWidget:
@@ -122,94 +140,44 @@ class IPythonConsoleTab(QWidget):
         toolbar_layout = QHBoxLayout()
         toolbar_widget.setLayout(toolbar_layout)
         toolbar_layout.setContentsMargins(5, 5, 5, 5)
-        
+
         # 设置工具条样式和固定高度
-        toolbar_widget.setStyleSheet("""
-            QWidget {
-                background-color: #f5f5f5;
-                border-bottom: 1px solid #ddd;
-            }
-        """)
+        toolbar_widget.setStyleSheet("")
         # 设置固定高度（40px），不随窗口拉伸
         toolbar_widget.setMaximumHeight(40)
         toolbar_widget.setMinimumHeight(40)
-        
+
         # 清空按钮
         self.clear_btn = QPushButton("🗑️ 清空")
+        self.clear_btn.setObjectName("dangerBtn")
         self.clear_btn.clicked.connect(self.clear_console)
-        self.clear_btn.setStyleSheet("""
-            QPushButton {
-                padding: 4px 12px;
-                border-radius: 4px;
-                background-color: #f44336;
-                color: white;
-                font-weight: bold;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #da190b;
-            }
-            QPushButton:pressed {
-                background-color: #c61508;
-            }
-        """)
         # 按钮固定高度
         self.clear_btn.setMaximumHeight(30)
         self.clear_btn.setMinimumHeight(30)
         toolbar_layout.addWidget(self.clear_btn)
-        
+
         # 重启按钮
         self.restart_btn = QPushButton("🔄 重启")
+        self.restart_btn.setObjectName("primaryBtn")
         self.restart_btn.clicked.connect(self.restart_console)
-        self.restart_btn.setStyleSheet("""
-            QPushButton {
-                padding: 4px 12px;
-                border-radius: 4px;
-                background-color: #2196F3;
-                color: white;
-                font-weight: bold;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #1976D2;
-            }
-            QPushButton:pressed {
-                background-color: #1565C0;
-            }
-        """)
         # 按钮固定高度
         self.restart_btn.setMaximumHeight(30)
         self.restart_btn.setMinimumHeight(30)
         toolbar_layout.addWidget(self.restart_btn)
-        
+
         toolbar_layout.addSpacing(20)
-        
+
         # MCP 工具管理按钮
         self.mcp_tools_btn = QPushButton("🔧 MCP 工具")
+        self.mcp_tools_btn.setObjectName("warningBtn")
         self.mcp_tools_btn.clicked.connect(self.show_mcp_tools_manager)
-        self.mcp_tools_btn.setStyleSheet("""
-            QPushButton {
-                padding: 4px 12px;
-                border-radius: 4px;
-                background-color: #9C27B0;
-                color: white;
-                font-weight: bold;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #7B1FA2;
-            }
-            QPushButton:pressed {
-                background-color: #6A1B9A;
-            }
-        """)
         # 按钮固定高度
         self.mcp_tools_btn.setMaximumHeight(30)
         self.mcp_tools_btn.setMinimumHeight(30)
         toolbar_layout.addWidget(self.mcp_tools_btn)
-        
+
         toolbar_layout.addSpacing(20)
-        
+
         # Agent 状态显示控件
         status_widget = QWidget()
         status_layout = QHBoxLayout()
@@ -218,7 +186,7 @@ class IPythonConsoleTab(QWidget):
         # 状态控件也设置固定高度
         status_widget.setMaximumHeight(32)
         status_widget.setMinimumHeight(32)
-        
+
         # 状态标签
         self.status_label = QLabel("⚪ 空闲")
         self.status_label.setStyleSheet("""
@@ -234,32 +202,17 @@ class IPythonConsoleTab(QWidget):
         self.status_label.setMaximumHeight(30)
         self.status_label.setMinimumHeight(30)
         status_layout.addWidget(self.status_label)
-        
+
         # 停止生成按钮（默认隐藏）
         self.stop_btn = QPushButton("⏹️ 停止生成")
+        self.stop_btn.setObjectName("warningBtn")
         self.stop_btn.clicked.connect(self.stop_generation)
-        self.stop_btn.setStyleSheet("""
-            QPushButton {
-                padding: 4px 12px;
-                border-radius: 4px;
-                background-color: #FF9800;
-                color: white;
-                font-weight: bold;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #F57C00;
-            }
-            QPushButton:pressed {
-                background-color: #E65100;
-            }
-        """)
         # 按钮固定高度
         self.stop_btn.setMaximumHeight(30)
         self.stop_btn.setMinimumHeight(30)
         self.stop_btn.setVisible(False)  # 初始隐藏
         status_layout.addWidget(self.stop_btn)
-        
+
         # Token 数量显示
         self.token_label = QLabel("📊 Tokens: -1")
         self.token_label.setStyleSheet("""
@@ -276,7 +229,8 @@ class IPythonConsoleTab(QWidget):
         self.token_label.setMaximumHeight(30)
         self.token_label.setMinimumHeight(30)
         status_layout.addWidget(self.token_label)
-        
+        self.agent_context_length_change.connect(self.update_token_display)
+
         toolbar_layout.addStretch()
         toolbar_layout.addWidget(status_widget)
         self.ipython_status_change.connect(self.update_status_display)
@@ -287,75 +241,83 @@ class IPythonConsoleTab(QWidget):
         """显示 MCP 工具管理器对话框"""
         # 创建 MCP 工具管理器实例，并传入 agent 引用
         dialog = MCPToolsManagerWidget(parent=self, agent_instance=self.agent_instance)
-        
+
         # 连接信号到处理方法
         dialog.tools_selection_changed.connect(self._on_mcp_tools_selection_changed)
-        
+
         dialog.exec_()
-    
-    def _on_mcp_tools_selection_changed(self, enabled_tools: list, disabled_tools: list):
+
+    def _on_mcp_tools_selection_changed(
+        self, enabled_tools: list, disabled_tools: list
+    ):
         """
         处理 MCP 工具选择变化
-        
+
         Args:
             enabled_tools: 启用的工具名称列表
             disabled_tools: 禁用的工具名称列表
         """
         # 更新 Agent 的过滤条件
-        if hasattr(self, 'agent_instance') and self.agent_instance:
+        if hasattr(self, "agent_instance") and self.agent_instance:
             self.agent_instance.update_mcp_tools_filter(enabled_tools, disabled_tools)
-    
+
     def clear_console(self):
         """清空控制台内容"""
         if self.console_widget:
             self.console_widget.reset(clear=True)
             print("[IPythonConsoleTab] 控制台已清空")
-    
+
     def restart_console(self):
         """重启控制台（重新初始化内核）"""
         print("[IPythonConsoleTab] 正在重启控制台...")
-        
+
         # 先停止当前的内核
         if self.kernel_client:
             self.kernel_client.stop_channels()
         if self.kernel_manager:
             self.kernel_manager.shutdown_kernel()
-        
+
         # 重置状态
         self.kernel_manager = None
         self.kernel_client = None
-        
+
         # 清空控制台
         if self.console_widget:
             self.console_widget.reset()
             self.console_widget._append_plain_text("正在重新启动 IPython 内核...\n")
-        
+
         # 重新初始化内核
         self.init_kernel_async()
         print("[IPythonConsoleTab] 控制台重启完成")
-    
+
     def stop_generation(self):
         """停止当前正在进行的生成"""
-        if hasattr(self, 'agent_instance') and self.agent_instance:
-            if hasattr(self.agent_instance, 'output_handler'):
+        if hasattr(self, "agent_instance") and self.agent_instance:
+            if hasattr(self.agent_instance, "output_handler"):
                 self.agent_instance.output_handler.stop()
                 self.is_generating = False
                 self.update_status_display()
                 print("[IPythonConsoleTab] 已停止生成")
         else:
             print("[IPythonConsoleTab] 警告：没有找到正在运行的生成任务")
-    
+
+    def update_token_display(self, tokens: int | None = None):
+        """更新 token 显示"""
+        # logger.info("[IPythonConsoleTab] 更新 token 显示: %s", tokens)
+        if tokens is not None:
+            self.token_label.setText(f"📊 Tokens: {tokens}")
+
     def update_status_display(self, status: str = "idle", tokens: int | None = None):
         """
         更新状态显示
-        
+
         Args:
             status: 状态字符串 ("idle", "generating", "finished", "error")
             tokens: token 数量（可选）
         """
         from PySide6.QtCore import QTimer
         from .plugin_manager import exec_main_thread_callback
-        
+
         def update():
             # 更新状态标签
             if status == "idle":
@@ -406,41 +368,40 @@ class IPythonConsoleTab(QWidget):
                     }
                 """)
                 self.stop_btn.setVisible(False)
-            
+
             # 更新 token 数量
             if tokens is not None:
                 self.token_count = tokens
                 self.token_label.setText(f"📊 Tokens: {tokens}")
-        
+
         # 在主线程中执行
         exec_main_thread_callback(update)
 
     def eventFilter(self, obj, event):
         """
         事件过滤器 - 捕获 Ctrl+C 快捷键
-        
+
         Args:
             obj: 事件对象
             event: 事件实例
-        
+
         Returns:
             bool: 是否处理了该事件
         """
         from PySide6.QtCore import QEvent
         from PySide6.QtGui import QKeyEvent
-        
+
         if event.type() == QEvent.Type.KeyPress:
             # 检查是否是 Ctrl+C 组合键
             key_event = event
             if isinstance(key_event, QKeyEvent):
-                if (
-                    key_event.key() in (Qt.Key.Key_C,)
-                    and (key_event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+                if key_event.key() in (Qt.Key.Key_C,) and (
+                    key_event.modifiers() & Qt.KeyboardModifier.ControlModifier
                 ):
                     print("[IPythonConsoleTab] 检测到 Ctrl+C，正在停止生成...")
                     self.stop_generation()
                     return True  # 阻止事件继续传递
-        
+
         # 其他事件交给基类处理
         return super().eventFilter(obj, event)
 
@@ -469,33 +430,47 @@ class IPythonConsoleTab(QWidget):
     def execute_code(self, code: str):
         """
         在IPython内核中执行代码
-        
+
         Args:
             code: (str) 要执行的代码，可以是语句或者代码块。注意如果只是赋值，请使用专门的设置变量的工具
-        
+
         Returns:
-            dict: {"success": bool, "output": str, "result": object, "error": str} 
+            dict: {"success": bool, "output": str, "result": object, "error": str}
             success: 是否执行成功，output: print输出的内容，result: IPython代码块执行的返回值，error: 错误信息
         """
         from PySide6.QtCore import QTimer
         from .plugin_manager import exec_main_thread_callback
+
         if self.kernel_manager:
             print("\n\n")
-            display(Markdown(f"## 开始执行代码块：\n```python\n{code}```" ))
+            display(Markdown(f"## 开始执行代码块：\n```python\n{code}```"))
             print("\n\n")
             with capture_output() as captured:
-                result = self.kernel_manager.kernel.shell.run_cell(code, store_history=False, silent=True)
+                result = self.kernel_manager.kernel.shell.run_cell(
+                    code, store_history=False, silent=True
+                )
                 if self.variables_table:
-                    exec_main_thread_callback(lambda: QTimer.singleShot(0, self.variables_table.refresh_variables))
+                    exec_main_thread_callback(
+                        lambda: QTimer.singleShot(
+                            0, self.variables_table.refresh_variables
+                        )
+                    )
             return {
                 "success": True,
                 "output": captured.stdout,
                 "result": result.result,
-                "error": result.error_in_exec if result.error_in_exec else captured.stderr
+                "error": (
+                    result.error_in_exec if result.error_in_exec else captured.stderr
+                ),
             }
         else:
             print("[IPythonConsoleTab] 警告：kernel_manager 未就绪，无法执行代码")
-            return {"success": False, "output": "", "result": "", "error": "警告：kernel_manager 未就绪，无法执行代码"}
+            return {
+                "success": False,
+                "output": "",
+                "result": "",
+                "error": "警告：kernel_manager 未就绪，无法执行代码",
+            }
 
     def get_variable(self, name: str):
         """
@@ -523,10 +498,13 @@ class IPythonConsoleTab(QWidget):
         """
         from PySide6.QtCore import QTimer
         from .plugin_manager import exec_main_thread_callback
+
         if self.kernel_manager:
             self.kernel_manager.kernel.shell.push({name: value})
             if self.variables_table:
-                exec_main_thread_callback(lambda: QTimer.singleShot(0, self.variables_table.refresh_variables))
+                exec_main_thread_callback(
+                    lambda: QTimer.singleShot(0, self.variables_table.refresh_variables)
+                )
             return True
         else:
             return False
@@ -534,31 +512,32 @@ class IPythonConsoleTab(QWidget):
     def get_mcp_tools_status(self) -> dict:
         """
         获取 MCP 工具的启用状态
-        
+
         Returns:
             dict: {"enabled": list, "disabled": list, "total": int}
             - enabled: 启用的工具名称列表
             - disabled: 禁用的工具名称列表
             - total: 总工具数量
         """
-        if hasattr(self, 'agent_instance') and self.agent_instance:
+        if hasattr(self, "agent_instance") and self.agent_instance:
             agent = self.agent_instance
             return {
                 "enabled": list(agent.mcp_tools_enabled),
                 "disabled": list(agent.mcp_tools_disabled),
-                "total": len(agent.mcp_tools_enabled) + len(agent.mcp_tools_disabled)
+                "total": len(agent.mcp_tools_enabled) + len(agent.mcp_tools_disabled),
             }
         else:
             # 如果没有 agent，返回所有 MCP 工具都为启用状态
             from app_qt.plugin_manager import get_plugin_manager
+
             pm = get_plugin_manager()
             all_methods = pm.get_all_methods(include_extra_data=True)
-            mcp_tools = [m['name'] for m in all_methods if m.get('extra_data', {}).get('enable_mcp', False)]
-            return {
-                "enabled": mcp_tools,
-                "disabled": [],
-                "total": len(mcp_tools)
-            }
+            mcp_tools = [
+                m["name"]
+                for m in all_methods
+                if m.get("extra_data", {}).get("enable_mcp", False)
+            ]
+            return {"enabled": mcp_tools, "disabled": [], "total": len(mcp_tools)}
 
     def init_kernel_async(self):
         """在后台线程中异步初始化内核"""
@@ -590,7 +569,9 @@ class IPythonConsoleTab(QWidget):
         if self.variables_table:
             self.variables_table.kernel_manager = self.kernel_manager
             self.variables_table.refresh_variables()  # 初始化时刷新一次
-            logger.info(f"[IPythonConsoleTab] 变量表格已初始化, {self.variables_table.get_variables()}")
+            logger.info(
+                f"[IPythonConsoleTab] 变量表格已初始化, {self.variables_table.get_variables()}"
+            )
             # 绑定执行后的回调 - 监听 kernel.shell.events 的 post_execute
             shell = self.kernel_manager.kernel.shell
             # 注册 post_execute 事件处理器，在每次执行后刷新变量表格
@@ -652,14 +633,18 @@ class IPythonConsoleTab(QWidget):
             plugin_manager = get_plugin_manager()
 
             # 初始化 LLM Agent API
-            agent = init_ipython_llm_agent_api(ipython_tab=self, plugin_manager=plugin_manager)
-            
+            agent = init_ipython_llm_agent_api(
+                ipython_tab=self, plugin_manager=plugin_manager
+            )
+
             # 保存 agent 实例引用，用于控制停止等操作
             self.agent_instance = agent
-            
+
             # 绑定 agent 的状态变化信号
-            if hasattr(agent, 'output_handler'):
-                agent.output_handler.chunk_text_updated.connect(self._on_agent_text_update)
+            if hasattr(agent, "output_handler"):
+                agent.output_handler.chunk_text_updated.connect(
+                    self._on_agent_text_update
+                )
                 agent.output_handler.stream_finish.connect(self._on_agent_stream_finish)
                 agent.output_handler.error_occurred.connect(self._on_agent_error)
 
@@ -677,7 +662,10 @@ class IPythonConsoleTab(QWidget):
             # 延迟一小段时间刷新，确保内核状态已更新
             from PySide6.QtCore import QTimer
             from .plugin_manager import exec_main_thread_callback
-            exec_main_thread_callback(lambda: QTimer.singleShot(100, self.variables_table.refresh_variables))
+
+            exec_main_thread_callback(
+                lambda: QTimer.singleShot(100, self.variables_table.refresh_variables)
+            )
             # QTimer.singleShot(100, self.variables_table.refresh_variables)
 
     def _on_agent_text_update(self, text: str):
@@ -685,7 +673,7 @@ class IPythonConsoleTab(QWidget):
         if not self.is_generating:
             self.is_generating = True
             self.update_status_display(status="generating")
-    
+
     def _on_agent_stream_finish(self, next_action: str):
         """Agent 流式输出完成回调"""
         self.is_generating = False
@@ -695,12 +683,12 @@ class IPythonConsoleTab(QWidget):
         else:
             # CALL_TOOL 等情况，继续保持生成状态
             self.update_status_display(status="generating")
-    
+
     def _on_agent_error(self, error_msg: str):
         """Agent 错误处理回调"""
         self.is_generating = False
         self.update_status_display(status="error")
-    
+
     def closeEvent(self, event):
         """清理资源"""
         # 先停止内核线程

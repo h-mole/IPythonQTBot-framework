@@ -1,134 +1,98 @@
-# 快捷助手
+## 📋 项目概览
 
-## 技术栈
-- **GUI 框架**: PySide6 (Qt for Python)
-- **终端嵌入**: qtconsole (可选，用于高级 IPython 功能)
-- **剪贴板管理**: pyperclip
-- **IPython 支持**: ipython
-- **LLM 集成**: openai (支持 Kimi、OpenAI、智谱等)
+**IPythonQTBot-framework** 是一个基于 **PySide6 (Qt for Python)** 的智能助手框架，集成了 **IPython 内核** 和 **LLM（大语言模型）Agent** 功能。用户可以很方便的基于CheryStudio兼容格式接入MCP, 同时使用LLM对IPython内核中的变量进行分析, 打通数据处理\笔记管理\大模型中间的鸿沟.
 
-## 项目结构
+---
+## 界面示意图
+
+![主界面示意图](./pics/主界面示意图.png)
+
+## 项目优势
+
+- 会一点Python3环境部署即可运行, 包安装简单;
+- PySide本地部署, 小窗口随意拖动操作, 安全便捷;
+- 支持大模型操作IPython, 邮件, 日程等内置组件, 并支持大模型agent调用任何第三方MCP
+- 具有灵活的插件系统
+    - 只需要Python一种语言就能随便开发插件, 便于集成Python功能; 
+    - 插件接口支持自动暴露MCP; 
+    - 简单粗暴实现UI+MCP双模操作, 人与AI无缝沟通;
+
+## 🏗️ 项目架构
+
 ```
-myhelper/
-├── app_qt/                      # PySide6 应用主目录
-│   ├── __init__.py             # 应用入口
-│   ├── main_window.py          # 主窗口（包含标签页管理）
-│   ├── text_helper_tab.py      # 文本处理标签页
-│   ├── ipython_console_tab.py  # IPython 控制台标签页
-│   ├── ipython_plugins_bridge.py  # IPython 插件桥接
-│   └── ipython_llm_bridge.py   # IPython LLM 对话框架
-├── tabs/                        # Tkinter 版本标签页（保留）
-│   ├── __init__.py
-│   ├── ipython_tk.py
-│   └── text_helper.py
-├── helperscript.py             # Tkinter 版本主程序（保留）
-├── run_helper.cmd              # Tkinter 版本启动脚本
-├── run_helper_qt.py            # PySide6 Python 启动脚本
-├── run_helper_qt.cmd           # PySide6 Windows 启动脚本
-└── README.md
+IPythonQTBot/
+├── app_qt/                    # PySide6 GUI应用（主窗口、标签页等）
+├── plugins/                   # 插件系统
+│   ├── daily_tasks/          # 日常任务管理
+│   ├── email_utils/          # 邮件工具
+│   ├── mcp_bridge/           # MCP协议桥接
+│   ├── pandoc_utils/         # Pandoc工具
+│   ├── quick_notes/          # 快速笔记功能
+│   └── text_helper/          # 文本助手
+├── docs/                      # 详细文档（21个文档文件）
+├── demos/                     # 演示代码
+├── tests/                     # 测试文件
+└── single_component_tests/    # 单组件测试
 ```
 
-## 安装依赖
+---
+
+## ✨ 核心功能
+
+| 功能模块 | 描述 |
+|---------|------|
+| **🔧 插件系统** | 灵活的插件架构，支持动态加载/卸载、依赖管理 |
+| **🤖 LLM Agent** | 支持 Kimi、OpenAI、智谱AI 等多种大模型 |
+| **💻 IPython控制台** | 嵌入式Python交互环境 |
+| **🔌 MCP工具集成** | 支持MCP协议的外部服务接入 |
+| **📝 快速笔记** | 智能笔记管理功能 |
+| **📧 邮件工具** | 邮件发送和接收功能 |
+| **🛒 淘宝助手** | 自动化淘宝操作（搜索、加购等） |
+
+---
+
+## 📦 主要依赖
+
+```
+PySide6 >= 6.0.0        # GUI框架
+pyperclip >= 1.8.0      # 剪贴板操作
+ipython >= 7.0.0        # Python交互环境
+qtconsole >= 5.0.0      # Qt控制台
+openpyxl >= 3.0.0       # Excel处理
+mcp >= 1.26.0           # MCP协议支持
+openai >= 1.0.0         # OpenAI API
+```
+
+---
+
+## 🚗使用效果
+
+![使用效果gif, 基于IPython自动运行脚本并获取信息](./pics/main_demo.gif)
+---
+
+## 🚀 启动方式
+
+建议 Python >= 3.12
+
 ```bash
-pip install PySide6 pyperclip ipython
-```
+# ssh clone
+git clone git@gitee.com:mole-h-6011/IPythonQTBot-framework.git
 
-可选（高级 IPython 功能）:
-```bash
-pip install qtconsole
-```
+# 或者: https clone
+git clone https://gitee.com/mole-h-6011/IPythonQTBot-framework.git
 
-## 运行方式
+cd IPythonQTBot-framework
 
-### PySide6 版本（推荐）
-**Windows:**
-```cmd
-run_helper_qt.cmd
-```
+pip install -r requirements.txt 
 
-**跨平台:**
-```bash
 python run_helper_qt.py
 ```
+---
 
-### Tkinter 版本（旧版）
-**Windows:**
-```cmd
-run_helper.cmd
-```
+## 📚 特色亮点
 
-**跨平台:**
-```bash
-python helperscript.py
-```
-
-## 功能特性
-
-### 📝 文本处理
-- 一键去除换行符
-- 一键去除非法字符
-- 去除文件名非法字符
-- 复制结果到剪贴板
-- 剪贴板历史记录（双击加载）
-- 自动监控剪贴板更新
-
-### 🔍 查找替换
-- 查找文本
-- 替换单个匹配项
-- 全部替换
-- 高亮显示匹配项
-
-### 🐍 IPython 控制台
-- 交互式 Python 代码执行
-- 实时输出显示
-- 错误信息追踪
-- 清空输出功能
-- **插件 API**: `plugins.list()`, `plugins.call.plugin_name.method()`
-- **LLM 对话**: `agent.ask()`, `%agent_ask` 流式对话
-
-## 新增功能：IPython LLM Agent
-
-### 快速开始
-
-1. **配置 API Key**
-   ```bash
-   # 在 .env 文件中配置
-   API_KEY=your_kimi_api_key_here
-   ```
-
-2. **在 IPython 控制台中使用**
-   ```python
-   # 提问（流式输出）
-   agent.ask("你好，请介绍一下自己")
-   
-   # 清除历史
-   agent.clear()
-   
-   # 或使用 Magic 命令
-   %agent_ask 什么是 Python 的装饰器？
-   %agent_clear
-   ```
-
-### 主要特性
-- ✅ 流式输出 - 实时显示 LLM 响应
-- ✅ 历史记忆 - 自动保存对话上下文
-- ✅ 多 LLM 支持 - Kimi、OpenAI、智谱等
-- ✅ MCP 工具集成 - 自动调用启用的插件方法
-- ✅ Magic 命令 - 便捷的命令行接口
-
-详细文档：[docs/llm_agent_usage.md](docs/llm_agent_usage.md)
-
-## 使用说明
-
-1. **首次启动**: 程序会隐藏在系统托盘中，双击托盘图标打开主界面
-2. **切换标签页**: 点击顶部标签切换不同功能
-3. **剪贴板历史**: 在文本处理标签页右侧查看，双击可加载到编辑区
-4. **退出程序**: 右键点击托盘图标，选择"退出程序"
-
-## 注意事项
-
-- PySide6 版本使用 Qt 框架，性能更好，界面更现代
-- Tkinter 版本作为备选方案保留
-- 建议安装 pyperclip 以获得更稳定的剪贴板支持
-- IPython 功能需要额外安装 ipython 包
-- 单独测试组件运行的脚本放在./single_component_tasks下面
+1. **插件加载** - 支持插件配置文件 (`plugins_list.json`) 管理启用状态
+2. **Magic命令** - 提供 `%ask` 等便捷调用LLM能力的API
+3. **多Tab界面** - 主窗口支持多标签页布局
+4. **API导出** - 插件可导出API供LLM Agent调用
+5. **第三方MCP工具集成** - 快速导入MCP工具支持, 兼容CherryStudio工具的MCP配置格式

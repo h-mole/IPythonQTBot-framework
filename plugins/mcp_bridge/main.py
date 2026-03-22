@@ -350,7 +350,7 @@ class MCPBridgeWidget:
 
     def _get_config_path(self) -> str:
         """获取配置文件路径"""
-        # ~/myhelper/mcp_bridge/config.json
+        # ~/IPythonQTBot/mcp_bridge/config.json
         base_dir = os.path.join(PLUGIN_DATA_DIR, "mcp_bridge")
         os.makedirs(base_dir, exist_ok=True)
         config_path = os.path.join(base_dir, "config.json")
@@ -406,11 +406,22 @@ class MCPBridgeWidget:
         Returns:
             bool: 是否全部连接成功
         """
-        success_count = 0
         total_count = len(self.server_manager.servers)
         logger.info(f"[MCP Bridge] 正在连接 {total_count} 个服务器...")
-        for server_name in self.server_manager.servers.keys():
-            if await self.server_manager.connect_to_server(server_name):
+        
+        # 并发连接所有服务器
+        tasks = [
+            self.server_manager.connect_to_server(server_name)
+            for server_name in self.server_manager.servers.keys()
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # 统计结果
+        success_count = 0
+        for server_name, result in zip(self.server_manager.servers.keys(), results):
+            if isinstance(result, Exception):
+                logger.error(f"[MCP Bridge] 连接服务器异常：{server_name}, 错误：{result}")
+            elif result:
                 success_count += 1
             else:
                 logger.error(f"[MCP Bridge] 连接服务器失败：{server_name}")

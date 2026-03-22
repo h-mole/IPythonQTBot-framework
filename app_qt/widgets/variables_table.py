@@ -49,26 +49,15 @@ class VariablesTable(QWidget):
 
         title_label = QLabel("📊 变量监视器")
         title_label.setFont(QFont("Microsoft YaHei UI", 12, 75))
-        title_label.setStyleSheet("padding: 5px;")
+        title_label.setObjectName("subTitleLabel")
         header_layout.addWidget(title_label)
 
         header_layout.addStretch()
 
         # 刷新按钮
         refresh_btn = QPushButton("🔄 刷新")
+        refresh_btn.setObjectName("successBtn")
         refresh_btn.clicked.connect(self.refresh_variables)
-        refresh_btn.setStyleSheet("""
-            QPushButton {
-                padding: 5px 15px;
-                border-radius: 3px;
-                background-color: #4CAF50;
-                color: white;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
         header_layout.addWidget(refresh_btn)
 
         main_layout.addLayout(header_layout)
@@ -86,24 +75,21 @@ class VariablesTable(QWidget):
         header.setSectionResizeMode(2, QHeaderView.ResizeMode(1))  # 第 3 列拉伸
         header.setSectionResizeMode(3, QHeaderView.ResizeMode(1))  # 第 4 列拉伸
         self.table.setAlternatingRowColors(True)
+        self.table.setObjectName("variablesTable")
+
+        main_layout.addWidget(self.table)
+        
+        # 应用表格特定样式
         self.table.setStyleSheet("""
-            QTableWidget {
+            QTableWidget#variablesTable {
                 gridline-color: #ddd;
                 font-family: Consolas;
                 font-size: 10pt;
             }
-            QTableWidget::item {
+            QTableWidget#variablesTable::item {
                 padding: 5px;
-            }
-            QHeaderView::section {
-                background-color: #f0f0f0;
-                padding: 5px;
-                border: none;
-                font-weight: bold;
             }
         """)
-
-        main_layout.addWidget(self.table)
 
     def get_variables(self):
         """

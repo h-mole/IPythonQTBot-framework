@@ -1,0 +1,80 @@
+/* =====================================================
+   自定义标题栏样式表
+   ===================================================== */
+
+/* 标题栏主容器 - 浅色主题 */
+#titleBarWidget {
+    background-color: #f8f9fa;
+    min-height: 48px;
+    max-height: 48px;
+}
+
+/* 标题栏渐变背景（可选） */
+#titleBarWidget[gradient="true"] {
+    background: qlineargradient(
+        x1: 0, y1: 0, 
+        x2: 1, y2: 0,
+        stop: 0 #3498db,
+        stop: 0.5 #2c3e50,
+        stop: 1 #2c3e50
+    );
+}
+
+/* 应用图标 */
+#appIconLabel {
+    font-size: 20pt;
+    padding-left: 16px;
+    padding-right: 12px;
+}
+
+/* 应用标题 */
+#appTitleLabel {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #2c3e50;
+    padding-right: 16px;
+}
+
+/* 副标题（可选） */
+#appSubtitleLabel {
+    font-size: 9pt;
+    color: #bdc3c7;
+    padding-left: 8px;
+}
+
+/* 标题栏按钮基类 */
+QToolButton#titleBarButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 4px;
+    min-width: 46px;
+    max-width: 46px;
+    min-height: 48px;
+    max-height: 48px;
+    color: #2c3e50;
+    font-size: 16pt;
+}
+
+QToolButton#titleBarButton:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* 关闭按钮 - 特殊红色 */
+#closeButton {
+}
+
+#closeButton:hover {
+    background-color: #e74c3c;
+}
+
+#closeButton:pressed {
+    background-color: #c0392b;
+}
+
+/* 标题栏分隔线 */
+#titleBarSeparator {
+    background-color: rgba(255, 255, 255, 0.2);
+    min-width: 1px;
+    max-width: 1px;
+    margin: 8px 4px;
+}

@@ -20,6 +20,7 @@ from typing import Literal, Optional, List, Dict, Any, TYPE_CHECKING
 from IPython.core.getipython import get_ipython
 from PySide6.QtCore import QObject, Signal, QTimer
 from PySide6.QtWidgets import QApplication
+from app_qt.utils import count_messages_tokens
 import yaml
 from rich import print
 from rich.text import Text
@@ -32,6 +33,7 @@ from app_qt.configs import (
     app_config,
     MAIN_APP_DATA_DIR,
 )
+
 if TYPE_CHECKING:
     from .ipython_console_tab import IPythonConsoleTab
 
@@ -136,9 +138,7 @@ class StreamingOutputHandler(QObject):
     IMPORTANT_STYLE = "bold"
     DIM_STYLE = "#999999"
 
-    def __init__(
-        self, ipython_shell=None, agent_instance: Optional["Agent"] = None
-    ):
+    def __init__(self, ipython_shell=None, agent_instance: Optional["Agent"] = None):
         super().__init__()
         self.is_streaming = False
         self.ipython_shell = ipython_shell  # IPython shell 引用
@@ -146,7 +146,6 @@ class StreamingOutputHandler(QObject):
         self.current_stdout = sys.stdout
         self.agent_instance = agent_instance  # Agent 实例引用
         self.start_timer()
-        
 
     def start_timer(self):
         def timer_func():
@@ -207,14 +206,18 @@ class StreamingOutputHandler(QObject):
             tool_calls_map = {}
 
             # 记忆当前正在输出的内容
-            current_output: Literal["content", "reasoning_content", "tool_call", ""] = ""
+            current_output: Literal["content", "reasoning_content", "tool_call", ""] = (
+                ""
+            )
 
             # ===========================
             # 第一阶段：接收并拼接流式数据
             # ===========================
             for chunk in response:
                 if not self.is_streaming:
-                    self.response_queue.put(Text("Streaming has been canceled by user.", style="cyan"))
+                    self.response_queue.put(
+                        Text("Streaming has been canceled by user.", style="cyan")
+                    )
                     break
 
                 # 安全检查
@@ -403,14 +406,6 @@ class StreamingOutputHandler(QObject):
                         traceback.print_exc()
                         error_msg = f"\n[错误] 执行工具失败：{e}"
                         self.response_queue.put(Text(error_msg, style="red"))
-                        # 将错误信息反馈给模型
-                        messages.append(
-                            {
-                                "role": "tool",
-                                "tool_call_id": tool_call_id,
-                                "content": f"Tool execution error: {str(e)}",
-                            }
-                        )
 
             # 完成响应信号，并且将工具结果发送到上级组件。
             # 【关键修复】必须先将 assistant 消息加入历史，然后再执行工具
@@ -462,10 +457,10 @@ You are a helpful assistant that have various functions.
 
 class Agent:
     """LLM Agent - 管理对话历史和调用"""
-    
+
     def __init__(
         self,
-        ipython_tab: "IPythonConsoleTab" ,
+        ipython_tab: "IPythonConsoleTab",
         config: Optional[LLMConfig] = None,
         plugin_manager=None,
         ipython_shell=None,
@@ -479,7 +474,7 @@ class Agent:
             ipython_shell: IPython shell 实例（用于正确输出到 IPython 控制台）
         """
         self.ipython_tab = ipython_tab
-        
+
         self.system_prompt_file = ensure_app_config_file(
             f"prompt-templates/{app_config.llm_config.customization_name}/System.md",
             AGENT_SYSTEM_PROMPT_INITIAL,
@@ -493,10 +488,12 @@ class Agent:
         self.client = OpenAI(api_key=self.config.api_key, base_url=self.config.base_url)
 
         # 对话历史
-        self.messages: List[Dict[str, str]] = [{
-            "role": "system",
-            "content": self.system_prompt_file.read_text(),
-        }]
+        self.messages: List[Dict[str, str]] = [
+            {
+                "role": "system",
+                "content": self.system_prompt_file.read_text(),
+            }
+        ]
 
         # 插件管理器
         self.plugin_manager: Optional["PluginManager"] = plugin_manager
@@ -511,22 +508,24 @@ class Agent:
         self.output_handler.llm_message_finish.connect(self._on_message_recv)
         self.output_handler.error_occurred.connect(self._on_error)
         self.output_handler.stream_finish.connect(self._on_stream_finish)
-        
+
         # 历史记录目录
         self.history_dir = MAIN_APP_DATA_DIR / "llm_conversation_history"
         if not self.history_dir.exists():
             self.history_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # MCP 工具过滤条件（先初始化为空集合）
-        self.mcp_tools_enabled: set[str] = set()  # 启用的工具集合，如果为空则表示全部启用
+        self.mcp_tools_enabled: set[str] = (
+            set()
+        )  # 启用的工具集合，如果为空则表示全部启用
         self.mcp_tools_disabled: set[str] = set()  # 禁用的工具集合
-        
+
         # 尝试自动加载最近的对话（在设置工具状态之前加载）
         self.auto_load()
 
         # 对话开始时间（首次提问或加载历史时设置）
         self.conversation_start_time: Optional[str] = None
-        
+
         # 当前历史文件路径
         self.current_history_file: Optional[Path] = None
 
@@ -535,7 +534,7 @@ class Agent:
         )
         # 当前是否在处理工具调用
         self._processing_tool_calls = False
-        
+
         if self.plugin_manager:
             mcp_tools = self._build_mcp_tools()
             print(f"[Agent] 已加载 {len(mcp_tools)} 个 MCP 工具")
@@ -551,28 +550,30 @@ class Agent:
             # 如果是第一次提问，记录开始时间
             if self.conversation_start_time is None:
                 from datetime import datetime
+
                 self.conversation_start_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-                print(f"[Agent] 新对话已开始，时间：{self.conversation_start_time}")
-            
+                # print(f"[Agent] 新对话已开始，时间：{self.conversation_start_time}")
+
             # 添加用户消息到历史
             self.messages.append({"role": "user", "content": prompt})
+            self.ipython_tab.agent_context_length_change.emit(
+                count_messages_tokens(self.messages)
+            )
             # 自动保存
             self._auto_save()
-        
+
         # 通知开始生成
         self.ipython_tab.ipython_status_change.emit("generating")
-        
+
         # 构建 MCP 工具列表
         tools = self._build_mcp_tools()
         # 开始流式请求
-        print(f"\n[Agent] 提问：{prompt}\n")
+        # print(f"\n[Agent] 提问：{prompt}\n")
         print("-" * 60)
-        
-        
-        
+
         self.output_handler.set_current_stdout_stream(sys.stdout)
         self.output_handler.stream_response(
-            self.client, self.messages.copy(), tools if tools else None
+            self.client, self.messages_limited.copy(), tools if tools else None
         )
 
     def show_tools(self, detailed=False):
@@ -587,11 +588,11 @@ class Agent:
                     f"{i+1}. {tool['function']['name']}:\n{tool['function']['description']}"
                 )
             print(f"[Agent] 可用工具：\n{'\n'.join(tools_brief_info)}")
-    
+
     def save_history(self, file_path: str | None = None):
         """
         保存历史对话到 JSON 文件
-            
+
         Args:
             file_path: 保存路径 (可选，默认使用带时间戳的自动命名)
         """
@@ -607,25 +608,25 @@ class Agent:
             "mcp_tools_enabled": list(self.mcp_tools_enabled),
             "mcp_tools_disabled": list(self.mcp_tools_disabled),
             "config": config_dict,
-            "conversation_start_time": self.conversation_start_time
+            "conversation_start_time": self.conversation_start_time,
         }
-            
-        with open(file_path, 'w', encoding='utf-8') as f:
+
+        with open(file_path, "w", encoding="utf-8") as f:
             json.dump(history_data, f, ensure_ascii=False, indent=2)
-            
+
         self.current_history_file = Path(file_path)
-        print(f"[Agent] 历史对话已保存到：{file_path}")
-        
+        logger.info(f"[Agent] 历史对话已保存到：{file_path}")
+
     def _auto_save(self):
         """自动保存到默认位置"""
         if self.conversation_start_time is None:
             return  # 还没有开始对话，不保存
         self.save_history()
-    
+
     def load_history(self, file_path: str | None = None):
         """
         从 JSON 文件加载历史对话
-            
+
         Args:
             file_path: 加载路径 (可选，默认加载最近的文件)
         """
@@ -637,26 +638,31 @@ class Agent:
                 return False
             file_path = recent_files[0]
             print(f"[Agent] 正在加载最近的对话：{file_path}")
-            
+
         if not os.path.exists(file_path):
             print(f"[Agent] 历史文件不存在：{file_path}")
             return False
-            
+
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 history_data = json.load(f)
-                
+
             # 恢复对话历史
             self.messages = history_data.get("messages", [])
-                
+            tokens  = count_messages_tokens(self.messages_limited)
+            logger.info(f"[Agent] 恢复对话历史，消息数量：{len(self.messages)}，Token数：{tokens}")
+            self.ipython_tab.agent_context_length_change.emit(
+                tokens
+            )
+
             # 恢复 MCP 工具状态
             mcp_tools_enabled = history_data.get("mcp_tools_enabled", [])
             mcp_tools_disabled = history_data.get("mcp_tools_disabled", [])
             self.update_mcp_tools_filter(mcp_tools_enabled, mcp_tools_disabled)
-                
+
             # 恢复对话开始时间
             self.conversation_start_time = history_data.get("conversation_start_time")
-                
+
             # 可选：恢复配置
             if "config" in history_data:
                 config_data = history_data["config"]
@@ -664,11 +670,13 @@ class Agent:
                     provider=config_data.get("provider", "kimi"),
                     api_key=config_data.get("api_key"),
                     base_url=config_data.get("base_url"),
-                    model=config_data.get("model")
+                    model=config_data.get("model"),
                 )
                 # 重新创建客户端
-                self.client = OpenAI(api_key=self.config.api_key, base_url=self.config.base_url)
-                
+                self.client = OpenAI(
+                    api_key=self.config.api_key, base_url=self.config.base_url
+                )
+
             self.current_history_file = Path(file_path)
             print(f"[Agent] 已从 {file_path} 加载历史对话")
             print(f"  - 消息数量：{len(self.messages)}")
@@ -677,63 +685,78 @@ class Agent:
             if self.conversation_start_time:
                 print(f"  - 对话开始时间：{self.conversation_start_time}")
             return True
-                
+
         except Exception as e:
             print(f"[Agent] 加载历史对话失败：{e}")
             import traceback
+
             traceback.print_exc()
             return False
-        
+
     def list_recent_conversations(self, limit: int = 10) -> list[str]:
         """
         列出最近的对话文件
-            
+
         Args:
             limit: 返回的文件数量限制
-            
+
         Returns:
             按修改时间排序的文件路径列表（最新的在前）
         """
         if not self.history_dir.exists():
             return []
-            
+
         # 获取所有 conversation_*.json 文件
         import glob
+
         pattern = str(self.history_dir / "conversation_*.json")
         files = glob.glob(pattern)
-            
+
         # 按修改时间排序（最新的在前）
         files_with_mtime = [(f, os.path.getmtime(f)) for f in files]
         files_with_mtime.sort(key=lambda x: x[1], reverse=True)
-            
+
         # 返回前 N 个文件的路径
         result = [f[0] for f in files_with_mtime[:limit]]
-            
+
         if result:
             print(f"[Agent] 找到 {len(result)} 个历史对话文件:")
             for i, file_path in enumerate(result, 1):
                 mtime = os.path.getmtime(file_path)
                 from datetime import datetime
+
                 time_str = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
                 print(f"  {i}. {os.path.basename(file_path)} ({time_str})")
-            
+
         return result
-        
+
     def auto_save(self):
         """自动保存到默认位置"""
         self._auto_save()
-        
+
     def auto_load(self):
         """自动从默认位置加载最近的对话"""
         return self.load_history()
 
+    @property
+    def messages_limited(self):
+        """取有限制的消息列表, 取最新的最多 max_context_messages 个"""
+        if len(self.messages) > app_config.llm_config.max_context_messages:
+            return self.messages[-app_config.llm_config.max_context_messages :]
+        return self.messages
+
     def clear(self):
         """清除历史对话"""
         self.messages.clear()
-        self.messages.append({
-            "role": "system",
-            "content": self.system_prompt_file.read_text(),
-        })
+        self.messages.append(
+            {
+                "role": "system",
+                "content": self.system_prompt_file.read_text(),
+            }
+        )
+        self.ipython_tab.agent_context_length_change.emit(
+            count_messages_tokens(self.messages_limited)
+        )
         # 清除时不重置 MCP 工具状态，保持上一轮的配置
         # self.mcp_tools_enabled.clear()
         # self.mcp_tools_disabled.clear()
@@ -759,65 +782,67 @@ class Agent:
     def update_mcp_tools_filter(self, enabled_tools: list, disabled_tools: list):
         """
         更新 MCP 工具的过滤条件
-            
+
         Args:
             enabled_tools: 启用的工具名称列表
             disabled_tools: 禁用的工具名称列表
         """
         self.mcp_tools_enabled = set(enabled_tools)
         self.mcp_tools_disabled = set(disabled_tools)
-        print(f"[Agent] MCP 工具过滤已更新：启用 {len(self.mcp_tools_enabled)} 个，禁用 {len(self.mcp_tools_disabled)} 个")
-            
+        print(
+            f"[Agent] MCP 工具过滤已更新：启用 {len(self.mcp_tools_enabled)} 个，禁用 {len(self.mcp_tools_disabled)} 个"
+        )
+
         # 重新构建工具列表
         mcp_tools = self._build_mcp_tools()
         print(f"[Agent] 当前可用 MCP 工具数量：{len(mcp_tools)}")
-    
+
     def _build_mcp_tools(self) -> List[Dict]:
         """
         从插件管理器构建 MCP 工具列表
-    
+
         Returns:
             OpenAI Tools 格式的工具列表
         """
         if not self.plugin_manager:
             return []
-    
+
         tools = []
-    
+
         # 遍历所有注册的方法
         all_methods = self.plugin_manager.get_all_methods(include_extra_data=True)
-    
+
         for method_info in all_methods:
-            extra_data = method_info.get('extra_data', {})
-    
+            extra_data = method_info.get("extra_data", {})
+
             # 只选择启用了 MCP 的方法
-            if not extra_data.get('enable_mcp', False):
+            if not extra_data.get("enable_mcp", False):
                 continue
-                
+
             # 检查是否在禁用列表中
-            method_name = method_info['name']
+            method_name = method_info["name"]
             if method_name in self.mcp_tools_disabled:
                 continue
-                
+
             # 如果启用了过滤（enabled_tools 不为空），则只包含在启用列表中的工具
             if self.mcp_tools_enabled and method_name not in self.mcp_tools_enabled:
                 continue
-    
+
             # 获取方法对象
             method_func = self.plugin_manager.get_method(method_name)
             if not method_func:
                 continue
-    
+
             # 获取详细信息，如果信息中已经包含了 LLM Tool 的信息，那么就直接读取
             method_metadata = self.plugin_manager.get_method_metadata(method_name)
-            if method_metadata and 'llm_tool_info' in method_metadata:
-                tools.append(method_metadata['llm_tool_info'])
+            if method_metadata and "llm_tool_info" in method_metadata:
+                tools.append(method_metadata["llm_tool_info"])
             else:
                 # 构建工具定义
                 tool_def = self._method_to_openai_tool(method_name, method_func)
                 if tool_def:
                     tools.append(tool_def)
-    
+
         return tools
 
     def _on_stream_finish(self, next_action: Literal["FINISH", "CALL_TOOL"]):
@@ -829,7 +854,7 @@ class Agent:
             tools = self._build_mcp_tools()
 
             self.output_handler.stream_response(
-                self.client, self.messages.copy(), tools if tools else None
+                self.client, self.messages_limited.copy(), tools if tools else None
             )
             self.ipython_tab.ipython_status_change.emit("generating")
         else:
@@ -1101,6 +1126,7 @@ class Agent:
 
         # 添加助手消息到历史
         self.messages.append(response)
+        self.ipython_tab.agent_context_length_change.emit(count_messages_tokens(self.messages_limited))
         # 自动保存
         self._auto_save()
 
@@ -1180,7 +1206,7 @@ def register_llm_magics(shell, agent: Agent):
     def agent_clear(line):
         """清除历史对话"""
         agent.clear()
-    
+
     # 注册 %agent_messages
     @register_line_magic
     def agent_messages(line):
@@ -1194,7 +1220,9 @@ def register_llm_magics(shell, agent: Agent):
 
 
 def init_ipython_llm_agent_api(
-    ipython_tab: "IPythonConsoleTab", plugin_manager=None, llm_config: Optional[LLMConfig] = None, 
+    ipython_tab: "IPythonConsoleTab",
+    plugin_manager=None,
+    llm_config: Optional[LLMConfig] = None,
 ):
     """
     初始化 IPython LLM Agent API
@@ -1216,7 +1244,9 @@ def init_ipython_llm_agent_api(
             # 创建 Agent 实例（传入 shell 引用）
             agent = Agent(
                 ipython_tab=ipython_tab,
-                config=llm_config, plugin_manager=plugin_manager, ipython_shell=shell
+                config=llm_config,
+                plugin_manager=plugin_manager,
+                ipython_shell=shell,
             )
 
             # 将 agent 注入到用户命名空间
@@ -1228,7 +1258,10 @@ def init_ipython_llm_agent_api(
             # 注册自省方法，获取所有的能力
             pm = get_plugin_manager()
             pm._register_system_method(
-                "list_all_tools", agent._build_mcp_tools, {"enable_mcp": True}, "override"
+                "list_all_tools",
+                agent._build_mcp_tools,
+                {"enable_mcp": True},
+                "override",
             )
 
             print("\n" + "=" * 60)

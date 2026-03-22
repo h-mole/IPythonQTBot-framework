@@ -2,7 +2,7 @@
   "name": "quick_notes",
   "description": "快速笔记插件 - 支持树状结构管理的笔记编辑器",
   "version": "1.0.0",
-  "author": "MyHelper Team",
+  "author": "IPythonQTBot Team",
   "main": "main",
   "exports": {
     "namespace": "quick_notes",

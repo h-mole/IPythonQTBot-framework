@@ -2,7 +2,7 @@
   "name": "email_utils",
   "description": "邮箱工具 - 提供邮件收发、管理和预览功能",
   "version": "1.0.0",
-  "author": "MyHelper Team",
+  "author": "IPythonQTBot Team",
   "main": "main",
   
   "dependencies": [

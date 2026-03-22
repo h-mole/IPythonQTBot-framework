@@ -1,2 +1,2 @@
-C:\Users\hzy\Programs\myhelper\venv\Scripts\python.exe helperscript.py
+C:\Users\hzy\Programs\IPythonQTBot\venv\Scripts\python.exe helperscript.py
 pause

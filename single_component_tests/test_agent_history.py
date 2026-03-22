@@ -71,7 +71,7 @@ def test_history_save_load():
 # 1. 开始对话 (会自动保存)
 agent.ask("你好，请帮我写一个 Python 函数")
 # 输出：[Agent] 新对话已开始，时间：20250322_143022
-# 自动保存到：~/myhelper/app_data/llm_conversation_history/conversation_20250322_143022.json
+# 自动保存到：~/IPythonQTBot/app_data/llm_conversation_history/conversation_20250322_143022.json
 
 # 2. 继续对话 (继续自动保存)
 agent.ask("能再优化一下这个函数吗？")

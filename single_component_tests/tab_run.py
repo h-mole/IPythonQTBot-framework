@@ -31,7 +31,7 @@ def main():
 
     # 设置应用信息
     app.setApplicationName("快速笔记测试")
-    app.setOrganizationName("MyHelper")
+    app.setOrganizationName("IPythonQTBot")
 
     window = TestWindow()
     window.show()

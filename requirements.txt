@@ -8,3 +8,7 @@ mcp>=1.26.0
 openai>=1.0.0
 python-dotenv>=1.0.0
 QMarkdownView==0.2.0
+tiktoken
+rich
+pandas
+numpy

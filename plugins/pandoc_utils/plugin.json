@@ -2,7 +2,7 @@
   "name": "pandoc_utils",
   "description": "Pandoc 文档转换工具 - 提供 Markdown 与 DOCX 互转功能",
   "version": "1.0.0",
-  "author": "MyHelper Team",
+  "author": "IPythonQTBot Team",
   "main": "main",
   
   "dependencies": [

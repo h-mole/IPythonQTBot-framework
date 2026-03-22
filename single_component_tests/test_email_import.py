@@ -1,6 +1,6 @@
 """测试导入是否成功"""
 import sys
-sys.path.insert(0, r'C:\Users\hzy\Programs\myhelper')
+sys.path.insert(0, r'C:\Users\hzy\Programs\IPythonQTBot')
 
 try:
     from plugins.email_utils import EmailManagerTab, load_plugin, unload_plugin

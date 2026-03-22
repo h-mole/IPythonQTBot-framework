@@ -2,7 +2,7 @@
   "name": "daily_tasks",
   "description": "每日任务提醒器 - 提供任务管理和提醒功能",
   "version": "1.0.0",
-  "author": "MyHelper Team",
+  "author": "IPythonQTBot Team",
   "main": "main",
   
   "dependencies": [

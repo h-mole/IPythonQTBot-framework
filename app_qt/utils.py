@@ -111,11 +111,68 @@ async def my_async_task(name, delay):
     print(f"任务 {name} 结束")
     return f"结果是 {name}"
 
-# # 场景：在主线程（同步环境）中调用
-# runner = AsyncThreadRunner()
-
-# # 提交任务并获取返回值
-# result = runner.submit(my_async_task("A", 1))
-# print(f"主线程收到: {result}")
-
-# runner.stop()
+def count_messages_tokens(messages, model="gpt-3.5-turbo"):
+    """
+    计算 messages 数组的 token 总数量
+    
+    Args:
+        messages: 消息数组，格式如 [{"role": "user", "content": "..."}]
+        model: 模型名称（默认 gpt-3.5-turbo）
+    
+    Returns:
+        int: token 总数量
+    
+    示例:
+        messages = [
+            {"role": "system", "content": "你是一个助手"},
+            {"role": "user", "content": "你好"}
+        ]
+        tokens = count_messages_tokens(messages)
+        print(f"总 tokens: {tokens}")
+    """
+    try:
+        import tiktoken
+        
+        if not messages:
+            return 0
+        
+        # 获取编码器
+        try:
+            encoding = tiktoken.encoding_for_model(model)
+        except KeyError:
+            encoding = tiktoken.get_encoding("cl100k_base")
+        
+        total_tokens = 0
+        
+        for message in messages:
+            # 每条消息固定开销: 4 tokens
+            total_tokens += 4
+            
+            # 计算每个字段的 token
+            for key, value in message.items():
+                if value:
+                    total_tokens += len(encoding.encode(str(value)))
+        
+        # 对话额外开销: 2 tokens
+        total_tokens += 2
+        
+        return total_tokens
+    
+    except ImportError:
+        # 如果没有 tiktoken，使用简化估算
+        if not messages:
+            return 0
+        
+        total_tokens = 0
+        
+        for message in messages:
+            total_tokens += 4  # 固定开销
+            
+            for key, value in message.items():
+                if value:
+                    text = str(value)
+                    # 估算：约 4 字符 = 1 token
+                    total_tokens += len(text) // 4 + 1
+        
+        total_tokens += 2  # 对话开销
+        return total_tokens

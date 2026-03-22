@@ -1,7 +1,7 @@
 # 通义灵码上下文配置
 
 ## 项目概述
-- 项目名称：myhelper
+- 项目名称：IPythonQTBot
 - 主要功能：文本处理助手（Qt/PySide6 实现）
 - 技术栈：Python + PySide6
 

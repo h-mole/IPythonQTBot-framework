@@ -170,7 +170,7 @@ def main():
     
     # 提示
     print("\n提示:")
-    print("1. 如果看到 '未配置任何服务器'，请编辑配置文件：~/myhelper/plugin_data/mcp_bridge/config.json")
+    print("1. 如果看到 '未配置任何服务器'，请编辑配置文件：~/IPythonQTBot/plugin_data/mcp_bridge/config.json")
     print("2. 如果工具数量为 0，请检查 MCP 服务器是否可连接")
     print("3. 查看 QUICKSTART.md 了解更多使用方法")
 
