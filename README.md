@@ -90,7 +90,7 @@ python run_helper_qt.py
 
 ## 🔑 API Key Configuration and Basic Operations
 
-![API Key Configuration](./pics/api-key 配置.png)
+![API Key Configuration](./pics/api-key配置.png)
 
 After configuration is complete:
 - Ask question: `agent.ask("your question")`, or `%ask your question`.
