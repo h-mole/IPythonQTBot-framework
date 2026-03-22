@@ -33,7 +33,7 @@ from app_qt.configs import (
     app_config,
     MAIN_APP_DATA_DIR,
 )
-
+from whats_that_code import guess_by_code_and_tags
 if TYPE_CHECKING:
     from .ipython_console_tab import IPythonConsoleTab
 
@@ -52,9 +52,7 @@ logger = logging.getLogger(__name__)
 class LLMConfig:
     """LLM 配置类"""
 
-    def __init__(
-        self, model: str = None, provider: str = None
-    ):
+    def __init__(self, model: str = None, provider: str = None):
         """
         初始化 LLM 配置
 
@@ -72,14 +70,10 @@ class LLMConfig:
         self.base_url = current_llm_config.base_url
         self.model = model or app_config.llm_config.model
         if not self.api_key:
-            logger.error(   
-                f"未提供 API Key，请设置 APIKey 参数"
-            )
-            return 
+            logger.error(f"未提供 API Key，请设置 APIKey 参数")
+            return
         if not self.base_url:
-            logger.error(
-                f"未提供 Base URL，请设置 Base URL 参数"
-            )
+            logger.error(f"未提供 Base URL，请设置 Base URL 参数")
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -154,7 +148,7 @@ class StreamingOutputHandler(QObject):
             request_params = {
                 "model": app_config.llm_config.model,
                 "messages": messages,
-                "stream": True, 
+                "stream": True,
             }
 
             # 如果提供了工具，添加到请求
@@ -500,7 +494,9 @@ class Agent:
         )
         # 当前是否在处理工具调用
         self._processing_tool_calls = False
-
+        # 是否自动加"ask"的功能
+        self.auto_ask = False
+        
         if self.plugin_manager:
             mcp_tools = self._build_mcp_tools()
             print(f"[Agent] 已加载 {len(mcp_tools)} 个 MCP 工具")
@@ -615,11 +611,11 @@ class Agent:
 
             # 恢复对话历史
             self.messages = history_data.get("messages", [])
-            tokens  = count_messages_tokens(self.messages_limited)
-            logger.info(f"[Agent] 恢复对话历史，消息数量：{len(self.messages)}，Token数：{tokens}")
-            self.ipython_tab.agent_context_length_change.emit(
-                tokens
+            tokens = count_messages_tokens(self.messages_limited)
+            logger.info(
+                f"[Agent] 恢复对话历史，消息数量：{len(self.messages)}，Token数：{tokens}"
             )
+            self.ipython_tab.agent_context_length_change.emit(tokens)
 
             # 恢复 MCP 工具状态
             mcp_tools_enabled = history_data.get("mcp_tools_enabled", [])
@@ -632,7 +628,9 @@ class Agent:
             # 可选：恢复配置
             if "config" in history_data:
                 config_data = history_data["config"]
-                self.config = LLMConfig(model=config_data.get("model"), provider=config_data.get("provider"))                
+                self.config = LLMConfig(
+                    model=config_data.get("model"), provider=config_data.get("provider")
+                )
                 # 重新创建客户端
                 self.client = OpenAI(
                     api_key=self.config.api_key, base_url=self.config.base_url
@@ -1087,7 +1085,9 @@ class Agent:
 
         # 添加助手消息到历史
         self.messages.append(response)
-        self.ipython_tab.agent_context_length_change.emit(count_messages_tokens(self.messages_limited))
+        self.ipython_tab.agent_context_length_change.emit(
+            count_messages_tokens(self.messages_limited)
+        )
         # 自动保存
         self._auto_save()
 
@@ -1173,9 +1173,88 @@ def register_llm_magics(shell, agent: Agent):
     def agent_messages(line):
         """显示历史对话"""
         agent.show_messages()
+    
+    # 注册一个启用/禁用自动加"ask"的功能
+    @register_line_magic
+    def auto_ask(input_arg):
+        """启用/禁用自动加"ask"的功能"""
+        if input_arg in ("", "enable", "on", "ok", "1", True):
+            agent.auto_ask = True
+            print("[LLM Bridge] 与大模型对话前免输入'ask'的功能已启用")
+        elif input_arg in ("disable", "off", "no", "0", False):
+            agent.auto_ask = False
+            print("[LLM Bridge] 与大模型对话前免输入'ask'的功能已禁用")
+    
+    # 注册清空agent上下文的快捷功能
+    @register_line_magic
+    def acl(line):
+        """清除agent上下文, 全称=agent_clear, 别名=acl"""
+        agent.clear()
 
-    print("[LLM Bridge] 已注册 magic 命令：%ask, %agent_clear, %agent_messages")
+    print("[LLM Bridge] 已注册 magic 命令：%ask, %agent_clear, %agent_messages, %auto_ask, %acl")
 
+def compile_and_get_errors(lines: list[str]):
+    try:
+        compile(
+            "\n".join(lines),
+            filename="<string>",
+            mode="exec",
+            flags=0,
+            dont_inherit=False,
+        )
+        return "OK"
+    except Exception as e:
+        import traceback
+        return traceback.format_exc()
+
+def compilable(lines: list[str]):
+    """
+    判断lines里面的各行是否会形成可编译的Python代码
+    """
+    try:
+        # for line in lines:
+        compile(
+            "\n".join(lines),
+            filename="<string>",
+            mode="exec",
+            flags=0,
+            dont_inherit=False,
+        )
+    except NameError as e:
+        return str(e)
+    except SyntaxError as e:
+        return str(e)
+    except Exception as e:
+        return "OTHER_EXCEPTION"
+    return "OK"
+
+def create_cmd_transformer(agent: Agent):
+    """
+    创建一个命令转换器，用于自动判断一条语句到底是代码还是自然语言文本，并进行相应的处理
+    """
+    def cmd_transformer(lines: list[str]):
+        if agent.auto_ask:
+            if len(lines) == 0 or lines[0].lstrip().startswith(("ask ", "agent_ask", "%", "#")):
+                return lines
+            else:
+                compile_result = compilable(lines)
+                if compile_result in ("OK", "OTHER_EXCEPTION"):
+                    return lines
+                else:
+                    code = "\n".join(lines)
+                    if guess_by_code_and_tags.guess_language_all_methods(code) != "python":
+                        return [f"agent.ask(\"\"\"{code}\"\"\")"]
+                    else:
+                        return lines
+        else:
+            return lines
+            # compile_result = compile_and_get_errors(lines)
+            # if compile_result == "OK":
+            #     return lines
+            # else:
+            #     print(Text("{}\n您输入的文本似乎有语法错误. 如果想要直接免去任何前缀(`ask ...`)或函数调用语句(`agent.ask('...')`)就与大模型对话，请输入'auto_ask 1'. 要恢复默认逻辑，请输入'auto_ask 0'", style="magenta"))
+            #     return lines
+    return cmd_transformer
 
 # ==================== 初始化函数 ====================
 
@@ -1209,6 +1288,8 @@ def init_ipython_llm_agent_api(
                 plugin_manager=plugin_manager,
                 ipython_shell=shell,
             )
+            # print("shell.input_transformers_post",shell.input_transformers_post)
+            shell.input_transformers_post.append(create_cmd_transformer(agent))
 
             # 将 agent 注入到用户命名空间
             shell.user_ns["agent"] = agent

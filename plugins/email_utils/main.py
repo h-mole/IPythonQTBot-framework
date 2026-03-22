@@ -28,6 +28,11 @@ def load_plugin(plugin_manager):
     from .components.email_list_widget import EmailListWidget
     email_tab = EmailListWidget(plugin_manager=plugin_manager)
     
+    # 连接邮件详情请求信号
+    email_tab.email_detail_requested.connect(
+        lambda email_id: show_email_detail_dialog(email_tab, email_id)
+    )
+    
     # 注册暴露的方法到全局域
     from .api.email_api import (
         get_recent_emails_api,
@@ -62,6 +67,41 @@ def load_plugin(plugin_manager):
     
     print("[EmailUtils] 邮箱工具插件加载完成")
     return {"tab": email_tab, "namespace": "email_utils"}
+
+
+def show_email_detail_dialog(email_tab, email_id):
+    """
+    显示邮件详情对话框
+    
+    Args:
+        email_tab: 邮件列表组件实例
+        email_id: 邮件 ID
+    """
+    try:
+        from .components.email_detail_dialog import EmailDetailDialog
+        from .api.email_api import get_email_detail_api
+        
+        account_name = email_tab.current_account
+        if not account_name:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(email_tab, "警告", "请先选择邮箱账号！")
+            return
+        
+        # 获取邮件详情
+        email_detail = get_email_detail_api(account_name, email_id)
+        
+        # 创建并显示对话框
+        dialog = EmailDetailDialog(
+            email_tab.parent(), 
+            email_detail=email_detail, 
+            account_name=account_name
+        )
+        dialog.exec()
+        
+    except Exception as e:
+        logger.error(f"显示邮件详情失败：{e}", exc_info=True)
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.critical(email_tab, "错误", f"无法加载邮件详情：{str(e)}")
 
 
 def unload_plugin(plugin_manager):

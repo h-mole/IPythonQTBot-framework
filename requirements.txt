@@ -14,3 +14,4 @@ pandas
 numpy
 pyside6-settings
 toml
+whats_that_code

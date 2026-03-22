@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal
 from app_qt.plugin_manager import get_plugin_manager
-
+from app_qt.widgets.custom_checkbox import CustomCheckBox
 
 class MCPToolsManagerWidget(QDialog):
     """MCP 工具管理器对话框组件"""
@@ -91,7 +91,7 @@ class MCPToolsManagerWidget(QDialog):
             content_layout.addWidget(ns_label)
             
             # 分组全选复选框
-            ns_checkbox = QCheckBox(f"全选/全不选 {group_key}")
+            ns_checkbox = CustomCheckBox(f"全选/全不选 {group_key}")
             ns_checkbox.setChecked(True)  # 默认全选，后续会根据 agent 状态调整
             content_layout.addWidget(ns_checkbox)
             
@@ -101,7 +101,7 @@ class MCPToolsManagerWidget(QDialog):
             
             # 该分组下的所有方法
             for tool in tools:
-                method_cb = QCheckBox(f"  - {tool['name']}")
+                method_cb = CustomCheckBox(f"  - {tool['name']}")
                 method_cb.setChecked(True)  # 默认启用，后续会根据 agent 状态调整
                 method_cb.setProperty('tool_name', tool['name'])
                 content_layout.addWidget(method_cb)
@@ -111,7 +111,7 @@ class MCPToolsManagerWidget(QDialog):
             def on_ns_toggle(state, group=group_key):
                 """分组全选/全不选切换"""
                 for cb in self.method_checkboxes[group]:
-                    cb.setChecked(state == Qt.CheckState.Checked)
+                    cb.setChecked(True if state == True else False)
             
             ns_checkbox.stateChanged.connect(on_ns_toggle)
             

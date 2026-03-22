@@ -63,13 +63,70 @@ class KernelInitThread(QThread):
                 f"错误：内核初始化失败 - {e}\n请确保已安装：pip install ipython qtconsole"
             )
 
+class CustomJupyterKernelWidget(RichJupyterWidget):    
+    
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.console_tab = kw['console_tab']
+    def eventFilter(self, obj, event):
+        """
+        事件过滤器 - 捕获 Ctrl+C 快捷键
+
+        Args:
+            obj: 事件对象
+            event: 事件实例
+
+        Returns:
+            bool: 是否处理了该事件
+        """
+        from PySide6.QtCore import QEvent
+        from PySide6.QtGui import QKeyEvent
+        
+        if event.type() == QEvent.Type.KeyPress:
+            # 检查是否是 Ctrl+C 组合键
+            key_event = event
+            if isinstance(key_event, QKeyEvent):
+                if key_event.key() in (Qt.Key.Key_C,) and (
+                    key_event.modifiers() & Qt.KeyboardModifier.ControlModifier
+                ):
+                    cursor = self._control.textCursor()
+                    if not cursor.hasSelection(): # 当有文本被选中时, 不会触发 停止, 而要进行复制
+                        print("[IPythonConsoleTab] 检测到 Ctrl+C，正在停止生成...")
+                        self.console_tab.ctrl_c_pressed.emit()
+                        return True  # 阻止事件继续传递
+                # 鼠标按下时判断是否点到了链接
+        # elif event.type() == QEvent.Type.MouseButtonPress:
+        #     button = event.button()
+        #     left_button =  Qt.MouseButton.LeftButton
+        #     if button == left_button:
+        #         pos = event.pos()
+        #         print("[IPythonConsoleTab] 检测到鼠标左键点击，正在检查链接...", pos)
+        #         # self._control.insertHtml("<a href='https://www.example.com'>Example</a>")
+        #         anchor = self._control.anchorAt(pos)
+        #         if anchor:
+        #             # 在这里做你自己的处理
+        #             print("用户点击了链接:", anchor)
+        #             # 例如：记录日志、弹窗、打开内部窗口等
+
+        #             # 这里我们仍然调用内置的 open_anchor 来打开浏览器
+        #             # self.open_anchor(anchor)  # 内置会用 webbrowser.open
+
+        #             # 或者完全自己写打开逻辑
+        #             # webbrowser.open(anchor)
+
+        #             # 返回 True 表示事件已处理，不再向下传递
+        #             # return True
+
+        # 其他事件交给基类处理
+        return super().eventFilter(obj, event)
+
 
 class IPythonConsoleTab(QWidget):
     """IPython 控制台前端界面 - 使用 RichJupyterWidget"""
 
     ipython_status_change = Signal(str)
     agent_context_length_change = Signal(int)
-
+    ctrl_c_pressed = Signal()
     def __init__(self):
         super().__init__()
         self.kernel_manager = None
@@ -85,8 +142,7 @@ class IPythonConsoleTab(QWidget):
         # 在后台线程中初始化内核
         self.init_kernel_async()
 
-        # 安装事件过滤器以捕获 Ctrl+C
-        self.installEventFilter(self)
+        self.ctrl_c_pressed.connect(self.stop_generation)
 
     def init_ui(self):
         """初始化界面"""
@@ -106,7 +162,8 @@ class IPythonConsoleTab(QWidget):
         console_layout = QVBoxLayout()
         console_group.setLayout(console_layout)
 
-        self.console_widget = RichJupyterWidget(parent=self)
+        self.console_widget = CustomJupyterKernelWidget(parent=self, console_tab=self)
+        
         # 设置字体和背景色（通过样式表）
         # 注意：背景色由主题管理器统一控制，这里只设置字体
         self.console_widget.setStyleSheet("font-family: Consolas; font-size: 10pt;")
@@ -377,33 +434,7 @@ class IPythonConsoleTab(QWidget):
         # 在主线程中执行
         exec_main_thread_callback(update)
 
-    def eventFilter(self, obj, event):
-        """
-        事件过滤器 - 捕获 Ctrl+C 快捷键
 
-        Args:
-            obj: 事件对象
-            event: 事件实例
-
-        Returns:
-            bool: 是否处理了该事件
-        """
-        from PySide6.QtCore import QEvent
-        from PySide6.QtGui import QKeyEvent
-
-        if event.type() == QEvent.Type.KeyPress:
-            # 检查是否是 Ctrl+C 组合键
-            key_event = event
-            if isinstance(key_event, QKeyEvent):
-                if key_event.key() in (Qt.Key.Key_C,) and (
-                    key_event.modifiers() & Qt.KeyboardModifier.ControlModifier
-                ):
-                    print("[IPythonConsoleTab] 检测到 Ctrl+C，正在停止生成...")
-                    self.stop_generation()
-                    return True  # 阻止事件继续传递
-
-        # 其他事件交给基类处理
-        return super().eventFilter(obj, event)
 
     def register_system_methods(self):
         """注册系统方法，可以获得 ipython 中的变量"""
@@ -442,9 +473,18 @@ class IPythonConsoleTab(QWidget):
         from .plugin_manager import exec_main_thread_callback
 
         if self.kernel_manager:
-            print("\n\n")
-            display(Markdown(f"## 开始执行代码块：\n```python\n{code}```"))
-            print("\n\n")
+            # 预先检查能否编译,然后再注入内核,避免被误判为发送给大模型的提示词
+            try:
+                compile(code, filename="<text_compile>", mode="exec", flags=0, dont_inherit=False)
+            except Exception as e:
+                import traceback
+                return {
+                    "success": False,
+                    "output": "",
+                    "result": "",
+                    "error": traceback.format_exc(),
+                }
+            # 执行代码
             with capture_output() as captured:
                 result = self.kernel_manager.kernel.shell.run_cell(
                     code, store_history=False, silent=True

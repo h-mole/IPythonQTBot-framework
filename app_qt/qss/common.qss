@@ -391,24 +391,35 @@ QCheckBox {
 }
 
 QCheckBox::indicator {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 4px;
-    border: 1px solid #ddd;
+    border: 2px solid #ddd;
     background-color: white;
 }
 
 QCheckBox::indicator:hover {
-    border: 1px solid #4a90e2;
+    border: 2px solid #4a90e2;
 }
 
+/* 选中状态 - 使用 border-image 显示 SVG 勾号 */
 QCheckBox::indicator:checked {
-    background-color: #4a90e2;
-    border: 1px solid #4a90e2;
+    /* background-color: #4a90e2; */
+    border: 2px solid #4a90e2;
+    border-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOSIgdmlld0JveD0iMCAwIDEyIDkiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgNEw0LjUgNy41TDExIDEiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=);
+    padding: 2px;
 }
 
 QCheckBox::indicator:checked:hover {
     background-color: #357abd;
+}
+
+/* 不确定状态 - 使用 border-image 显示 SVG 横线 */
+QCheckBox::indicator:indeterminate {
+    background-color: #4a90e2;
+    border: 2px solid #4a90e2;
+    border-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMiIgdmlld0JveD0iMCAwIDEyIDIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUgxMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==);
+    padding: 4px;
 }
 
 /* ==================== 单选框样式 ==================== */

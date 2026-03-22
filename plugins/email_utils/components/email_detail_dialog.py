@@ -102,13 +102,20 @@ class EmailDetailDialog(QDialog):
         
         self.body_browser = QTextBrowser()
         self.body_browser.setOpenExternalLinks(True)
+        self.body_browser.setOpenLinks(True)
+        
         # 优先显示 HTML，如果没有则显示纯文本
         body_html = self.email_detail.get('body_html', '')
         body_plain = self.email_detail.get('body_plain', '')
+        
         if body_html:
             self.body_browser.setHtml(body_html)
-        else:
+        elif body_plain:
+            # 纯文本模式，保留换行和格式
             self.body_browser.setPlainText(body_plain)
+        else:
+            self.body_browser.setPlainText("(无正文内容)")
+        
         body_layout.addWidget(self.body_browser)
         
         layout.addWidget(body_group)

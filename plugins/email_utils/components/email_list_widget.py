@@ -335,6 +335,7 @@ class EmailListWidget(QWidget):
         email_id = email_data.get('id')
         
         if not email_id:
+            logger.warning(f"警告：邮件 ID 为空，无法查看详情！")
             return
         
         # 发射信号，由父组件处理

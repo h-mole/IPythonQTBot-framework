@@ -41,6 +41,7 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 import plyer
 from app_qt.configs import PLUGIN_DATA_DIR
+from app_qt.widgets.custom_checkbox import CustomCheckBox
 # 默认分类
 DEFAULT_CATEGORIES = ["论文", "项目"]
 DEFAULT_SUBCATEGORIES = ["行政", "项目", "会议", "学习"]
@@ -435,7 +436,7 @@ class TasksManagerTab(QWidget):
         control_layout.addWidget(self.sort_combo)
 
         # 倒序选项
-        self.reverse_check = QCheckBox("倒序")
+        self.reverse_check = CustomCheckBox("倒序")
         self.reverse_check.stateChanged.connect(self.apply_filters)
         control_layout.addWidget(self.reverse_check)
 
