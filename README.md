@@ -3,11 +3,11 @@
 **IPythonQTBot-framework** 是一个基于 **PySide6 (Qt for Python)** 的智能助手框架，集成了 **IPython 内核** 和 **LLM（大语言模型）Agent** 功能。用户可以很方便的基于CheryStudio兼容格式接入MCP, 同时使用LLM对IPython内核中的变量进行分析, 打通数据处理\笔记管理\大模型中间的鸿沟.
 
 ---
-## 界面示意图
+## 📷 界面示意图
 
 ![主界面示意图](./pics/主界面示意图.png)
 
-## 项目优势
+## ✨ 项目优势
 
 - 会一点Python3环境部署即可运行, 包安装简单;
 - PySide本地部署, 小窗口随意拖动操作, 安全便捷;
