@@ -96,7 +96,7 @@ class MCPServerManager:
         server_type = server_config.get("type", "stdio")
 
         try:
-            if server_type == "streamable-http":
+            if server_type.lower() in ("streamable-http", "streamablehttp"):
                 # HTTP 流式连接
                 url = server_config.get("url")
                 headers = server_config.get("headers", {})

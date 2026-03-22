@@ -1,0 +1,293 @@
+"""
+邮箱工具插件 - 邮件客户端
+封装 IMAP/SMTP 协议操作
+"""
+
+import imaplib
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class EmailClient:
+    """邮件客户端 - 封装 IMAP/SMTP 连接和操作"""
+    
+    def __init__(self, account_config):
+        """
+        初始化邮件客户端
+        
+        Args:
+            account_config: 账号配置字典
+        """
+        self.config = account_config
+        self.imap_server = account_config.get('imap_server')
+        self.imap_port = account_config.get('imap_port', 993)
+        self.smtp_server = account_config.get('smtp_server')
+        self.smtp_port = account_config.get('smtp_port', 587)
+        self.username = account_config.get('username')
+        self.password = account_config.get('password')
+        self.use_ssl = account_config.get('use_ssl', True)
+        
+        self.imap_conn = None
+    
+    def connect_imap(self):
+        """
+        连接到 IMAP 服务器
+        
+        Returns:
+            imaplib.IMAP4: IMAP 连接对象
+        """
+        try:
+            if self.use_ssl:
+                self.imap_conn = imaplib.IMAP4_SSL(self.imap_server, self.imap_port)
+            else:
+                self.imap_conn = imaplib.IMAP4(self.imap_server, self.imap_port)
+            
+            self.imap_conn.login(self.username, self.password)
+            logger.info(f"IMAP 登录成功：{self.username}")
+            
+            return self.imap_conn
+            
+        except Exception as e:
+            logger.error(f"IMAP 连接失败：{e}")
+            raise
+    
+    def disconnect_imap(self):
+        """断开 IMAP 连接"""
+        if self.imap_conn:
+            try:
+                self.imap_conn.close()
+                self.imap_conn.logout()
+                logger.debug("IMAP 连接已关闭")
+            except Exception as e:
+                logger.warning(f"关闭 IMAP 连接失败：{e}")
+    
+    def fetch_email_ids(self, folder='inbox', limit=None):
+        """
+        获取邮件 ID 列表
+        
+        Args:
+            folder: 文件夹名称，默认 'inbox'
+            limit: 限制数量，None 表示全部
+            
+        Returns:
+            list: 邮件 ID 列表（最新的在前）
+        """
+        try:
+            if not self.imap_conn:
+                self.connect_imap()
+            
+            # 选择文件夹
+            self.imap_conn.select(folder)
+            
+            # 搜索所有邮件
+            status, messages = self.imap_conn.search(None, 'ALL')
+            email_ids = messages[0].split()
+            
+            # 限制数量
+            if limit and len(email_ids) > limit:
+                email_ids = email_ids[-limit:]
+            
+            # 逆序排列（最新的在前）
+            email_ids = list(reversed(email_ids))
+            
+            logger.info(f"获取到 {len(email_ids)} 封邮件")
+            
+            return [eid.decode() for eid in email_ids]
+            
+        except Exception as e:
+            logger.error(f"获取邮件 ID 失败：{e}")
+            raise
+    
+    def fetch_email_raw(self, email_id):
+        """
+        获取原始邮件数据
+        
+        Args:
+            email_id: 邮件 ID
+            
+        Returns:
+            bytes: 原始 RFC822 格式的邮件数据
+        """
+        try:
+            if not self.imap_conn:
+                self.connect_imap()
+            
+            status, msg_data = self.imap_conn.fetch(email_id.encode(), '(RFC822)')
+            raw_email = msg_data[0][1]
+            
+            logger.debug(f"获取邮件 {email_id} 原始数据成功")
+            
+            return raw_email
+            
+        except Exception as e:
+            logger.error(f"获取邮件数据失败：{e}")
+            raise
+    
+    def fetch_emails_list(self, limit=20):
+        """
+        获取邮件列表（仅基本信息）
+        
+        Args:
+            limit: 限制数量
+            
+        Returns:
+            list: 邮件基本信息列表
+        """
+        from .email_parser import parse_email_from_bytes
+        
+        try:
+            email_ids = self.fetch_email_ids(limit=limit)
+            emails = []
+            
+            for email_id in email_ids:
+                try:
+                    raw_data = self.fetch_email_raw(email_id)
+                    email_info = parse_email_from_bytes(raw_data)
+                    email_info['id'] = email_id
+                    
+                    # 只保存基本信息，不缓存完整邮件
+                    emails.append({
+                        'id': email_info['id'],
+                        'subject': email_info['subject'],
+                        'from': email_info['from'],
+                        'date': email_info['date'],
+                        'preview': email_info['preview'],
+                        'has_attachment': email_info['has_attachment'],
+                    })
+                    
+                except Exception as e:
+                    logger.warning(f"解析邮件 {email_id} 失败：{e}")
+                    continue
+            
+            return emails
+            
+        except Exception as e:
+            logger.error(f"获取邮件列表失败：{e}")
+            raise
+    
+    def get_email_detail(self, email_id):
+        """
+        获取邮件详情
+        
+        Args:
+            email_id: 邮件 ID
+            
+        Returns:
+            dict: 邮件详情信息
+        """
+        from .email_parser import parse_email_from_bytes
+        
+        try:
+            raw_data = self.fetch_email_raw(email_id)
+            email_info = parse_email_from_bytes(raw_data)
+            email_info['id'] = email_id
+            
+            return email_info
+            
+        except Exception as e:
+            logger.error(f"获取邮件详情失败：{e}")
+            raise
+    
+    def download_attachment(self, email_id, filename, save_path):
+        """
+        下载附件
+        
+        Args:
+            email_id: 邮件 ID
+            filename: 附件文件名
+            save_path: 保存路径
+            
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            raw_data = self.fetch_email_raw(email_id)
+            email_obj = email.message_from_bytes(raw_data)
+            
+            # 查找并下载附件
+            if email_obj.is_multipart():
+                for part in email_obj.walk():
+                    if part.get_content_maintype() == 'multipart':
+                        continue
+                    if part.get("Content-Disposition"):
+                        part_filename = part.get_filename()
+                        if part_filename == filename:
+                            payload = part.get_payload(decode=True)
+                            if payload:
+                                with open(save_path, 'wb') as f:
+                                    f.write(payload)
+                                logger.info(f"附件已保存到：{save_path}")
+                                return True
+            
+            logger.warning(f"未找到附件：{filename}")
+            return False
+            
+        except Exception as e:
+            logger.error(f"下载附件失败：{e}")
+            return False
+    
+    def send_email(self, to, subject, body, attachments=None):
+        """
+        发送邮件
+        
+        Args:
+            to: 收件人地址（多个用逗号分隔）
+            subject: 主题
+            body: 正文（HTML 格式）
+            attachments: 附件文件路径列表
+            
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            # 创建邮件
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = self.username
+            msg['To'] = to
+            
+            # 添加正文
+            msg.attach(MIMEText(body, 'html', 'utf-8'))
+            
+            # 添加附件
+            if attachments:
+                for file_path in attachments:
+                    try:
+                        with open(file_path, 'rb') as f:
+                            attachment = MIMEBase('application', 'octet-stream')
+                            attachment.set_payload(f.read())
+                            encoders.encode_base64(attachment)
+                            
+                            filename = os.path.basename(file_path)
+                            attachment.add_header(
+                                'Content-Disposition',
+                                f'attachment; filename="{filename}"'
+                            )
+                            msg.attach(attachment)
+                    except Exception as e:
+                        logger.error(f"添加附件失败：{file_path} - {e}")
+                        raise
+            
+            # 发送邮件
+            if self.use_ssl:
+                server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
+            else:
+                server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+            
+            server.login(self.username, self.password)
+            server.send_message(msg)
+            server.quit()
+            
+            logger.info(f"邮件发送成功：{to}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"发送邮件失败：{e}")
+            return False

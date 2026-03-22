@@ -131,3 +131,4 @@ python helperscript.py
 - Tkinter 版本作为备选方案保留
 - 建议安装 pyperclip 以获得更稳定的剪贴板支持
 - IPython 功能需要额外安装 ipython 包
+- 单独测试组件运行的脚本放在./single_component_tasks下面

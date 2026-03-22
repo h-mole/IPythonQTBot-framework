@@ -473,11 +473,18 @@ class PluginManager(QObject):
         if not os.path.exists(main_py_path):
             raise FileNotFoundError(f"找不到插件入口文件：{main_py_path}")
 
-        # 动态导入插件模块
+        # 动态导入插件模块 - 将整个插件目录作为包导入
+        # 这样相对导入才能正常工作
         spec = importlib.util.spec_from_file_location(
-            f"plugin_{plugin_name}", main_py_path
+            f"plugin_{plugin_name}", main_py_path,
+            submodule_search_locations=[plugin_path]  # 关键：指定子模块搜索路径
         )
+        
+        if spec is None:
+            raise ImportError(f"无法创建模块规范：{main_py_path}")
+        
         plugin_module = importlib.util.module_from_spec(spec)
+        sys.modules[f"plugin_{plugin_name}"] = plugin_module  # 注册到 sys.modules
         spec.loader.exec_module(plugin_module)
 
         # 执行加载函数
