@@ -484,9 +484,11 @@ class QuickAssistant(QMainWindow):
             
             self.setGeometry(rect)
             self._drag_pos = event.globalPos()
-        elif event.buttons() == Qt.LeftButton and self._drag_pos:
-            # 拖动窗口
-            self.move(event.globalPos() - self._drag_pos)
+        # elif event.buttons() == Qt.LeftButton and self._drag_pos:
+        #     # 如果event是titleBar
+        #     if self.ev
+        #     # 拖动窗口
+        #     self.move(event.globalPos() - self._drag_pos)
         else:
             # 更新光标样式
             self._update_cursor(event.pos())

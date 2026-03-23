@@ -46,7 +46,7 @@ from .components.note_tree_widget import NoteTreeWidget
 from .components.editor_widget import EditorToolbar, FindReplacePanel, TextEditorWidget
 from .components.skill_creator import CreateSkillDialog
 
-allowed_file_extensions = (".md", ".txt", ".py", ".json")
+allowed_file_extensions = (".md", ".txt", ".py", ".json", ".csv")
 
 
 class QuickNotesTab(QWidget):
@@ -205,11 +205,6 @@ class QuickNotesTab(QWidget):
         right_layout = QVBoxLayout()
         right_widget.setLayout(right_layout)
 
-        # 编辑器标题
-        editor_label = QLabel("📝 编辑器")
-        editor_label.setFont(QFont("Microsoft YaHei UI", 11, QFont.Bold))
-        right_layout.addWidget(editor_label)
-
         # 编辑器工具栏组件
         self.editor_toolbar = EditorToolbar()
         self.editor_toolbar.save_requested.connect(self.save_current_note)
@@ -292,11 +287,14 @@ class QuickNotesTab(QWidget):
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-
+            
+            # 设置文本并调整语法高亮
+            self.editor.set_syntax_by_filepath(file_path)
             self.editor.setPlainText(content)
             self.current_note_path = file_path
+            
             # 更新工具栏路径显示
-            self.editor_toolbar.update_current_path(file_path)
+            self.editor_toolbar.update_current_path(file_path, self.notes_dir)
             self.is_modified = False
 
             # 跳转后取消选中
@@ -468,7 +466,7 @@ class QuickNotesTab(QWidget):
                 self.editor.clear()
                 self.current_note_path = None
                 # 更新工具栏路径显示
-                self.editor_toolbar.update_current_path(None)
+                self.editor_toolbar.update_current_path(None, self.notes_dir)
                 self.is_modified = False
 
             self.is_external_refresh = True
@@ -520,7 +518,7 @@ class QuickNotesTab(QWidget):
             if old_path == self.current_note_path:
                 self.current_note_path = new_path
                 # 更新工具栏路径显示
-                self.editor_toolbar.update_current_path(new_path)
+                self.editor_toolbar.update_current_path(new_path, self.notes_dir)
 
         except Exception as e:
             QMessageBox.critical(self, "错误", f"无法重命名：{str(e)}")

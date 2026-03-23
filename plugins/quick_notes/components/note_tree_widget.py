@@ -47,72 +47,43 @@ class NoteTreeWidget(QTreeWidget):
         self.refresh_requested.emit()
     
     def load_tree(self):
-        """加载笔记树状结构（支持无限层级）"""
-        self.clear()
-        
-        if not os.path.exists(self.notes_dir):
-            return
-        
-        # 使用字典存储所有节点，key 为相对路径，value 为 QTreeWidgetItem
-        items_dict = {}
-        
-        # 第一次遍历：创建所有文件夹节点
-        for root, dirs, files in os.walk(self.notes_dir):
-            # 跳过隐藏目录
-            dirs[:] = [d for d in dirs if not d.startswith(".")]
+        """加载笔记树状结构（支持无限层级）- 性能优化版"""
+        # 禁用 UI 更新以提高性能
+        self.setUpdatesEnabled(False)
+        try:
+            self.clear()
             
-            # 获取当前层级的相对路径
-            rel_root = os.path.relpath(root, self.notes_dir)
-            if rel_root == '.':
-                rel_root = ''
+            if not os.path.exists(self.notes_dir):
+                return
             
-            # 为每个子目录创建项
-            for dir_name in sorted(dirs):
-                dir_path = os.path.join(root, dir_name)
-                
-                # 计算相对于 notes_dir 的相对路径
-                rel_dir_path = os.path.relpath(dir_path, self.notes_dir)
-                
-                # 创建树项
-                item = QTreeWidgetItem([dir_name])
-                item.setData(0, Qt.ItemDataRole.UserRole, dir_path)
-                item.setIcon(
-                    0, self.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
-                )
-                
-                # 存储到字典中
-                items_dict[rel_dir_path] = item
-                
-                # 找到父节点并添加
-                if rel_root:
-                    parent_item = items_dict.get(rel_root)
-                    if parent_item:
-                        parent_item.addChild(item)
-                else:
-                    # 根目录下的直接子目录
-                    self.addTopLevelItem(item)
-        
-        # 第二次遍历：添加文件节点
-        for root, dirs, files in os.walk(self.notes_dir):
-            # 跳过隐藏目录
-            dirs[:] = [d for d in dirs if not d.startswith(".")]
+            # 缓存图标，避免重复获取
+            dir_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
+            file_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon)
+            allowed_tuple = tuple(self.allowed_extensions)
             
-            # 获取当前层级的相对路径
-            rel_root = os.path.relpath(root, self.notes_dir)
-            if rel_root == '.':
-                rel_root = ''
+            # 使用字典存储所有节点，key 为相对路径，value 为 QTreeWidgetItem
+            items_dict = {}
             
-            # 添加文件
-            for file_name in sorted(files):
-                if file_name.endswith(tuple(self.allowed_extensions)):
-                    file_path = os.path.join(root, file_name)
-                    rel_file_path = os.path.relpath(file_path, self.notes_dir)
+            # 单次遍历：同时处理文件夹和文件节点
+            for root, dirs, files in os.walk(self.notes_dir):
+                # 跳过隐藏目录
+                dirs[:] = sorted([d for d in dirs if not d.startswith(".")])
+                
+                # 获取当前层级的相对路径
+                rel_root = os.path.relpath(root, self.notes_dir)
+                if rel_root == '.':
+                    rel_root = ''
+                
+                # 创建子目录项
+                for dir_name in dirs:
+                    dir_path = os.path.join(root, dir_name)
+                    rel_dir_path = os.path.relpath(dir_path, self.notes_dir)
                     
-                    item = QTreeWidgetItem([file_name])
-                    item.setData(0, Qt.ItemDataRole.UserRole, file_path)
-                    item.setIcon(
-                        0, self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon)
-                    )
+                    item = QTreeWidgetItem([dir_name])
+                    item.setData(0, Qt.ItemDataRole.UserRole, dir_path)
+                    item.setIcon(0, dir_icon)
+                    
+                    items_dict[rel_dir_path] = item
                     
                     # 找到父节点并添加
                     if rel_root:
@@ -120,11 +91,32 @@ class NoteTreeWidget(QTreeWidget):
                         if parent_item:
                             parent_item.addChild(item)
                     else:
-                        # 根目录下的直接文件
+                        # 根目录下的直接子目录
                         self.addTopLevelItem(item)
-        
-        # 展开所有节点
-        self.expandAll()
+                
+                # 添加文件项
+                for file_name in sorted(files):
+                    if file_name.endswith(allowed_tuple):
+                        file_path = os.path.join(root, file_name)
+                        
+                        item = QTreeWidgetItem([file_name])
+                        item.setData(0, Qt.ItemDataRole.UserRole, file_path)
+                        item.setIcon(0, file_icon)
+                        
+                        # 找到父节点并添加
+                        if rel_root:
+                            parent_item = items_dict.get(rel_root)
+                            if parent_item:
+                                parent_item.addChild(item)
+                        else:
+                            # 根目录下的直接文件
+                            self.addTopLevelItem(item)
+            
+            # 展开所有节点
+            self.expandAll()
+        finally:
+            # 重新启用 UI 更新
+            self.setUpdatesEnabled(True)
     
     def _find_parent_items(self, parent_name):
         """查找父节点"""
