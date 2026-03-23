@@ -189,6 +189,39 @@
         "extra_data": {
           "enable_mcp": true
         }
+      },
+      {
+        "name": "get_all_skills_summary",
+        "description": "获取所有技能的概要信息列表，包括技能名称、描述、路径等基本信息",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "list",
+          "description": "技能概要信息列表，每个元素包含 name、description、path 等字段"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
+        "name": "get_skill_detail",
+        "description": "获取单个技能的详细信息，包括完整的元数据、Markdown 内容、脚本和参考资料列表",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "skill_name",
+            "type": "str",
+            "description": "技能名称（kebab-case 格式，如 'pdf-processing'）",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "技能详细信息字典，包含 metadata、content、scripts、references 等字段"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
       }
     ]
   },

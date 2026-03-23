@@ -5,6 +5,14 @@ IPythonQTBot - PySide6 版本
 
 import sys
 import os
+try:
+    from ctypes import windll
+    myappid = 'opensource.ipythonqtbot.desktop.1.0.0'
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    pass
+
+from qtpy.QtGui import QIcon
 
 # 添加项目根目录到 Python 路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -30,7 +38,9 @@ def main():
 
     # 设置样式
     app.setStyle("Fusion")
-
+    app.setWindowIcon(QIcon("icon.png"))
+    
+    
     window = QuickAssistant()
     window.show()
 

@@ -785,6 +785,8 @@ class PluginManager(QObject):
 
         print(f"[PluginManager] 注册方法：{namespace}.{method_name}")
         if extra_data:
+            if namespace not in self.methods_metadata_cache:
+                self.methods_metadata_cache[namespace] = {}
             self.methods_metadata_cache[namespace][method_name] = {
                 "extra_data": extra_data, "llm_tool_info": llm_tool_info
             }

@@ -1,42 +1,50 @@
 """
 快速笔记插件 - 支持树状结构管理的笔记编辑器
+重构版本 - 组件化架构
 功能：
 1. 文本编辑器（支持查找、替换）
 2. 树状结构笔记管理
 3. 本地文件夹同步存储
 4. 创建、编辑、删除笔记和文件夹
+5. 支持创建 agentskills-core 兼容的技能
 """
 
 import os
 import json
 import re
+import logging
+from typing import Any
+
+logger = logging.getLogger(__name__)
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QSplitter,
-    QTextEdit,
-    QTreeWidget,
-    QTreeWidgetItem,
     QPushButton,
     QLabel,
-    QLineEdit,
-    QInputDialog,
     QMessageBox,
     QToolBar,
     QFileDialog,
     QGroupBox,
-    QFrame,
-    QMenu,
-    QStyle,
     QApplication,
+    QFrame,
+    QInputDialog,
+    QMenu,
+    QDialog,
+    QMenuBar,
 )
-from PySide6.QtCore import Qt, QTimer, QSignalMapper
-from PySide6.QtGui import QFont, QAction, QTextCursor, QKeySequence, QIcon
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QFont, QAction, QKeySequence, QTextCursor
 
 # 导入配置
 from app_qt.configs import PLUGIN_DATA_DIR
 from app_qt.plugin_manager import PluginManager
+
+# 导入组件
+from .components.note_tree_widget import NoteTreeWidget
+from .components.editor_widget import EditorToolbar, FindReplacePanel, TextEditorWidget
+from .components.skill_creator import CreateSkillDialog
 
 allowed_file_extensions = (".md", ".txt", ".py", ".json")
 
@@ -54,13 +62,21 @@ class QuickNotesTab(QWidget):
         if not os.path.exists(self.notes_dir):
             os.makedirs(self.notes_dir)
 
+        # skills 目录 - 用于创建 agentskills-core 兼容的技能
+        self.skills_dir = os.path.join(self.notes_dir, "skills")
+        if not os.path.exists(self.skills_dir):
+            os.makedirs(self.skills_dir)
+
         # 当前打开的笔记路径
         self.current_note_path = None
         self.is_modified = False
-
+        
         # 插件管理器引用
         self.plugin_manager: PluginManager = None
-
+        
+        # 标记是否由外部触发刷新（避免重复提示保存）
+        self.is_external_refresh = False
+        
         self.init_ui()
         self.load_note_tree()
 
@@ -73,161 +89,26 @@ class QuickNotesTab(QWidget):
         splitter = QSplitter(Qt.Horizontal)
         main_layout.addWidget(splitter)
 
-        # ==================== 左侧：树状笔记管理 ====================
-        left_widget = QWidget()
+        # ==================== 左侧：树状笔记管理组件 ====================
+        self.note_tree = NoteTreeWidget(self.notes_dir, allowed_file_extensions)
+        self.note_tree.setMinimumWidth(250)
+        
+        # 连接信号
+        self.note_tree.note_clicked.connect(self.load_note_content)
+        self.note_tree.refresh_requested.connect(self.on_tree_refreshed)
+        
+        # 创建左侧布局（只包含树）
+        left_container = QWidget()
         left_layout = QVBoxLayout()
-        left_widget.setLayout(left_layout)
-
-        # 树状标题
-        tree_label = QLabel("📁 笔记管理")
-        tree_label.setFont(QFont("Microsoft YaHei UI", 11, QFont.Bold))
-        left_layout.addWidget(tree_label)
-
-        # 树状工具栏
-        tree_toolbar = QFrame()
-        tree_toolbar_layout = QHBoxLayout()
-        tree_toolbar.setLayout(tree_toolbar_layout)
-        tree_toolbar.setFrameShape(QFrame.Shape.StyledPanel)
-        tree_toolbar.setFrameShadow(QFrame.Shadow.Raised)
-
-        # 新建笔记按钮
-        self.new_note_btn = QPushButton("📄 新建笔记")
-        self.new_note_btn.clicked.connect(self.create_new_note)
-        tree_toolbar_layout.addWidget(self.new_note_btn)
-
-        # 新建文件夹按钮
-        self.new_folder_btn = QPushButton("📁 新建文件夹")
-        self.new_folder_btn.clicked.connect(self.create_new_folder)
-        tree_toolbar_layout.addWidget(self.new_folder_btn)
-
-        # 删除按钮
-        self.delete_btn = QPushButton("🗑️ 删除")
-        self.delete_btn.clicked.connect(self.delete_selected)
-        tree_toolbar_layout.addWidget(self.delete_btn)
-
-        # 刷新按钮
-        self.refresh_btn = QPushButton("🔄 刷新")
-        self.refresh_btn.clicked.connect(self.load_note_tree)
-        tree_toolbar_layout.addWidget(self.refresh_btn)
-
-        tree_toolbar_layout.addStretch()
-        left_layout.addWidget(tree_toolbar)
-
-        # 树状控件
-        self.note_tree = QTreeWidget()
-        self.note_tree.setHeaderLabel("笔记目录")
-        self.note_tree.setFont(QFont("Microsoft YaHei UI", 9))
-        self.note_tree.itemClicked.connect(self.on_tree_item_clicked)
-        self.note_tree.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.note_tree.customContextMenuRequested.connect(self.show_context_menu)
+        left_container.setLayout(left_layout)
+        left_layout.addWidget(self.create_left_toolbar())
         left_layout.addWidget(self.note_tree)
-
-        splitter.addWidget(left_widget)
+        
+        
+        splitter.addWidget(left_container)
 
         # ==================== 右侧：编辑器区域 ====================
-        right_widget = QWidget()
-        right_layout = QVBoxLayout()
-        right_widget.setLayout(right_layout)
-
-        # 编辑器标题
-        editor_label = QLabel("📝 编辑器")
-        editor_label.setFont(QFont("Microsoft YaHei UI", 11, QFont.Bold))
-        right_layout.addWidget(editor_label)
-
-        # 编辑器工具栏
-        editor_toolbar = QFrame()
-        editor_toolbar_layout = QHBoxLayout()
-        editor_toolbar.setLayout(editor_toolbar_layout)
-        editor_toolbar.setFrameShape(QFrame.Shape.StyledPanel)
-        editor_toolbar.setFrameShadow(QFrame.Shadow.Raised)
-
-        # 保存按钮
-        self.save_btn = QPushButton("💾 保存")
-        self.save_btn.clicked.connect(self.save_current_note)
-        editor_toolbar_layout.addWidget(self.save_btn)
-
-        # 查找按钮
-        self.find_btn = QPushButton("🔍 查找")
-        self.find_btn.clicked.connect(self.show_find_dialog)
-        editor_toolbar_layout.addWidget(self.find_btn)
-
-        # 替换按钮
-        self.replace_btn = QPushButton("🔄 替换")
-        self.replace_btn.clicked.connect(self.show_replace_dialog)
-        editor_toolbar_layout.addWidget(self.replace_btn)
-
-        editor_toolbar_layout.addStretch()
-
-        # 当前文件路径显示
-        self.current_path_label = QLabel("")
-        self.current_path_label.setFont(QFont("Consolas", 8))
-        self.current_path_label.setStyleSheet("color: gray;")
-        editor_toolbar_layout.addWidget(self.current_path_label)
-
-        right_layout.addWidget(editor_toolbar)
-
-        # 文本编辑器
-        self.editor = QTextEdit()
-        self.editor.setFont(QFont("Consolas", 10))
-        self.editor.setPlaceholderText("在此输入笔记内容...")
-        self.editor.textChanged.connect(self.on_text_changed)
-        
-        # 设置编辑器接受上下文菜单
-        self.editor.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.editor.customContextMenuRequested.connect(self.show_editor_context_menu)
-        
-        # 创建编辑器的快捷键
-        self.create_editor_shortcuts()
-        
-        right_layout.addWidget(self.editor)
-
-        # 查找替换面板（默认隐藏）
-        self.find_panel = QFrame()
-        self.find_panel.setFrameShape(QFrame.Shape.StyledPanel)
-        self.find_panel.setFrameShadow(QFrame.Shadow.Plain)
-        find_layout = QVBoxLayout()
-        self.find_panel.setLayout(find_layout)
-        self.find_panel.setVisible(False)
-
-        # 查找行
-        find_row = QHBoxLayout()
-        find_label = QLabel("查找:")
-        find_row.addWidget(find_label)
-
-        self.find_input = QLineEdit()
-        self.find_input.returnPressed.connect(self.find_next)
-        find_row.addWidget(self.find_input)
-
-        self.find_next_btn = QPushButton("查找下一个")
-        self.find_next_btn.clicked.connect(self.find_next)
-        find_row.addWidget(self.find_next_btn)
-
-        self.find_close_btn = QPushButton("关闭")
-        self.find_close_btn.clicked.connect(self.hide_find_panel)
-        find_row.addWidget(self.find_close_btn)
-
-        find_layout.addLayout(find_row)
-
-        # 替换行
-        replace_row = QHBoxLayout()
-        replace_label = QLabel("替换:")
-        replace_row.addWidget(replace_label)
-
-        self.replace_input = QLineEdit()
-        replace_row.addWidget(self.replace_input)
-
-        self.replace_one_btn = QPushButton("替换")
-        self.replace_one_btn.clicked.connect(self.replace_one)
-        replace_row.addWidget(self.replace_one_btn)
-
-        self.replace_all_btn = QPushButton("全部替换")
-        self.replace_all_btn.clicked.connect(self.replace_all)
-        replace_row.addWidget(self.replace_all_btn)
-
-        find_layout.addLayout(replace_row)
-
-        right_layout.addWidget(self.find_panel)
-
+        right_widget = self.create_editor_area()
         splitter.addWidget(right_widget)
 
         # 设置分割器比例
@@ -237,62 +118,146 @@ class QuickNotesTab(QWidget):
 
         # 查找位置记录
         self.find_start_index = 0
+        
+        # 创建菜单栏
+        self.create_menu_bar()
+    
+    def create_menu_bar(self):
+        """创建菜单栏"""
+        # 获取主窗口的菜单栏
+        main_window = self.window()
+        if not main_window or not hasattr(main_window, 'menu_bar'):
+            return
+        
+        menu_bar = main_window.menu_bar
+        
+        # 笔记操作菜单
+        notes_menu = menu_bar.addMenu("📝 笔记操作")
+        
+        # 新建笔记
+        self.new_note_action = QAction("📄 新建笔记", self)
+        self.new_note_action.setShortcut(QKeySequence.New)
+        self.new_note_action.triggered.connect(self.create_new_note)
+        notes_menu.addAction(self.new_note_action)
+        
+        # 新建文件夹
+        self.new_folder_action = QAction("📁 新建文件夹", self)
+        self.new_folder_action.triggered.connect(self.create_new_folder)
+        notes_menu.addAction(self.new_folder_action)
+        
+        notes_menu.addSeparator()
+        
+        # 刷新
+        self.refresh_action = QAction("🔄 刷新", self)
+        self.refresh_action.setShortcut(QKeySequence.Refresh)
+        self.refresh_action.triggered.connect(self.load_note_tree)
+        notes_menu.addAction(self.refresh_action)
+    
+    def create_left_toolbar(self):
+        """创建左侧工具栏"""
+        tree_toolbar = QFrame()
+        tree_toolbar_layout = QHBoxLayout()
+        tree_toolbar.setLayout(tree_toolbar_layout)
+        tree_toolbar.setFrameShape(QFrame.Shape.StyledPanel)
+        tree_toolbar.setFrameShadow(QFrame.Shadow.Raised)
+        
+        # 树状标题
+        tree_label = QLabel("📁 笔记管理")
+        tree_label.setFont(QFont("Microsoft YaHei UI", 11, QFont.Bold))
+        
+        # 新建笔记按钮
+        self.new_note_btn = QPushButton("📄")
+        self.new_note_btn.setToolTip("新建笔记")
+        self.new_note_btn.clicked.connect(self.create_new_note)
+        tree_toolbar_layout.addWidget(self.new_note_btn)
+
+        # 新建文件夹按钮
+        self.new_folder_btn = QPushButton("📁")
+        self.new_folder_btn.setToolTip("新建文件夹")
+        self.new_folder_btn.clicked.connect(self.create_new_folder)
+        tree_toolbar_layout.addWidget(self.new_folder_btn)
+
+        # 删除按钮
+        self.delete_btn = QPushButton("🗑️")
+        self.delete_btn.setToolTip("删除")
+        self.delete_btn.clicked.connect(self.delete_selected)
+        tree_toolbar_layout.addWidget(self.delete_btn)
+
+        # 刷新按钮
+        self.refresh_btn = QPushButton("🔄")
+        self.refresh_btn.setToolTip("刷新")
+        self.refresh_btn.clicked.connect(self.load_note_tree)
+        tree_toolbar_layout.addWidget(self.refresh_btn)
+        
+        # 创建技能按钮（新增功能）
+        self.create_skill_btn = QPushButton("✨")
+        self.create_skill_btn.setToolTip("创建技能")
+        self.create_skill_btn.clicked.connect(self.create_new_skill)
+        tree_toolbar_layout.addWidget(self.create_skill_btn)
+
+        tree_toolbar_layout.addStretch()
+        
+        return tree_toolbar
+    
+    def create_editor_area(self):
+        """创建编辑器区域"""
+        right_widget = QWidget()
+        right_layout = QVBoxLayout()
+        right_widget.setLayout(right_layout)
+
+        # 编辑器标题
+        editor_label = QLabel("📝 编辑器")
+        editor_label.setFont(QFont("Microsoft YaHei UI", 11, QFont.Bold))
+        right_layout.addWidget(editor_label)
+
+        # 编辑器工具栏组件
+        self.editor_toolbar = EditorToolbar()
+        self.editor_toolbar.save_requested.connect(self.save_current_note)
+        self.editor_toolbar.find_requested.connect(self.show_find_dialog)
+        self.editor_toolbar.replace_requested.connect(self.show_replace_dialog)
+        right_layout.addWidget(self.editor_toolbar)
+
+        # 文本编辑器组件
+        self.editor = TextEditorWidget()
+        self.editor.text_changed.connect(self.on_text_changed)
+        right_layout.addWidget(self.editor)
+
+        # 查找替换面板组件
+        self.find_panel = FindReplacePanel()
+        self.find_panel.find_next_requested.connect(self.find_next_with_term)
+        self.find_panel.replace_one_requested.connect(self.replace_one_with_terms)
+        self.find_panel.replace_all_requested.connect(self.replace_all_with_terms)
+        self.find_panel.close_requested.connect(self.hide_find_panel)
+        right_layout.addWidget(self.find_panel)
+        
+        return right_widget
 
     def load_note_tree(self):
-        """加载笔记树状结构"""
-        self.note_tree.clear()
+        """加载笔记树状结构（委托给组件）"""
+        # 检查是否有未保存的修改
+        if self.is_modified and self.current_note_path:
+            reply = QMessageBox.question(
+                self,
+                "保存提示",
+                "当前笔记有未保存的修改，是否保存？",
+                QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+            )
 
-        if not os.path.exists(self.notes_dir):
-            return
-
-        # 遍历目录构建树
-        for root, dirs, files in os.walk(self.notes_dir):
-            # 跳过隐藏目录
-            dirs[:] = [d for d in dirs if not d.startswith(".")]
-
-            level = root.replace(self.notes_dir, "").count(os.sep)
-            indent = "" * level
-
-            for dir_name in sorted(dirs):
-                dir_path = os.path.join(root, dir_name)
-                if not dir_name.startswith("."):
-                    item = QTreeWidgetItem([dir_name])
-                    item.setData(0, Qt.ItemDataRole.UserRole, dir_path)
-                    item.setIcon(
-                        0, self.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
-                    )  # 文件夹图标
-
-                    if level == 0:
-                        self.note_tree.addTopLevelItem(item)
-                    else:
-                        # 找到父节点并添加
-                        parent_path = os.path.dirname(dir_path)
-                        parent_items = self.note_tree.findItems(
-                            os.path.basename(parent_path), Qt.MatchFlag.MatchContains
-                        )
-                        if parent_items:
-                            parent_items[0].addChild(item)
-
-            for file_name in sorted(files):
-                if file_name.endswith(allowed_file_extensions):
-                    file_path = os.path.join(root, file_name)
-                    item = QTreeWidgetItem([file_name])
-                    item.setData(0, Qt.ItemDataRole.UserRole, file_path)
-                    item.setIcon(
-                        0, self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon)
-                    )  # 文件图标
-
-                    if level == 0:
-                        self.note_tree.addTopLevelItem(item)
-                    else:
-                        # 找到父节点并添加
-                        parent_items = self.note_tree.findItems(
-                            os.path.basename(root), Qt.MatchFlag.MatchContains
-                        )
-                        if parent_items:
-                            parent_items[0].addChild(item)
-
-        self.note_tree.expandAll()
+            if reply == QMessageBox.StandardButton.Save:
+                self.save_current_note()
+            elif reply == QMessageBox.StandardButton.Cancel:
+                return
+        
+        self.note_tree.load_tree()
+    
+    def on_tree_refreshed(self):
+        """树刷新后的处理"""
+        # 如果是由外部触发的刷新，重新加载当前笔记
+        if self.is_external_refresh and self.current_note_path:
+            self.load_note_content(self.current_note_path)
+            self.is_external_refresh = False
 
     def on_tree_item_clicked(self, item, column):
         """树节点点击事件"""
@@ -330,7 +295,8 @@ class QuickNotesTab(QWidget):
 
             self.editor.setPlainText(content)
             self.current_note_path = file_path
-            self.current_path_label.setText(f"📄 {file_path}")
+            # 更新工具栏路径显示
+            self.editor_toolbar.update_current_path(file_path)
             self.is_modified = False
 
             # 跳转后取消选中
@@ -419,6 +385,7 @@ class QuickNotesTab(QWidget):
                 f.write("")
 
             # 刷新树并打开新笔记
+            self.is_external_refresh = True
             self.load_note_tree()
             self.load_note_content(file_path)
             self.editor.setFocus()
@@ -456,6 +423,7 @@ class QuickNotesTab(QWidget):
         # 创建文件夹
         try:
             os.makedirs(folder_path)
+            self.is_external_refresh = True
             self.load_note_tree()
 
         except Exception as e:
@@ -499,9 +467,11 @@ class QuickNotesTab(QWidget):
             if path == self.current_note_path:
                 self.editor.clear()
                 self.current_note_path = None
-                self.current_path_label.setText("")
+                # 更新工具栏路径显示
+                self.editor_toolbar.update_current_path(None)
                 self.is_modified = False
 
+            self.is_external_refresh = True
             self.load_note_tree()
 
         except Exception as e:
@@ -543,12 +513,14 @@ class QuickNotesTab(QWidget):
 
         try:
             os.rename(old_path, new_path)
+            self.is_external_refresh = True
             self.load_note_tree()
 
             # 如果重命名的是当前打开的笔记，更新路径
             if old_path == self.current_note_path:
                 self.current_note_path = new_path
-                self.current_path_label.setText(f"📄 {new_path}")
+                # 更新工具栏路径显示
+                self.editor_toolbar.update_current_path(new_path)
 
         except Exception as e:
             QMessageBox.critical(self, "错误", f"无法重命名：{str(e)}")
@@ -572,24 +544,22 @@ class QuickNotesTab(QWidget):
     def show_find_dialog(self):
         """显示查找面板"""
         self.find_panel.setVisible(True)
-        self.find_input.setFocus()
+        self.find_panel.find_input.setFocus()
         self.find_start_index = 0
 
     def show_replace_dialog(self):
         """显示替换面板"""
         self.find_panel.setVisible(True)
-        self.find_input.setFocus()
+        self.find_panel.find_input.setFocus()
         self.find_start_index = 0
 
     def hide_find_panel(self):
         """隐藏查找面板"""
         self.find_panel.setVisible(False)
         self.editor.setFocus()
-
-    def find_next(self):
-        """查找下一个"""
-        search_term = self.find_input.text()
-
+    
+    def find_next_with_term(self, search_term):
+        """使用指定的搜索词查找下一个"""
         if not search_term:
             QMessageBox.warning(self, "提示", "请输入查找内容")
             return
@@ -620,12 +590,9 @@ class QuickNotesTab(QWidget):
 
         # 更新下次查找起始位置
         self.find_start_index = end_pos
-
-    def replace_one(self):
-        """替换一个匹配项"""
-        search_term = self.find_input.text()
-        replace_term = self.replace_input.text()
-
+    
+    def replace_one_with_terms(self, search_term, replace_term):
+        """使用指定的词替换一个匹配项"""
         if not search_term:
             QMessageBox.warning(self, "提示", "请输入查找内容")
             return
@@ -642,13 +609,10 @@ class QuickNotesTab(QWidget):
             self.is_modified = True
         else:
             # 如果没有选中或选中的不匹配，查找下一个
-            self.find_next()
-
-    def replace_all(self):
+            self.find_next_with_term(search_term)
+    
+    def replace_all_with_terms(self, search_term, replace_term):
         """全部替换"""
-        search_term = self.find_input.text()
-        replace_term = self.replace_input.text()
-
         if not search_term:
             QMessageBox.warning(self, "提示", "请输入查找内容")
             return
@@ -672,70 +636,6 @@ class QuickNotesTab(QWidget):
         """显示状态消息（简化版本）"""
         # 可以在未来添加状态栏
         print(f"状态：{message}")
-
-    # ==================== 编辑器上下文菜单和快捷键 ====================
-
-    def show_editor_context_menu(self, pos):
-        """显示编辑器右键菜单"""
-        menu = QMenu(self.editor)
-
-        # 撤销/重做
-        undo_action = menu.addAction("↶ 撤销")
-        undo_action.setShortcut(QKeySequence.Undo)
-        undo_action.triggered.connect(self.editor.undo)
-        undo_action.setEnabled(self.editor.document().isUndoAvailable())
-
-        redo_action = menu.addAction("↷ 重做")
-        redo_action.setShortcut(QKeySequence.Redo)
-        redo_action.triggered.connect(self.editor.redo)
-        redo_action.setEnabled(self.editor.document().isRedoAvailable())
-
-        menu.addSeparator()
-
-        # 剪切/复制/粘贴
-        cut_action = menu.addAction("✂ 剪切")
-        cut_action.setShortcut(QKeySequence.Cut)
-        cut_action.triggered.connect(self.editor.cut)
-        cut_action.setEnabled(self.editor.textCursor().hasSelection())
-
-        copy_action = menu.addAction("📋 复制")
-        copy_action.setShortcut(QKeySequence.Copy)
-        copy_action.triggered.connect(self.editor.copy)
-        copy_action.setEnabled(self.editor.textCursor().hasSelection())
-
-        paste_action = menu.addAction("📌 粘贴")
-        paste_action.setShortcut(QKeySequence.Paste)
-        paste_action.triggered.connect(self.editor.paste)
-        paste_action.setEnabled(not self.editor.toPlainText().strip() == "" or 
-                               QApplication.clipboard().text() != "")
-
-        menu.addSeparator()
-
-        # 全选
-        select_all_action = menu.addAction("☑ 全选")
-        select_all_action.setShortcut(QKeySequence.SelectAll)
-        select_all_action.triggered.connect(self.editor.selectAll)
-
-        menu.addSeparator()
-
-        # 查找/替换
-        find_action = menu.addAction("🔍 查找")
-        find_action.setShortcut(QKeySequence.Find)
-        find_action.triggered.connect(self.show_find_dialog)
-
-        replace_action = menu.addAction("🔄 替换")
-        replace_action.setShortcut(QKeySequence.Replace)
-        replace_action.triggered.connect(self.show_replace_dialog)
-
-        menu.addSeparator()
-
-        # 保存
-        save_action = menu.addAction("💾 保存")
-        save_action.setShortcut(QKeySequence.Save)
-        save_action.triggered.connect(self.save_current_note)
-
-        # 显示菜单
-        menu.exec_(self.editor.viewport().mapToGlobal(pos))
 
     def create_editor_shortcuts(self):
         """创建编辑器快捷键"""
@@ -768,8 +668,26 @@ class QuickNotesTab(QWidget):
         redo_shortcut.setShortcut(QKeySequence.Redo)  # Ctrl+Y 或 Ctrl+Shift+Z
         redo_shortcut.triggered.connect(self.editor.redo)
         self.editor.addAction(redo_shortcut)
-
-    # ==================== API 接口方法（暴露给其他插件调用） ====================
+    
+    def create_new_skill(self):
+        """创建新技能 - agentskills-core 兼容"""
+        try:
+            # 显示创建技能对话框
+            dialog = CreateSkillDialog(self, skills_dir=self.skills_dir)
+            
+            if dialog.exec() == int(QDialog.DialogCode.Accepted):
+                # 技能创建成功，刷新树
+                self.is_external_refresh = True
+                self.load_note_tree()
+                QMessageBox.information(
+                    self, 
+                    "成功", 
+                    f"技能已创建！\n位置：{self.skills_dir}\n\n提示：技能文件夹可以在文件树中查看和管理。"
+                )
+        
+        except Exception as e:
+            logger.error(f"创建技能失败：{e}", exc_info=True)
+            QMessageBox.critical(self, "错误", f"创建技能失败：{str(e)}")
 
     def create_note_api(self, name, folder=None):
         """
@@ -800,6 +718,7 @@ class QuickNotesTab(QWidget):
             f.write("")
 
         # 刷新树并打开新笔记
+        self.is_external_refresh = True
         self.load_note_tree()
         self.load_note_content(file_path)
 
@@ -900,6 +819,87 @@ class QuickNotesTab(QWidget):
                 if file.find(name_query) != -1:
                     return os.path.relpath(os.path.join(root, file), self.notes_dir)
         return ""
+
+    def query_skills_api(self):
+        """
+        API: 查询技能名称
+
+        Returns:
+            str: 技能名称列表，多个技能名称用换行符分隔
+        """
+        skills_dir = self.skills_dir
+        if not os.path.exists(skills_dir):
+            return ""
+        skills_list = os.listdir(skills_dir)
+        return "\n".join(skills_list)
+    
+    def get_all_skills_summary_api(self) -> list[dict[str, Any]]:
+        """
+        API: 获取所有技能的概要信息（MCP 接口）
+        
+        Returns:
+            list[dict]: 技能概要信息列表，每个包含:
+                - name: 技能名称
+                - description: 技能描述
+                - path: 技能路径
+                - has_scripts: 是否有 scripts 目录
+                - has_references: 是否有 references 目录
+                - has_assets: 是否有 assets 目录
+                - version: 版本号
+                - author: 作者
+                - license: 许可证
+        """
+        from .utils.skill_format import SkillFormat
+        
+        # 扫描 skills 目录
+        skills = SkillFormat.scan_skills_tree(self.skills_dir)
+        
+        # # 返回相对路径
+        # for skill in skills:
+        #     skill['path'] = os.path.relpath(skill['path'], self.notes_dir)
+        
+        return skills
+    
+    def get_skill_detail_api(self, skill_name: str) -> dict[str, Any]:
+        """
+        API: 获取单个技能的详细信息（MCP 接口）
+        
+        Args:
+            skill_name: 技能名称（kebab-case 格式，如 "pdf-processing"）
+            
+        Returns:
+            dict: 技能详细信息，包含:
+                - name: 技能名称
+                - description: 技能描述
+                - path: 技能路径
+                - metadata: 完整的 YAML 元数据
+                - content: Markdown 正文内容
+                - full_content: 完整内容（包含 frontmatter）
+                - scripts: scripts 目录下的文件列表
+                - references: references 目录下的文件列表
+                - assets: assets 目录下的文件列表
+                
+        Raises:
+            FileNotFoundError: 如果技能不存在
+        """
+        from .utils.skill_format import SkillFormat
+        
+        # 构建技能目录路径
+        skill_dir = os.path.join(self.skills_dir, skill_name)
+        
+        if not os.path.exists(skill_dir):
+            raise FileNotFoundError(f"技能不存在：{skill_name}")
+        
+        # 加载详细信息
+        detail = SkillFormat.load_skill_detail(skill_dir)
+        
+        if not detail:
+            raise FileNotFoundError(f"无法加载技能：{skill_name}")
+        
+        # 转换为相对路径
+        detail['path'] = os.path.relpath(skill_dir, self.notes_dir)
+        
+        return detail
 
     def query_notes_by_text_api(
         self,
@@ -1006,6 +1006,20 @@ def load_plugin(plugin_manager: "PluginManager"):
     )
     plugin_manager.register_method(
         "quick_notes", "save_textfile_safe", notes_tab.save_textfile_safe_api
+    )
+    
+    # 注册技能相关的 MCP 接口
+    plugin_manager.register_method(
+        "quick_notes", 
+        "get_all_skills_summary", 
+        notes_tab.get_all_skills_summary_api,
+        extra_data={"enable_mcp": True}
+    )
+    plugin_manager.register_method(
+        "quick_notes", 
+        "get_skill_detail", 
+        notes_tab.get_skill_detail_api,
+        extra_data={"enable_mcp": True}
     )
 
     # 添加到标签页（由插件管理器统一管理）

@@ -222,6 +222,16 @@ class IPythonConsoleTab(QWidget):
         self.restart_btn.setMinimumHeight(30)
         toolbar_layout.addWidget(self.restart_btn)
 
+        # 新对话按钮
+        self.new_chat_btn = QPushButton("💬 新对话")
+        self.new_chat_btn.setObjectName("successBtn")
+        self.new_chat_btn.clicked.connect(self.start_new_chat)
+        # 按钮固定高度
+        self.new_chat_btn.setMaximumHeight(30)
+        self.new_chat_btn.setMinimumHeight(30)
+        self.new_chat_btn.setEnabled(False)  # 初始禁用（只有空闲状态可用）
+        toolbar_layout.addWidget(self.new_chat_btn)
+
         toolbar_layout.addSpacing(20)
 
         # MCP 工具管理按钮
@@ -347,6 +357,29 @@ class IPythonConsoleTab(QWidget):
         self.init_kernel_async()
         print("[IPythonConsoleTab] 控制台重启完成")
 
+    def start_new_chat(self):
+        """开始新对话（调用 agent.clear()）"""
+        if hasattr(self, "agent_instance") and self.agent_instance:
+            if hasattr(self.agent_instance, "clear"):
+                print("[IPythonConsoleTab] 正在清空 Agent 上下文...")
+                self.agent_instance.clear()
+                
+                # 在控制台显示提示信息
+                if self.console_widget:
+                    self.console_widget._append_plain_text("\n🎉 已清空上下文，开始新对话！\n\n")
+                
+                # 更新状态为空闲
+                self.update_status_display(status="idle")
+                print("[IPythonConsoleTab] Agent 上下文已清空")
+            else:
+                print("[IPythonConsoleTab] 警告：agent_instance 没有 clear 方法")
+                if self.console_widget:
+                    self.console_widget._append_plain_text("⚠️ 警告：Agent 不支持 clear 操作\n")
+        else:
+            print("[IPythonConsoleTab] 警告：没有找到 agent_instance")
+            if self.console_widget:
+                self.console_widget._append_plain_text("⚠️ 警告：Agent 未初始化\n")
+
     def stop_generation(self):
         """停止当前正在进行的生成"""
         if hasattr(self, "agent_instance") and self.agent_instance:
@@ -389,6 +422,7 @@ class IPythonConsoleTab(QWidget):
                     }
                 """)
                 self.stop_btn.setVisible(False)
+                self.new_chat_btn.setEnabled(True)  # 空闲状态启用新对话按钮
             elif status == "generating":
                 self.status_label.setText("🟢 运行中")
                 self.status_label.setStyleSheet("""
@@ -401,6 +435,7 @@ class IPythonConsoleTab(QWidget):
                     }
                 """)
                 self.stop_btn.setVisible(True)
+                self.new_chat_btn.setEnabled(False)  # 生成中禁用新对话按钮
             elif status == "finished":
                 self.status_label.setText("✅ 生成完毕")
                 self.status_label.setStyleSheet("""
@@ -413,6 +448,7 @@ class IPythonConsoleTab(QWidget):
                     }
                 """)
                 self.stop_btn.setVisible(False)
+                self.new_chat_btn.setEnabled(True)  # 完成状态启用新对话按钮
             elif status == "error":
                 self.status_label.setText("🔴 错误")
                 self.status_label.setStyleSheet("""
@@ -425,6 +461,7 @@ class IPythonConsoleTab(QWidget):
                     }
                 """)
                 self.stop_btn.setVisible(False)
+                self.new_chat_btn.setEnabled(True)  # 错误状态也启用新对话按钮
 
             # 更新 token 数量
             if tokens is not None:

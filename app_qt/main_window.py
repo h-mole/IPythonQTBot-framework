@@ -331,7 +331,7 @@ class QuickAssistant(QMainWindow):
         icon = QIcon(pixmap)
 
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(icon)
+        self.tray_icon.setIcon(QIcon("icon.png"))
         self.tray_icon.setToolTip("IPythonQTBot")
 
         # 创建托盘菜单
