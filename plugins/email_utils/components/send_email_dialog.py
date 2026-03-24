@@ -54,17 +54,43 @@ class SendEmailWorker(QThread):
 class SendEmailDialog(QDialog):
     """发送邮件对话框"""
     
-    def __init__(self, parent=None, account_name=None):
+    def __init__(self, parent=None, account_name=None, reply_mode=False, 
+                 reply_to_email=None, reply_subject=None, reply_body=None):
+        """
+        初始化发送邮件对话框
+        
+        Args:
+            parent: 父窗口
+            account_name: 发件账号名称
+            reply_mode: 是否为回复模式
+            reply_to_email: 回复对象的邮箱地址
+            reply_subject: 回复主题（会自动添加 Re: 前缀）
+            reply_body: 引用的原文内容（HTML格式）
+        """
         super().__init__(parent)
         self.account_name = account_name
         self.plugin_manager = parent.plugin_manager if hasattr(parent, 'plugin_manager') else None
         self.attachments = []
         self.send_worker = None
+        
+        # 回复模式相关
+        self.reply_mode = reply_mode
+        self.reply_to_email = reply_to_email
+        self.reply_subject = reply_subject
+        self.reply_body = reply_body
+        
+        # 防止重复发送的标志
+        self._is_sending = False
+        
         self.init_ui()
     
     def init_ui(self):
         """初始化界面"""
-        self.setWindowTitle("发送邮件")
+        # 根据模式设置窗口标题
+        if self.reply_mode:
+            self.setWindowTitle("回复邮件")
+        else:
+            self.setWindowTitle("发送邮件")
         self.setMinimumSize(700, 600)
         
         layout = QVBoxLayout()
@@ -83,11 +109,22 @@ class SendEmailDialog(QDialog):
         
         # 收件人
         self.to_edit = QLineEdit()
-        self.to_edit.setPlaceholderText("多个收件人用逗号分隔")
+        if self.reply_mode and self.reply_to_email:
+            self.to_edit.setText(self.reply_to_email)
+            self.to_edit.setReadOnly(True)  # 回复模式下收件人只读
+        else:
+            self.to_edit.setPlaceholderText("多个收件人用逗号分隔")
         form_layout.addRow("收件人:", self.to_edit)
         
         # 主题
         self.subject_edit = QLineEdit()
+        if self.reply_mode and self.reply_subject:
+            # 添加 Re: 前缀
+            if self.reply_subject.startswith('Re:'):
+                self.subject_edit.setText(self.reply_subject)
+            else:
+                self.subject_edit.setText(f"Re: {self.reply_subject}")
+            self.subject_edit.setReadOnly(True)  # 回复模式下主题只读
         form_layout.addRow("主题:", self.subject_edit)
         
         layout.addLayout(form_layout)
@@ -97,7 +134,11 @@ class SendEmailDialog(QDialog):
         layout.addWidget(body_label)
         
         self.body_edit = QTextEdit()
-        self.body_edit.setHtml("<p><br></p>")
+        if self.reply_mode and self.reply_body:
+            # 预填充引用原文的内容
+            self.body_edit.setHtml(self.reply_body)
+        else:
+            self.body_edit.setHtml("<p><br></p>")
         layout.addWidget(self.body_edit)
         
         # 附件列表
@@ -164,6 +205,11 @@ class SendEmailDialog(QDialog):
     
     def start_send_email(self):
         """开始发送邮件（在后台线程中）"""
+        # 防止重复发送
+        if self._is_sending:
+            QMessageBox.information(self, "提示", "邮件正在发送中，请稍候...")
+            return
+        
         to = self.to_edit.text().strip()
         subject = self.subject_edit.text().strip()
         body = self.body_edit.toHtml()
@@ -175,6 +221,12 @@ class SendEmailDialog(QDialog):
         if not subject:
             QMessageBox.warning(self, "警告", "请输入邮件主题！")
             return
+        
+        # 设置发送中标志
+        self._is_sending = True
+        
+        # 禁用发送按钮防止重复点击
+        self.setEnabled(False)
         
         # 获取发件人账号配置
         account_name = self.from_combo.currentText()
@@ -189,10 +241,20 @@ class SendEmailDialog(QDialog):
         )
         self.send_worker.send_completed.connect(self.on_send_completed)
         self.send_worker.error_occurred.connect(self.on_send_error)
+        self.send_worker.finished.connect(self.on_send_finished)
         self.send_worker.start()
+    
+    def on_send_finished(self):
+        """线程结束后的清理"""
+        self._is_sending = False
+        self.setEnabled(True)
     
     def on_send_completed(self, success):
         """发送完成的回调"""
+        # 等待线程完全结束，避免 QThread destroyed while running 错误
+        if self.send_worker and self.send_worker.isRunning():
+            self.send_worker.wait(5000)  # 最多等待5秒
+        
         if success:
             QMessageBox.information(self, "成功", "邮件发送成功！")
             self.accept()
@@ -201,4 +263,15 @@ class SendEmailDialog(QDialog):
     
     def on_send_error(self, error_msg):
         """发送错误的回调"""
+        # 等待线程完全结束
+        if self.send_worker and self.send_worker.isRunning():
+            self.send_worker.wait(5000)
+        
         QMessageBox.critical(self, "错误", f"发送失败：{error_msg}")
+    
+    def closeEvent(self, event):
+        """关闭事件处理 - 确保线程安全结束"""
+        if self.send_worker and self.send_worker.isRunning():
+            # 如果线程还在运行，等待它完成
+            self.send_worker.wait(3000)  # 等待最多3秒
+        event.accept()

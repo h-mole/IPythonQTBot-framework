@@ -4,9 +4,7 @@
   "version": "1.0.0",
   "author": "IPythonQTBot Team",
   "main": "main",
-  
-  "dependencies": [
-  ],
+  "dependencies": [],
   "exports": {
     "namespace": "email_utils",
     "description": "邮箱管理核心组件",
@@ -58,6 +56,44 @@
         "returns": {
           "type": "dict",
           "description": "邮件详细信息，包含 subject, from, to, date, body, attachments 等字段"
+        }
+      },
+      {
+        "name": "reply_email",
+        "description": "回复邮件",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "account_name",
+            "type": "str",
+            "description": "邮箱账号名称",
+            "required": true
+          },
+          {
+            "name": "original_email_id",
+            "type": "str",
+            "description": "邮件 ID",
+            "required": true
+          },
+          {
+            "name": "body",
+            "type": "str",
+            "description": "回复的正文内容（HTML 格式）",
+            "required": true
+          },
+          {
+            "name": "attachments",
+            "type": "list",
+            "description": "附件文件路径列表（可选）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否回复成功"
+        },
+        "extra_data": {
+          "enable_mcp": true
         }
       },
       {
@@ -177,12 +213,10 @@
       }
     ]
   },
-  
   "callbacks": {
     "on_load": "load_plugin",
     "on_unload": "unload_plugin"
   },
-  
   "tabs": [
     {
       "name": "📧 邮箱管理",

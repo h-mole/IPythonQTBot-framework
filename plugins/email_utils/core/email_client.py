@@ -70,7 +70,7 @@ class EmailClient:
     
     def fetch_email_ids(self, folder='inbox', limit=None):
         """
-        获取邮件 ID 列表
+        获取邮件 ID 列表（最新的在前）
         
         Args:
             folder: 文件夹名称，默认 'inbox'
@@ -105,12 +105,89 @@ class EmailClient:
             logger.error(f"获取邮件 ID 失败：{e}")
             raise
     
-    def fetch_email_raw(self, email_id):
+    def fetch_email_ids_with_offset(self, folder='inbox', limit=20, offset=0):
+        """
+        获取邮件 ID 列表，支持偏移量（用于分页加载）
+        
+        Args:
+            folder: 文件夹名称，默认 'inbox'
+            limit: 限制数量
+            offset: 偏移量（跳过最新的 offset 封邮件）
+            
+        Returns:
+            list: 邮件 ID 列表（最新的在前）
+        """
+        try:
+            if not self.imap_conn:
+                self.connect_imap()
+            
+            # 选择文件夹
+            self.imap_conn.select(folder)
+            
+            # 搜索所有邮件
+            status, messages = self.imap_conn.search(None, 'ALL')
+            all_email_ids = messages[0].split()
+            
+            # 逆序排列（最新的在前）
+            all_email_ids = list(reversed(all_email_ids))
+            
+            # 应用偏移量和限制
+            if offset >= len(all_email_ids):
+                return []
+            
+            end_index = min(offset + limit, len(all_email_ids))
+            email_ids = all_email_ids[offset:end_index]
+            
+            logger.info(f"获取到 {len(email_ids)} 封邮件（偏移量：{offset}）")
+            
+            return [eid.decode() for eid in email_ids]
+            
+        except Exception as e:
+            logger.error(f"获取邮件 ID（带偏移）失败：{e}")
+            raise
+    
+    def get_email_date(self, email_id, folder='inbox'):
+        """
+        获取邮件日期（仅获取 HEADER，不下载完整内容）
+        
+        Args:
+            email_id: 邮件 ID
+            folder: 文件夹名称
+            
+        Returns:
+            str: 邮件日期字符串
+        """
+        try:
+            if not self.imap_conn:
+                self.connect_imap()
+            
+            self.imap_conn.select(folder)
+            
+            # 只获取日期头信息
+            status, msg_data = self.imap_conn.fetch(email_id.encode(), '(BODY.PEEK[HEADER.FIELDS (DATE)])')
+            
+            if status == 'OK' and msg_data and msg_data[0]:
+                header_data = msg_data[0][1]
+                if header_data:
+                    # 解析日期头
+                    header_str = header_data.decode('utf-8', errors='replace')
+                    for line in header_str.split('\n'):
+                        if line.lower().startswith('date:'):
+                            return line[5:].strip()
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"获取邮件 {email_id} 日期失败：{e}")
+            return None
+    
+    def fetch_email_raw(self, email_id, folder='inbox'):
         """
         获取原始邮件数据
         
         Args:
             email_id: 邮件 ID
+            folder: 文件夹名称，默认 'inbox'
             
         Returns:
             bytes: 原始 RFC822 格式的邮件数据
@@ -118,6 +195,9 @@ class EmailClient:
         try:
             if not self.imap_conn:
                 self.connect_imap()
+            
+            # 选择文件夹（FETCH 命令需要在 SELECTED 状态下执行）
+            self.imap_conn.select(folder)
             
             status, msg_data = self.imap_conn.fetch(email_id.encode(), '(RFC822)')
             raw_email = msg_data[0][1]
@@ -246,31 +326,58 @@ class EmailClient:
         Returns:
             bool: 是否成功
         """
+        from email.mime.application import MIMEApplication
+        import mimetypes
+        
         try:
-            # 创建邮件
-            msg = MIMEMultipart('alternative')
+            # 创建邮件 - 使用 mixed 类型以支持附件
+            msg = MIMEMultipart('mixed')
             msg['Subject'] = subject
             msg['From'] = self.username
             msg['To'] = to
             
-            # 添加正文
-            msg.attach(MIMEText(body, 'html', 'utf-8'))
+            # 添加正文部分 - 使用 alternative 包装 HTML
+            msg_body = MIMEMultipart('alternative')
+            msg_body.attach(MIMEText(body, 'html', 'utf-8'))
+            msg.attach(msg_body)
             
             # 添加附件
             if attachments:
                 for file_path in attachments:
                     try:
+                        filename = os.path.basename(file_path)
+                        
+                        # 猜测 MIME 类型
+                        content_type, encoding = mimetypes.guess_type(file_path)
+                        if content_type is None:
+                            content_type = 'application/octet-stream'
+                        main_type, sub_type = content_type.split('/', 1)
+                        
                         with open(file_path, 'rb') as f:
-                            attachment = MIMEBase('application', 'octet-stream')
-                            attachment.set_payload(f.read())
-                            encoders.encode_base64(attachment)
+                            file_data = f.read()
                             
-                            filename = os.path.basename(file_path)
-                            attachment.add_header(
-                                'Content-Disposition',
-                                f'attachment; filename="{filename}"'
-                            )
+                            # 使用 MIMEApplication 并指定正确的类型
+                            attachment = MIMEApplication(file_data, _subtype=sub_type)
+                            
+                            # 添加 Content-Disposition 头，支持中文文件名
+                            # 使用 RFC 5987 编码确保中文文件名正确显示
+                            from email.utils import encode_rfc2231
+                            
+                            try:
+                                # 尝试使用纯 ASCII 文件名
+                                filename.encode('ascii')
+                                disposition = f'attachment; filename="{filename}"'
+                            except UnicodeEncodeError:
+                                # 包含非 ASCII 字符，使用 RFC 5987 编码
+                                encoded_filename = encode_rfc2231(filename, 'utf-8')
+                                # encode_rfc2231 返回格式如: utf-8''%E4%B8%AD%E6%96%87
+                                # 我们需要提取编码后的部分
+                                disposition = f"attachment; filename*=utf-8''{encoded_filename[7:]}"
+                            
+                            attachment.add_header('Content-Disposition', disposition)
                             msg.attach(attachment)
+                            
+                            logger.info(f"附件添加成功：{filename} ({content_type})")
                     except Exception as e:
                         logger.error(f"添加附件失败：{file_path} - {e}")
                         raise

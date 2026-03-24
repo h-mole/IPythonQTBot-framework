@@ -30,7 +30,7 @@ def load_plugin(plugin_manager):
     
     # 连接邮件详情请求信号
     email_tab.email_detail_requested.connect(
-        lambda email_id: show_email_detail_dialog(email_tab, email_id)
+        lambda email_id, account_name: show_email_detail_dialog(email_tab, email_id, account_name)
     )
     
     # 注册暴露的方法到全局域
@@ -40,7 +40,7 @@ def load_plugin(plugin_manager):
         send_email_api,
         get_attachments_api,
         download_attachment_api,
-        get_accounts_api,
+        get_accounts_api,reply_email_api
     )
     
     plugin_manager.register_method(
@@ -51,6 +51,9 @@ def load_plugin(plugin_manager):
     )
     plugin_manager.register_method(
         "email_utils", "send_email", send_email_api
+    )
+    plugin_manager.register_method(
+        "email_utils", "reply_email", reply_email_api
     )
     plugin_manager.register_method(
         "email_utils", "get_attachments", get_attachments_api
@@ -69,22 +72,22 @@ def load_plugin(plugin_manager):
     return {"tab": email_tab, "namespace": "email_utils"}
 
 
-def show_email_detail_dialog(email_tab, email_id):
+def show_email_detail_dialog(email_tab, email_id, account_name):
     """
     显示邮件详情对话框
     
     Args:
         email_tab: 邮件列表组件实例
         email_id: 邮件 ID
+        account_name: 邮件所属的账号名称
     """
     try:
         from .components.email_detail_dialog import EmailDetailDialog
         from .api.email_api import get_email_detail_api
         
-        account_name = email_tab.current_account
         if not account_name:
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(email_tab, "警告", "请先选择邮箱账号！")
+            QMessageBox.warning(email_tab, "警告", "无法确定邮件所属账号！")
             return
         
         # 获取邮件详情
