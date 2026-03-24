@@ -365,8 +365,8 @@ class IPythonConsoleTab(QWidget):
                 self.agent_instance.clear()
                 
                 # 在控制台显示提示信息
-                if self.console_widget:
-                    self.console_widget._append_plain_text("\n🎉 已清空上下文，开始新对话！\n\n")
+                # if self.console_widget:
+                #     self.console_widget._append_plain_text("\n🎉 已清空上下文，开始新对话！\n\n")
                 
                 # 更新状态为空闲
                 self.update_status_display(status="idle")

@@ -4,13 +4,31 @@
   "version": "1.0.0",
   "author": "IPythonQTBot Team",
   "main": "main",
-  
-  "dependencies": [
-  ],
+  "dependencies": [],
   "exports": {
     "namespace": "daily_tasks",
     "description": "任务管理核心组件",
     "methods": [
+      {
+        "name": "get_all_enum_values",
+        "description": "获得枚举值清单",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "filter_name",
+            "type": "str",
+            "description": "过滤器名称",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "list",
+          "description": "枚举值清单"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
       {
         "name": "add_task",
         "description": "添加新任务",
@@ -26,6 +44,9 @@
         "returns": {
           "type": "int",
           "description": "新任务的 ID，失败返回 -1"
+        },
+        "extra_data": {
+          "enable_mcp": true
         }
       },
       {
@@ -69,8 +90,7 @@
         "name": "get_todo_tasks",
         "description": "获取状态非“完成”的任务列表",
         "stable": true,
-        "parameters": [
-        ],
+        "parameters": [],
         "returns": {
           "type": "list",
           "description": "状态非“完成”的任务列表"
@@ -161,12 +181,10 @@
       }
     ]
   },
-  
   "callbacks": {
     "on_load": "load_plugin",
     "on_unload": "unload_plugin"
   },
-  
   "tabs": [
     {
       "name": "📋 任务管理",

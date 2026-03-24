@@ -303,7 +303,7 @@ class TaskDialog(QDialog):
 
         # 完成状态
         self.status_combo = QComboBox()
-        self.status_combo.addItems(["未完成", "已完成", "进行中", "已取消"])
+        self.status_combo.addItems(DEFAULT_STATUSES)
         if self.task_data and self.task_data.get("status"):
             self.status_combo.setCurrentText(self.task_data["status"])
         layout.addRow("完成状态:", self.status_combo)

@@ -15,3 +15,4 @@ numpy
 pyside6-settings
 toml
 whats_that_code
+docstring-parser>=0.16

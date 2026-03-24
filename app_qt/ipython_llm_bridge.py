@@ -398,19 +398,23 @@ class StreamingOutputHandler(QObject):
 
 
 AGENT_SYSTEM_PROMPT_INITIAL = """
-
 You are a helpful assistant that have various functions.
 
-## Knowledge Source
+### Knowledge Source
 - Online: You may search online if needed.
 - Local: 
     - For something that is not tasks, you may query from the local notes or textfiles;
-    - For tasks involving coding, file operations, or multi-step processes: You MUST FIRST check task_requirements/
-      For other simple tasks, you may proceed but should mention if task_requirements/ check is needed
+    - For tasks involving ANY of the following, you MUST FIRST check skills/ in the local quicknote mgr system:
+        1. Code execution (if the code can be run as a file and not depend on other variables in ipython environment, for better efficiency and code reuse. However, if the code is very simple (1~2lines), you may directly write and execute.)
+        2. File operations (read/write/create)
+        3. Multi-step processes
+        4. Tasks that might have existing scripts in scripts/ directory
+    - For simple informational queries that do NOT involve code execution, you may proceed directly.
+### Notice
 
-## Notice
-
-- For all tasks that you think is complex, please refer to the notes in `task_requirements/` first, or you may waste a lot of time to solve that.
+- Do not compress complex code to 1~2 lines to avoid saving it, that might impact the code reuse.
+- Strictly obey the knowledge query requirements.
+- The Markdown title level 1 and 2 ("#" and "##") are used, so if you are going to output titles, start titles from level 3 ("###").
 
 """
 
@@ -945,10 +949,29 @@ class Agent:
         if not doc:
             return f"Parameter {param_name}"
 
-        # 尝试从 Google/NumPy 风格文档字符串提取
+        # 尝试使用 docstring-parser 解析
+        try:
+            from docstring_parser import parse
+
+            parsed = parse(doc)
+            for param in parsed.params:
+                if param.arg_name == param_name:
+                    # 返回完整描述，包括多行内容
+                    desc = param.description or ""
+                    # 清理多余空白并返回
+                    return " ".join(desc.split()) if desc else f"Parameter {param_name}"
+        except ImportError:
+            # 如果没有安装 docstring-parser，使用备用解析逻辑
+            pass
+        except Exception:
+            # 解析失败，使用备用逻辑
+            pass
+
+        # 备用：手动解析 Google/NumPy 风格文档字符串
         lines = doc.split("\n")
         in_args_section = False
-        current_param_lines = []
+        collecting = False
+        collected_lines = []
 
         for line in lines:
             line_stripped = line.strip()
@@ -958,28 +981,62 @@ class Agent:
                 "args:",
                 "arguments:",
                 "parameters:",
-                "param:",
             ):
                 in_args_section = True
                 continue
 
-            if in_args_section:
-                # 检测新的部分开始
-                if line_stripped and not line.startswith(" ") and ":" in line_stripped:
-                    break
+            # 检测其他部分的开始（表示 Args 部分结束）
+            if in_args_section and line_stripped:
+                if line_stripped.lower().endswith(":") and not line.startswith(" "):
+                    # 如果正在收集参数描述，保存当前结果
+                    if collecting and collected_lines:
+                        return " ".join(collected_lines)
+                    in_args_section = False
+                    continue
 
-                # 匹配参数行：param_name: description 或 param_name (type): description
-                if line_stripped.startswith(
-                    f"{param_name}:"
-                ) or line_stripped.startswith(f"{param_name} ("):
-                    # 提取描述部分
+            if in_args_section:
+                # 检测参数行：param_name: description 或 param_name (type): description
+                is_param_line = (
+                    line_stripped.startswith(f"{param_name}:")
+                    or line_stripped.startswith(f"{param_name} (")
+                )
+
+                if is_param_line:
+                    # 如果正在收集其他参数，先保存
+                    if collecting and collected_lines:
+                        return " ".join(collected_lines)
+                    
+                    collecting = True
+                    # 提取描述部分（在第一个冒号之后）
                     desc_start = line_stripped.find(":") + 1
                     if desc_start > 0:
-                        return line_stripped[desc_start:].strip()
+                        desc = line_stripped[desc_start:].strip()
+                        if desc:
+                            collected_lines.append(desc)
+                    continue
 
-                # 多行描述
-                if current_param_lines and line.startswith("   "):
-                    current_param_lines.append(line_stripped)
+                # 如果正在收集当前参数的描述，收集续行
+                if collecting:
+                    # 检查是否是另一个参数的开始（缩进较少或同级）
+                    if line_stripped and not line.startswith(" "):
+                        # 另一个参数开始，结束收集
+                        if collected_lines:
+                            return " ".join(collected_lines)
+                        collecting = False
+                        continue
+
+                    # 收集缩进的行（包括子字段如 - field: description）
+                    if line.startswith(" ") or line.startswith("\t"):
+                        collected_lines.append(line_stripped)
+                    else:
+                        # 非缩进行表示当前参数描述结束
+                        if collected_lines:
+                            return " ".join(collected_lines)
+                        collecting = False
+
+        # 返回收集到的内容
+        if collecting and collected_lines:
+            return " ".join(collected_lines)
 
         return f"Parameter {param_name}"
 

@@ -45,7 +45,7 @@ from app_qt.widgets.custom_checkbox import CustomCheckBox
 # 默认分类
 DEFAULT_CATEGORIES = ["论文", "项目"]
 DEFAULT_SUBCATEGORIES = ["行政", "项目", "会议", "学习"]
-DEFAULT_STATUSES = ["未完成", "已完成", "进行中", "已取消"]
+DEFAULT_STATUSES = [ "已完成", "进行中", "已取消","未开始"]
 REMINDER_TYPES = ["每天", "当天", "仅一次"]
 
 # 插件数据文件路径
@@ -310,7 +310,7 @@ class TaskDialog(QDialog):
 
         # 完成状态
         self.status_combo = QComboBox()
-        self.status_combo.addItems(["未完成", "已完成", "进行中", "已取消"])
+        self.status_combo.addItems(DEFAULT_STATUSES)
         if self.task_data and self.task_data.get("status"):
             self.status_combo.setCurrentText(self.task_data["status"])
         layout.addRow("完成状态:", self.status_combo)
@@ -520,7 +520,7 @@ class TasksManagerTab(QWidget):
         status_layout = QHBoxLayout()
         status_frame.setLayout(status_layout)
 
-        self.status_label = QLabel("总任务数：0 | 未完成：0 | 已完成：0")
+        self.status_label = QLabel(f"总任务数：0 | 未完成：0 | 已完成：0 | 进行中：0 | 已取消：0 | 未开始：0")
         status_layout.addWidget(self.status_label)
 
         status_layout.addStretch()
@@ -987,27 +987,47 @@ class TasksManagerTab(QWidget):
         total = len(self.tasks_data)
         completed = sum(1 for t in self.tasks_data if t.get("status") == "已完成")
         incomplete = total - completed
+        in_progress = sum(1 for t in self.tasks_data if t.get("status") == "进行中")
+        cancelled = sum(1 for t in self.tasks_data if t.get("status") == "已取消")
+        not_started = sum(1 for t in self.tasks_data if t.get("status") == "未开始")
 
         self.status_label.setText(
-            f"总任务数：{total} | 未完成：{incomplete} | 已完成：{completed}"
+            f"总任务数：{total} | 未完成：{incomplete} | 已完成：{completed} | 进行中：{in_progress} | 已取消：{cancelled} | 未开始：{not_started}"
         )
 
     # ==================== API 接口方法（暴露给其他插件调用） ====================
 
+    def get_all_enum_values_api(self) -> dict:
+        """
+        API: 获得全部可能的枚举值清单，当添加任务时不知道枚举值时，需要用该方法查询。
+
+        Args:
+            无
+
+        Returns:
+            dict[str, list[str]]: 过滤器名称列表，比如 {"category": ["类别1", "类别2"], "subcategory": ["小类1", "小类2"], "reminder_type": [...], "status": [...] }
+        """
+        return {
+            "category": self.category_filter.items,
+            "subcategory": self.subcategory_filter.items,
+            "reminder_type": REMINDER_TYPES,
+            "status": DEFAULT_STATUSES
+        }
+    
     def add_task_api(self, task_data: dict) -> int:
         """
-        API: 添加任务
+        API: 添加任务，注意如果发现有的枚举值不知道该怎么填的时候，应当首先查询枚举值清单，不要随意填写。
 
         Args:
             task_data: 任务数据字典，包含以下字段：
-                - category: 任务大类
-                - subcategory: 任务小类
-                - description: 任务说明
-                - due_date: 完成日期 (格式：yyyy-MM-dd)
-                - reminder_type: 提醒方式 (每天/当天/仅一次)
-                - reminder_time: 提醒时间 (格式：HH:mm)
-                - status: 完成状态 (未完成/已完成/进行中/已取消)
-                - notes: 备注
+                - category(str): 任务大类，需查阅枚举值清单，如果没有贴切的，就取名为 "其他"
+                - subcategory(str): 任务小类，需查阅枚举值清单，如果没有贴切的，就取名为 "其他"
+                - description(str): 任务说明，不能为空
+                - due_date(str): 完成日期 (格式：yyyy-MM-dd)，不能为空
+                - reminder_type(str): 提醒方式，需查阅枚举值清单，如果没有则设置为“其他”
+                - reminder_time(str): 提醒时间 (格式：HH:mm), 如 "12:00"，如果无需设置则设置为当日"10:30"
+                - status(str): 完成状态，需查阅枚举值清单，如果没有则设置为“其他”
+                - notes(str): 备注
 
         Returns:
             int: 新任务的 ID，如果失败返回 -1
@@ -1026,7 +1046,7 @@ class TasksManagerTab(QWidget):
                 "due_date": task_data.get("due_date", ""),
                 "reminder_type": task_data.get("reminder_type", "仅一次"),
                 "reminder_time": task_data.get("reminder_time", ""),
-                "status": task_data.get("status", "未完成"),
+                "status": task_data.get("status", "未开始"),
                 "notes": task_data.get("notes", ""),
             }
 
@@ -1282,6 +1302,9 @@ def load_plugin(plugin_manager):
     tasks_tab = TasksManagerTab(plugin_manager=plugin_manager)
 
     # 注册暴露的方法到全局域
+    plugin_manager.register_method(
+        "daily_tasks", "get_all_enum_values", tasks_tab.get_all_enum_values_api
+    )
     plugin_manager.register_method(
         "daily_tasks", "add_task", tasks_tab.add_task_api
     )

@@ -44,7 +44,7 @@ class BaseSettings(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         validate_assignment=True,
-        use_enum_values=True,
+        use_get_all_enum_values=True,
         extra='ignore',  # Ignore extra fields to exclude private attributes
     )
     _type_parser: ClassVar[TypeParser] = TypeParser()
