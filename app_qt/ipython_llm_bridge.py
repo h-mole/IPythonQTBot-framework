@@ -34,6 +34,8 @@ from app_qt.configs import (
     MAIN_APP_DATA_DIR,
 )
 from whats_that_code import guess_by_code_and_tags
+from docstring_parser import parse
+
 if TYPE_CHECKING:
     from .ipython_console_tab import IPythonConsoleTab
 
@@ -934,7 +936,7 @@ class Agent:
 
     def _extract_param_description(self, method_func, param_name: str, sig) -> str:
         """
-        从文档字符串中提取参数描述
+        从文档字符串中提取参数描述（使用 docstring_parser）
 
         Args:
             method_func: 方法对象
@@ -950,94 +952,13 @@ class Agent:
         if not doc:
             return f"Parameter {param_name}"
 
-        # 尝试使用 docstring-parser 解析
-        try:
-            from docstring_parser import parse
-
-            parsed = parse(doc)
-            for param in parsed.params:
-                if param.arg_name == param_name:
-                    # 返回完整描述，包括多行内容
-                    desc = param.description or ""
-                    # 清理多余空白并返回
-                    return " ".join(desc.split()) if desc else f"Parameter {param_name}"
-        except ImportError:
-            # 如果没有安装 docstring-parser，使用备用解析逻辑
-            pass
-        except Exception:
-            # 解析失败，使用备用逻辑
-            pass
-
-        # 备用：手动解析 Google/NumPy 风格文档字符串
-        lines = doc.split("\n")
-        in_args_section = False
-        collecting = False
-        collected_lines = []
-
-        for line in lines:
-            line_stripped = line.strip()
-
-            # 检测 Args/Parameters 部分
-            if line_stripped.lower() in (
-                "args:",
-                "arguments:",
-                "parameters:",
-            ):
-                in_args_section = True
-                continue
-
-            # 检测其他部分的开始（表示 Args 部分结束）
-            if in_args_section and line_stripped:
-                if line_stripped.lower().endswith(":") and not line.startswith(" "):
-                    # 如果正在收集参数描述，保存当前结果
-                    if collecting and collected_lines:
-                        return " ".join(collected_lines)
-                    in_args_section = False
-                    continue
-
-            if in_args_section:
-                # 检测参数行：param_name: description 或 param_name (type): description
-                is_param_line = (
-                    line_stripped.startswith(f"{param_name}:")
-                    or line_stripped.startswith(f"{param_name} (")
-                )
-
-                if is_param_line:
-                    # 如果正在收集其他参数，先保存
-                    if collecting and collected_lines:
-                        return " ".join(collected_lines)
-                    
-                    collecting = True
-                    # 提取描述部分（在第一个冒号之后）
-                    desc_start = line_stripped.find(":") + 1
-                    if desc_start > 0:
-                        desc = line_stripped[desc_start:].strip()
-                        if desc:
-                            collected_lines.append(desc)
-                    continue
-
-                # 如果正在收集当前参数的描述，收集续行
-                if collecting:
-                    # 检查是否是另一个参数的开始（缩进较少或同级）
-                    if line_stripped and not line.startswith(" "):
-                        # 另一个参数开始，结束收集
-                        if collected_lines:
-                            return " ".join(collected_lines)
-                        collecting = False
-                        continue
-
-                    # 收集缩进的行（包括子字段如 - field: description）
-                    if line.startswith(" ") or line.startswith("\t"):
-                        collected_lines.append(line_stripped)
-                    else:
-                        # 非缩进行表示当前参数描述结束
-                        if collected_lines:
-                            return " ".join(collected_lines)
-                        collecting = False
-
-        # 返回收集到的内容
-        if collecting and collected_lines:
-            return " ".join(collected_lines)
+        parsed = parse(doc)
+        for param in parsed.params:
+            if param.arg_name == param_name:
+                # 返回完整描述，包括多行内容
+                desc = param.description or ""
+                # 清理多余空白并返回
+                return " ".join(desc.split()) if desc else f"Parameter {param_name}"
 
         return f"Parameter {param_name}"
 
@@ -1057,9 +978,14 @@ class Agent:
         if not doc:
             return f"Call the method {method_func.__name__}"
 
-        # 返回第一行作为简短描述
-        first_line = doc.split("\n")[0].strip()
-        return first_line
+        parsed = parse(doc)
+        parts = []
+        if parsed.short_description:
+            parts.append(parsed.short_description)
+        if parsed.long_description:
+            parts.append(parsed.long_description)
+        
+        return "\n\n".join(parts) if parts else f"Call the method {method_func.__name__}"
 
     def _execute_tool(self, tool_name: str, arguments: Dict) -> Any:
         """
