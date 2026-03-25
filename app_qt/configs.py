@@ -126,7 +126,7 @@ class LLMConfigSettings(BaseSettings):
     # 当前使用的模型
     model: str = Field(default="", title="Model")
     # 最大上下文消息数
-    max_context_messages: int = Field(default=10, title="Max Context Messages")
+    max_context_messages: int = Field(default=50, title="Max Context Messages")
     # llm定制的名称,默认为"default",不同定制化名称下面可以用不同的提示词模板
     customization_name: str = Field(default="default", title="Customization Name")
     # llm 提供商列表

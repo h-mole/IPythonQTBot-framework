@@ -363,8 +363,9 @@ class StreamingOutputHandler(QObject):
                     except Exception as e:
                         import traceback
 
-                        traceback.print_exc()
+                        # traceback.print_exc()
                         error_msg = f"\n[错误] 执行工具失败：{e}"
+                        self.response_queue.put(Text(traceback.format_exc(), style="red"))
                         self.response_queue.put(Text(error_msg, style="red"))
 
             # 完成响应信号，并且将工具结果发送到上级组件。
@@ -388,7 +389,7 @@ class StreamingOutputHandler(QObject):
             print(f"[LLM Bridge] 流式请求错误：{e}", file=sys.stderr)
             import traceback
 
-            traceback.print_exc()
+            self.response_queue.put(Text(traceback.format_exc(), style="red"))
 
     def stop(self):
         """停止流式输出"""

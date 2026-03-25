@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, QTime, Signal
 from PySide6.QtGui import QFont, QAction, QColor
 from PySide6.QtCore import QDateTime as QtCore_QDateTime
+from app_qt.plugin_manager import PluginManager
 import openpyxl
 from openpyxl.utils import get_column_letter
 import plyer
@@ -1286,7 +1287,7 @@ class TasksManagerTab(QWidget):
 # ==================== 插件入口函数 ====================
 
 
-def load_plugin(plugin_manager):
+def load_plugin(plugin_manager: PluginManager):
     """
     插件加载入口函数
 

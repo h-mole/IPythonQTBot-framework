@@ -107,6 +107,32 @@
         }
       },
       {
+        "name": "patch_textfile_safe",
+        "description": "保存笔记,仅允许操作allow list路径下面的文件",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "path",
+            "type": "str",
+            "description": "文件相对路径",
+            "required": true
+          },
+          {
+            "name": "patch",
+            "type": "str",
+            "description": "文件内容",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "保存是否成功"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
         "name": "query_note_by_name",
         "description": "查询笔记名称",
         "stable": true,
@@ -218,6 +244,26 @@
         "returns": {
           "type": "dict",
           "description": "技能详细信息字典，包含 metadata、content、scripts、references 等字段"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
+        "name": "exec_note_in_ipython",
+        "description": "执行笔记内容",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "path",
+            "type": "str",
+            "description": "笔记文件路径",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "object",
+          "description": "返回执行结果"
         },
         "extra_data": {
           "enable_mcp": true

@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QMenu,
+    QApplication,
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QKeySequence, QAction
@@ -35,6 +36,9 @@ class EditorToolbar(QFrame):
         self.setFrameShadow(QFrame.Shadow.Raised)
 
         self.init_ui()
+        self._is_modified = False
+        self._current_full_path = None
+        self._current_rel_path = None
 
     def init_ui(self):
         """初始化界面"""
@@ -58,11 +62,41 @@ class EditorToolbar(QFrame):
 
         layout.addStretch()
 
-        # 当前文件路径显示
+        # 保存状态标签
+        self.save_status_label = QLabel("")
+        self.save_status_label.setFont(QFont("Consolas", 9))
+        layout.addWidget(self.save_status_label)
+
+        # 当前文件路径显示（可点击复制）
         self.current_path_label = QLabel("")
         self.current_path_label.setFont(QFont("Consolas", 8))
-        self.current_path_label.setStyleSheet("color: gray;")
+        self.current_path_label.setStyleSheet("""
+            QLabel {
+                color: gray;
+                padding: 2px 6px;
+                border-radius: 3px;
+            }
+            QLabel:hover {
+                background-color: #e8e8e8;
+                color: #333;
+            }
+        """)
+        self.current_path_label.setCursor(Qt.PointingHandCursor)
+        self.current_path_label.setToolTip("点击复制路径")
+        self.current_path_label.mousePressEvent = self._on_path_label_clicked
         layout.addWidget(self.current_path_label)
+
+    def _on_path_label_clicked(self, event):
+        """路径标签点击事件 - 复制相对路径到剪贴板"""
+        if self._current_rel_path:
+            clipboard = QApplication.clipboard()
+            clipboard.setText(self._current_rel_path)
+            # 临时改变文本提示已复制
+            original_text = self.current_path_label.text()
+            self.current_path_label.setText("✓ 已复制")
+            # 使用 QTimer 恢复原始文本
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(800, lambda: self.current_path_label.setText(original_text))
 
     def update_current_path(self, file_path, notes_dir=None):
         """更新当前文件路径显示
@@ -73,19 +107,50 @@ class EditorToolbar(QFrame):
         """
         MAX_PATHLEN = 60
         if file_path:
+            # 保存完整路径
+            self._current_full_path = file_path
+            
             # 转换为相对路径
             if notes_dir:
                 rel_path = os.path.relpath(file_path, notes_dir)
             else:
                 rel_path = file_path
+            
+            # 保存相对路径
+            self._current_rel_path = rel_path
 
             # 如果路径超过 MAX_PATHLEN 字符，从左侧截断，保留右侧
-            if len(rel_path) > MAX_PATHLEN:
-                rel_path = "..." + rel_path[-(MAX_PATHLEN - 3) :]
+            display_path = rel_path
+            if len(display_path) > MAX_PATHLEN:
+                display_path = "..." + display_path[-(MAX_PATHLEN - 3) :]
 
-            self.current_path_label.setText(f"📄 {rel_path}")
+            self.current_path_label.setText(f"📄 {display_path}")
+            self.current_path_label.setToolTip(f"点击复制: {rel_path}")
         else:
             self.current_path_label.setText("")
+            self.current_path_label.setToolTip("点击复制路径")
+            self._current_full_path = None
+            self._current_rel_path = None
+
+    def set_save_status(self, is_modified):
+        """设置保存状态显示
+
+        Args:
+            is_modified: 是否有未保存的修改
+        """
+        self._is_modified = is_modified
+        if is_modified:
+            self.save_status_label.setText("● 未保存")
+            self.save_status_label.setStyleSheet("color: #e74c3c; font-weight: bold;")
+            self.save_btn.setEnabled(True)
+        else:
+            self.save_status_label.setText("✓ 已保存")
+            self.save_status_label.setStyleSheet("color: #27ae60;")
+            self.save_btn.setEnabled(False)
+
+    def is_modified(self):
+        """返回当前是否有未保存的修改"""
+        return self._is_modified
 
 
 class FindReplacePanel(QFrame):
@@ -171,9 +236,10 @@ class FindReplacePanel(QFrame):
 class TextEditorWidget(SyntaxEdit):
     """文本编辑器组件"""
 
-    # 信号：文本变化
+    # 信号：文本变化、保存请求
     text_changed = Signal()
     context_menu_requested = Signal()
+    save_requested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -247,8 +313,6 @@ class TextEditorWidget(SyntaxEdit):
         # 保存
         save_action = menu.addAction("💾 保存")
         save_action.setShortcut(QKeySequence.Save)
-        save_action.triggered.connect(
-            lambda: self.parent().parent().save_requested.emit()
-        )
+        save_action.triggered.connect(self.save_requested.emit)
 
         menu.exec_(self.viewport().mapToGlobal(pos))

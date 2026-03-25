@@ -653,7 +653,8 @@ class IPythonConsoleTab(QWidget):
             shell = self.kernel_manager.kernel.shell
             # 注册 post_execute 事件处理器，在每次执行后刷新变量表格
             shell.events.register("post_execute", self._on_command_executed)
-
+        # 通知各个插件，发出 IPython 重启完成事件
+        get_plugin_manager().ipython_ready_signal.emit()
         # ========== 注入 IPython 插件 API ==========
         self._inject_plugins_api()
 

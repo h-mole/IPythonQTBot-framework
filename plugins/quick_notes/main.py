@@ -215,7 +215,11 @@ class QuickNotesTab(QWidget):
         # 文本编辑器组件
         self.editor = TextEditorWidget()
         self.editor.text_changed.connect(self.on_text_changed)
+        self.editor.save_requested.connect(self.save_current_note)
         right_layout.addWidget(self.editor)
+        
+        # 创建编辑器快捷键
+        self.create_editor_shortcuts()
 
         # 查找替换面板组件
         self.find_panel = FindReplacePanel()
@@ -293,9 +297,10 @@ class QuickNotesTab(QWidget):
             self.editor.setPlainText(content)
             self.current_note_path = file_path
             
-            # 更新工具栏路径显示
+            # 更新工具栏路径显示和保存状态
             self.editor_toolbar.update_current_path(file_path, self.notes_dir)
             self.is_modified = False
+            self.editor_toolbar.set_save_status(False)
 
             # 跳转后取消选中
             cursor = self.editor.textCursor()
@@ -307,10 +312,17 @@ class QuickNotesTab(QWidget):
 
     def on_text_changed(self):
         """文本变化事件"""
-        self.is_modified = True
+        if not self.is_modified:
+            self.is_modified = True
+            self.editor_toolbar.set_save_status(True)
 
     def save_current_note(self):
         """保存当前笔记"""
+        # 如果没有修改，直接返回
+        if not self.is_modified:
+            self.statusBar_show_message("笔记已保存，无需重复保存")
+            return
+
         if not self.current_note_path:
             # 如果没有路径，另存为
             self.save_as_note()
@@ -326,6 +338,7 @@ class QuickNotesTab(QWidget):
                 f.write(content)
 
             self.is_modified = False
+            self.editor_toolbar.set_save_status(False)
             self.statusBar_show_message("笔记已保存")
 
         except Exception as e:
@@ -465,9 +478,10 @@ class QuickNotesTab(QWidget):
             if path == self.current_note_path:
                 self.editor.clear()
                 self.current_note_path = None
-                # 更新工具栏路径显示
+                # 更新工具栏路径显示和保存状态
                 self.editor_toolbar.update_current_path(None, self.notes_dir)
                 self.is_modified = False
+                self.editor_toolbar.set_save_status(False)
 
             self.is_external_refresh = True
             self.load_note_tree()
@@ -724,14 +738,14 @@ class QuickNotesTab(QWidget):
 
     def load_note_to_ipython_api(self, variable_name: str, path: str) -> str:
         """
-        API: 加载笔记内容到IPython，变量名自拟。在不需要读取笔记全部内容，或需要将该内容加载到ipython使用时，推荐优先使用该方法
+        API: 加载笔记内容到IPython为一个字符串，变量名自拟。在不需要读取笔记全部内容，或需要将该内容加载到ipython使用时，推荐优先使用该方法
 
         Args:
             variable_name: str, 笔记内容保存的变量名
             path: 笔记文件路径(相对路径)
 
         Returns:
-            str: 笔记文本内容，返回'success'表示成功加载到IPython，返回其他错误日志表示失败
+            str: 笔记文本内容，返回'success'表示成功加载到IPython，返回其他错误信息表示失败
         """
         content = self.load_note_api(path)
         method = self.plugin_manager.get_method("system.set_variable")
@@ -740,6 +754,30 @@ class QuickNotesTab(QWidget):
             return "success" if ret else "set variable failed"
         else:
             return f"method not found for system.set_variable"
+    
+    def exec_note_in_ipython_api(self, path: str) -> dict:
+        """
+        API: 在IPython中执行记事本中保存的Python文件，返回执行结果
+
+        Args:
+            path: 文件路径(相对路径, 如scripts/demo.py)
+
+        Returns:
+            dict: {"success": bool, "output": str, "result": object, "error": str}
+            success: 是否执行成功，output: print输出的内容，result: IPython代码块执行的返回值，error: 错误信息
+        """
+        path = os.path.join(self.notes_dir, path)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"脚本文件不存在：{path}")
+        if not path.endswith(".py"):
+            return {"success": False,"error": f"invalid file type: {path} to execute in IPython"}
+        method = self.plugin_manager.get_method("system.execute_code")
+        if method:
+            with open(path, "r", encoding="utf-8") as f:
+                ret = method(f.read())
+            return ret
+        else:
+            return {"success": False, "error": "method not found for system.execute_code"}
 
     def load_note_api(self, path):
         """
@@ -781,11 +819,14 @@ class QuickNotesTab(QWidget):
             return False
 
     def _is_path_allowed(self, relpath):
-        return relpath.lstrip("/\\").startswith(("scripts",))
+        if not relpath.lstrip("/\\").startswith(("scripts", "skills")):
+            return False
+    
+        return True# return relpath.lstrip("/\\").startswith(("scripts",))
 
     def save_textfile_safe_api(self, path, content):
         """
-        API: 保存文本文件,仅允许操作allow list路径下面的文件. 目前allow_list=["scripts"],比如"scripts/demo.py"是允许创建的, "abc/demo.py"就是不允许创建的
+        API: 保存文本文件, 目前仅允许操作scripts/下面的文件以及skills/../scripts/下面的文件。比如"scripts/demo.py", "skills/myskill/ability1/scripts/xx.py"是允许创建的, "abc/demo.py"就是不允许创建的
 
         Args:
             path: str, 文件相对路径
@@ -801,6 +842,93 @@ class QuickNotesTab(QWidget):
             if self.save_note_api(os.path.join(self.notes_dir, path), content)
             else "save failed"
         )
+
+    def patch_textfile_safe_api(self, path: str, patch: str) -> str:
+        """
+        API: 安全地应用文本补丁，允许修改的文件也是scripts/下面的文件以及skills/../scripts/下面的文件
+        
+        接收 search...replace 格式的补丁，格式如下：
+        <<<< SEARCH
+        要搜索的内容
+        ====
+        替换后的内容
+        >>>> REPLACE
+        
+        Args:
+            path: str, 文件相对路径（只允许 scripts/ 和 skills/../scripts/ 下的文件）
+            patch: str, 补丁内容（search...replace 格式）
+        
+        Returns:
+            str: 操作结果状态信息
+                - "success": 补丁应用成功
+                - "path not allowed: {path}": 路径不允许
+                - "file not found": 文件不存在
+                - "patch format error": 补丁格式错误
+                - "search content not found": 搜索内容在文件中未找到
+                - "syntax error: {error}": Python 语法错误（仅对 .py 文件）
+        """
+        # 检查路径是否允许
+        if not self._is_path_allowed(path):
+            return f"path not allowed: {path}"
+        
+        # 构建完整路径
+        full_path = os.path.join(self.notes_dir, path)
+        
+        # 检查文件是否存在
+        if not os.path.exists(full_path):
+            return "file not found"
+        
+        # 解析补丁 - 支持多个补丁块
+        # 格式：<<<< SEARCH\n...\n====\n...\n>>>> REPLACE
+        pattern = r'<<<<\s*SEARCH\s*\n(.*?)\n====\s*\n(.*?)\n>>>>\s*REPLACE'
+        matches = list(re.finditer(pattern, patch, re.DOTALL))
+        
+        if not matches:
+            return "patch format error: no valid patch blocks found"
+        
+        # 读取原文件内容
+        try:
+            with open(full_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception as e:
+            return f"read file error: {e}"
+        
+        original_content = content
+        applied_count = 0
+        
+        # 应用每个补丁块（从后往前应用，避免位置偏移问题）
+        for match in reversed(matches):
+            search_text = match.group(1)
+            replace_text = match.group(2)
+            
+            # 检查搜索内容是否存在
+            if search_text not in content:
+                return f"search content not found: {repr(search_text[:50])}..."
+            
+            # 替换内容（只替换第一次出现）
+            content = content.replace(search_text, replace_text, 1)
+            applied_count += 1
+        
+        # 如果内容没有变化，说明补丁没有实际生效
+        if content == original_content:
+            return "patch had no effect"
+        
+        # 对于 .py 文件，检查语法
+        if path.endswith('.py'):
+            try:
+                compile(content, full_path, 'exec')
+            except SyntaxError as e:
+                import traceback
+                return traceback.format_exc()
+        
+        # 保存修改后的内容
+        try:
+            with open(full_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+        except Exception as e:
+            return f"write file error: {e}"
+        
+        return f"success"
 
     def query_note_by_name_api(self, name_query: str):
         """
@@ -967,7 +1095,22 @@ class QuickNotesTab(QWidget):
 
         return ret
 
-
+    def on_ipython_ready(self):
+        """
+        处理IPython就绪事件，在
+        """
+        logger.info("快速笔记插件正在加载IPython环境变量")
+        data_file = os.path.join(self.notes_dir, "_env_.json")
+        if not os.path.exists(data_file):
+            with open(data_file, "w", encoding="utf-8") as f:
+                json.dump({}, f, ensure_ascii=False, indent=4)
+        with open(data_file, "r", encoding="utf-8") as f:
+            _env = json.load(f)
+        set_variable_method = self.plugin_manager.get_method("system.set_variable")
+        if set_variable_method:
+            set_variable_method("_env_", _env)
+        else:
+            logger.warning("系统方法 'set_variable' 不存在，无法设置环境变量")
 # ==================== 插件入口函数 ====================
 
 
@@ -987,6 +1130,7 @@ def load_plugin(plugin_manager: "PluginManager"):
     notes_tab = QuickNotesTab()
     notes_tab.plugin_manager = plugin_manager
 
+    plugin_manager.ipython_ready_signal.connect(notes_tab.on_ipython_ready)
     # 注册暴露的方法到全局域
     plugin_manager.register_method(
         "quick_notes", "create_note", notes_tab.create_note_api
@@ -1004,6 +1148,12 @@ def load_plugin(plugin_manager: "PluginManager"):
     )
     plugin_manager.register_method(
         "quick_notes", "save_textfile_safe", notes_tab.save_textfile_safe_api
+    )
+    plugin_manager.register_method(
+        "quick_notes", "patch_textfile_safe", notes_tab.patch_textfile_safe_api, extra_data={"enable_mcp": True}
+    )
+    plugin_manager.register_method(
+        "quick_notes", "exec_note_in_ipython", notes_tab.exec_note_in_ipython_api, extra_data={"enable_mcp": True}
     )
     
     # 注册技能相关的 MCP 接口

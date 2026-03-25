@@ -133,6 +133,12 @@ class NoteTreeWidget(QTreeWidget):
         """显示右键菜单"""
         menu = QMenu(self)
         
+        # 获取选中项的路径（如果有）
+        selected_items = self.selectedItems()
+        selected_path = None
+        if selected_items:
+            selected_path = selected_items[0].data(0, Qt.ItemDataRole.UserRole)
+        
         # 新建笔记
         new_note_action = menu.addAction("📄 新建笔记")
         new_note_action.triggered.connect(self.context_new_note)
@@ -151,6 +157,24 @@ class NoteTreeWidget(QTreeWidget):
         delete_action = menu.addAction("🗑️ 删除")
         delete_action.triggered.connect(self.delete_selected_with_confirm)
         
+        # 如果有选中项，添加复制路径选项
+        if selected_path:
+            menu.addSeparator()
+            
+            # 复制完整路径
+            copy_full_path_action = menu.addAction("📋 复制完整路径")
+            copy_full_path_action.triggered.connect(
+                lambda: self._copy_to_clipboard(selected_path)
+            )
+            
+            # 复制相对路径
+            copy_rel_path_action = menu.addAction("📋 复制相对路径")
+            copy_rel_path_action.triggered.connect(
+                lambda: self._copy_to_clipboard(
+                    os.path.relpath(selected_path, self.notes_dir)
+                )
+            )
+        
         menu.addSeparator()
         
         # 在文件管理器中打开
@@ -158,6 +182,11 @@ class NoteTreeWidget(QTreeWidget):
         open_location_action.triggered.connect(self.open_in_explorer)
         
         menu.exec_(self.viewport().mapToGlobal(pos))
+    
+    def _copy_to_clipboard(self, text):
+        """复制文本到剪贴板"""
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
     
     def rename_selected(self):
         """重命名选中的项目"""

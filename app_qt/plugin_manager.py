@@ -145,6 +145,7 @@ class PluginManager(QObject):
     _reserved_namespaces = ["system"]
 
     update_ui_signal = Signal(object)
+    ipython_ready_signal = Signal()
 
     def _exec_update_ui_callback(self, callback):
         callback()
