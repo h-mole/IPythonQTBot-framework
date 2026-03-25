@@ -1,6 +1,8 @@
 ## 📋 项目概览
 
-**IPythonQTBot-framework** 是一个基于 **PySide6 (Qt for Python)** 的智能助手框架，集成了 **IPython 内核** 和 **LLM（大语言模型）Agent** 功能。用户可以很方便的基于CheryStudio兼容格式接入MCP, 同时使用LLM对IPython内核中的变量进行分析, 打通数据处理\笔记管理\大模型中间的鸿沟.
+**IPythonQTBot-framework** 是一个基于 **PySide6 (Qt for Python)** 的智能助手框架，集成了 **IPython 内核** 和 **LLM（大语言模型）Agent** 功能。用户可以很方便的接入MCP, 同时使用LLM对IPython内核中的变量进行分析, 打通数据处理\笔记管理\大模型中间的鸿沟.
+
+同时，本项目具备灵活的插件系统，可简单使用Python编写插件并调用相关功能！
 
 ---
 ## 📷 界面示意图
@@ -16,6 +18,7 @@
     - 只需要Python一种语言就能随便开发插件, 便于集成Python功能; 
     - 插件接口支持自动暴露MCP; 
     - 简单粗暴实现UI+MCP双模操作, 人与AI无缝沟通;
+    - 支持插件热加载机制，开发调试插件无需编译或单独配置环境，调试极为方便。
 
 ## 🏗️ 项目架构
 
@@ -106,4 +109,4 @@ python run_helper_qt.py
 3. **多Tab界面** - 主窗口支持多标签页布局
 4. **API导出** - 插件可导出API供LLM Agent调用
 5. **第三方MCP工具集成** - 快速导入MCP工具支持, 兼容CherryStudio工具的MCP配置格式
-
+6. **插件热加载** - 脚本即插件，调试极方便

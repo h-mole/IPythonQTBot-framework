@@ -1,0 +1,191 @@
+# 插件热重载功能说明
+
+## 概述
+
+插件热重载功能允许在不重启主程序的情况下，动态重新加载插件代码。这对于插件开发和调试非常有用。
+
+## 特性
+
+- ✅ 支持单个插件热重载
+- ✅ 支持批量重新加载所有插件
+- ✅ UI 元素自动清理和重建
+- ✅ 方法注册表自动更新
+- ✅ 模块缓存自动清理
+- ✅ IPython 控制台集成
+
+## 使用方式
+
+### 1. 通过 GUI 菜单操作
+
+在工具栏菜单 **"工具" → "重新加载插件"** 下：
+
+- **"重新加载全部插件"** - 重新加载所有已加载的插件
+- **各个插件的子菜单** - 单独重新加载指定插件
+
+点击后会显示确认对话框，确认后执行热重载。
+
+### 2. 通过 IPython 控制台操作
+
+在 IPython 控制台中，可以通过 `plugins` 对象操作：
+
+```python
+# 列出所有可热加载的插件
+>>> plugins.reload()
+
+# 热加载指定插件
+>>> plugins.reload('text_helper')
+
+# 查看插件注册的 UI 元素
+>>> plugins.ui_elements('text_helper')
+```
+
+### 3. 通过代码调用
+
+```python
+from app_qt.plugin_manager import get_plugin_manager
+
+plugin_manager = get_plugin_manager()
+
+# 热加载单个插件
+success = plugin_manager.reload_plugin('plugin_name')
+
+# 获取可重载的插件列表
+reloadable_plugins = plugin_manager.get_reloadable_plugins()
+
+# 普通卸载（非热重载）
+plugin_manager.unload_plugin('plugin_name')
+```
+
+## 热重载机制说明
+
+### 执行流程
+
+1. **UI 元素清理**
+   - 销毁标签页（Tab）
+   - 移除菜单（Menu）
+   - 清理工具栏（Toolbar）
+   - 销毁其他 UI 元素
+
+2. **资源清理**
+   - 调用插件的 `unload_plugin()` 回调（可选）
+   - 从方法注册表中移除该插件的所有方法
+   - 从方法元数据缓存中移除相关数据
+
+3. **模块重新加载**
+   - 从 `sys.modules` 中移除插件模块及其子模块
+   - 强制 Python 重新导入模块
+
+4. **重新初始化**
+   - 执行插件的 `load_plugin()` 函数
+   - 重新注册所有方法和 UI 元素
+
+### UI 元素追踪
+
+插件管理器通过 `ui_elements_registry` 追踪每个插件注册的所有 UI 元素：
+
+```python
+{
+    "plugin_name": [
+        {
+            "type": "tab",          # 元素类型：tab, menu, toolbar 等
+            "name": "文本处理",      # 元素名称
+            "widget": <QWidget>,    # UI 组件实例
+            "parent": <QTabWidget>, # 父组件
+            "extra_data": {...}     # 额外数据（如索引位置等）
+        },
+        ...
+    ]
+}
+```
+
+### 信号通知
+
+热重载完成后会发射信号：
+
+```python
+plugin_manager.plugin_reloaded_signal.emit(plugin_name)
+```
+
+可以连接此信号进行额外的处理：
+
+```python
+plugin_manager.plugin_reloaded_signal.connect(on_plugin_reloaded)
+```
+
+## 注意事项
+
+### 1. 状态丢失
+
+热重载会完全重新初始化插件，插件内部的状态数据会丢失。如果需要保持状态，请在 `unload_plugin()` 回调中保存状态，在 `load_plugin()` 中恢复。
+
+### 2. 依赖关系
+
+热重载单个插件时不会自动重载其依赖的其他插件。如果被重载插件依赖的其他插件有变更，需要手动重载所有相关插件。
+
+### 3. 子模块清理
+
+热重载会递归清理插件模块的所有子模块，确保子模块也会被重新加载。
+
+### 4. 异步执行
+
+在 IPython 控制台中调用 `plugins.reload()` 时，实际执行是在 UI 线程中完成的，会等待热重载完成后再返回结果。
+
+## 插件开发建议
+
+### 1. 实现 unload_plugin 回调
+
+```python
+def unload_plugin(plugin_manager):
+    """插件卸载回调"""
+    print("[MyPlugin] 正在卸载...")
+    # 保存状态（如果需要）
+    # 清理资源
+    print("[MyPlugin] 卸载完成")
+```
+
+### 2. 正确注册 UI 元素
+
+使用插件管理器提供的 API 注册 UI 元素，确保它们能被正确追踪：
+
+```python
+# 添加标签页
+plugin_manager.add_plugin_tab(
+    plugin_name="my_plugin",
+    tab_name="我的标签页",
+    tab_instance=my_tab_widget,
+    position=0
+)
+
+# 添加菜单
+plugin_manager.add_plugin_menu(
+    plugin_name="my_plugin",
+    menu_name="我的菜单",
+    menu_items=[
+        {"text": "菜单项1", "callback": on_menu1},
+        {"text": "菜单项2", "callback": on_menu2, "shortcut": "Ctrl+X"}
+    ]
+)
+```
+
+### 3. 避免循环引用
+
+在插件中避免创建可能导致内存泄漏的循环引用，确保对象能被正确销毁。
+
+## 故障排除
+
+### 热重载失败
+
+如果热重载失败，请检查：
+
+1. 插件代码是否有语法错误
+2. 插件的依赖是否满足
+3. 插件的 `load_plugin()` 函数是否正常执行
+4. 查看控制台日志获取详细错误信息
+
+### UI 元素未清理
+
+如果热重载后旧插件的 UI 元素仍然存在：
+
+1. 确认使用了 `add_plugin_tab()` 和 `add_plugin_menu()` API
+2. 检查是否有直接添加到主窗口的自定义 UI 元素未通过插件管理器注册
+3. 在 `unload_plugin()` 回调中手动清理自定义 UI 元素

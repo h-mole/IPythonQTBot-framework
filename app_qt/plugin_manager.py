@@ -21,6 +21,7 @@ from PySide6.QtCore import QObject, Signal
 
 # 导入配置
 from app_qt.configs import PLUGINS_DIR, PLUGINS_CONFIG_FILE
+
 logger = logging.getLogger(__name__)
 # ============ TypedDict 类型定义 ============
 
@@ -130,6 +131,25 @@ class RegisteredMethod(TypedDict):
     extra_data: Optional[MethodExtraData]
 
 
+class RegisteredUIElement(TypedDict):
+    """
+    已注册的 UI 元素信息
+
+    Attributes:
+        type: 元素类型 ('tab', 'menu', 'toolbar' 等)
+        name: 元素名称/标识
+        widget: 实际的 UI 组件实例
+        parent: 父组件引用
+        extra_data: 额外数据
+    """
+
+    type: str
+    name: str
+    widget: Any
+    parent: Any
+    extra_data: dict[str, Any]
+
+
 class PluginManager(QObject):
     """
     插件管理器（单例模式）
@@ -139,6 +159,7 @@ class PluginManager(QObject):
     - 注册和管理插件暴露的方法
     - 添加插件标签页和菜单
     - 管理插件启用状态
+    - 插件热加载支持
     """
 
     _instance = None
@@ -146,6 +167,7 @@ class PluginManager(QObject):
 
     update_ui_signal = Signal(object)
     ipython_ready_signal = Signal()
+    plugin_reloaded_signal = Signal(str)  # 插件重新加载完成信号，参数为插件名
 
     def _exec_update_ui_callback(self, callback):
         callback()
@@ -181,7 +203,11 @@ class PluginManager(QObject):
 
         # 系统依赖缓存（避免重复检查）
         self.system_dependencies_cache = {}
-        
+
+        # UI 元素注册表：{plugin_name: [RegisteredUIElement, ...]}
+        # 用于追踪每个插件注册的 UI 元素，支持热加载时清理
+        self.ui_elements_registry: dict[str, list[RegisteredUIElement]] = {}
+
         # 从threading.Thread或者QThread发送UI更新回调，在UI线程执行。
         self.update_ui_signal.connect(self._exec_update_ui_callback)
 
@@ -205,15 +231,26 @@ class PluginManager(QObject):
         for tab_info in self.pending_tabs:
             try:
                 position = tab_info.get("position")
+                instance = tab_info["instance"]
+                name = tab_info["name"]
+                plugin_name = tab_info["plugin_name"]
+
                 if position is not None:
-                    self.notebook.insertTab(
-                        position, tab_info["instance"], tab_info["name"]
-                    )
+                    index = self.notebook.insertTab(position, instance, name)
                 else:
-                    self.notebook.addTab(tab_info["instance"], tab_info["name"])
-                print(
-                    f"[PluginManager] 已添加插件标签页：{tab_info['name']} (插件：{tab_info['plugin_name']})"
+                    index = self.notebook.addTab(instance, name)
+
+                # 记录 UI 元素到注册表
+                self._register_ui_element(
+                    plugin_name=plugin_name,
+                    element_type="tab",
+                    name=name,
+                    widget=instance,
+                    parent=self.notebook,
+                    extra_data={"index": index, "position": position},
                 )
+
+                print(f"[PluginManager] 已添加插件标签页：{name} (插件：{plugin_name})")
             except Exception as e:
                 print(f"[PluginManager] 添加标签页失败：{tab_info['name']}, 错误：{e}")
 
@@ -477,13 +514,14 @@ class PluginManager(QObject):
         # 动态导入插件模块 - 将整个插件目录作为包导入
         # 这样相对导入才能正常工作
         spec = importlib.util.spec_from_file_location(
-            f"plugin_{plugin_name}", main_py_path,
-            submodule_search_locations=[plugin_path]  # 关键：指定子模块搜索路径
+            f"plugin_{plugin_name}",
+            main_py_path,
+            submodule_search_locations=[plugin_path],  # 关键：指定子模块搜索路径
         )
-        
+
         if spec is None:
             raise ImportError(f"无法创建模块规范：{main_py_path}")
-        
+
         plugin_module = importlib.util.module_from_spec(spec)
         sys.modules[f"plugin_{plugin_name}"] = plugin_module  # 注册到 sys.modules
         spec.loader.exec_module(plugin_module)
@@ -503,9 +541,13 @@ class PluginManager(QObject):
                 method_name = method_info.get("name")
                 if method_name:
                     if method_name not in self.methods_metadata_cache[namespace]:
-                        self.methods_metadata_cache[namespace][method_name] = method_info
+                        self.methods_metadata_cache[namespace][
+                            method_name
+                        ] = method_info
                     else:
-                        raise Exception(f"[PluginManager] 方法 {namespace}.{method_name} 的 extra_data 禁止重复定义")
+                        raise Exception(
+                            f"[PluginManager] 方法 {namespace}.{method_name} 的 extra_data 禁止重复定义"
+                        )
             # 记录已加载的插件
             self.loaded_plugins[plugin_name] = {
                 "name": plugin_name,
@@ -513,6 +555,8 @@ class PluginManager(QObject):
                 "module": plugin_module,
                 "config": plugin_config,
                 "result": result,
+                "config_path": plugin_json_path,  # 配置文件路径，用于热重载
+                "plugin_path": plugin_path,  # 插件目录路径，用于热重载
             }
 
             print(f"[PluginManager] 插件 {plugin_name} 加载成功")
@@ -789,11 +833,16 @@ class PluginManager(QObject):
             if namespace not in self.methods_metadata_cache:
                 self.methods_metadata_cache[namespace] = {}
             self.methods_metadata_cache[namespace][method_name] = {
-                "extra_data": extra_data, "llm_tool_info": llm_tool_info
+                "extra_data": extra_data,
+                "llm_tool_info": llm_tool_info,
             }
 
     def _register_system_method(
-        self, method_name: str, func: "Callable", extra_data: MethodExtraData, multi_reg_action: Literal['override', 'ignore', 'error']='error'
+        self,
+        method_name: str,
+        func: "Callable",
+        extra_data: MethodExtraData,
+        multi_reg_action: Literal["override", "ignore", "error"] = "error",
     ):
         """
         注册系统方法，系统方法的命名空间全部都是`system`开头，将会自动添加
@@ -805,18 +854,18 @@ class PluginManager(QObject):
                 - 'override': 覆盖已存在的方法
                 - 'ignore': 忽略已存在的方法，不进行任何操作
                 - 'error': 抛出错误，表示不允许覆盖已存在的方法
-            
+
         """
         if "system" not in self.methods_registry:
             self.methods_registry["system"] = {}
-        if multi_reg_action == 'error':
+        if multi_reg_action == "error":
             assert (
                 method_name not in self.methods_registry["system"]
             ), f"系统命名空间 `system` 下已存在同名方法：{method_name}"
-        elif multi_reg_action == 'ignore':
+        elif multi_reg_action == "ignore":
             logger.warning(f"系统命名空间 `system` 下已存在同名方法：{method_name}")
             return
-        elif multi_reg_action == 'override':
+        elif multi_reg_action == "override":
             pass
         # 存储方法及其元数据
         self.methods_registry["system"][method_name] = {
@@ -903,7 +952,7 @@ class PluginManager(QObject):
                 return method_info.get("extra_data", {})
 
         return {}
-    
+
     def get_method_metadata(self, full_name) -> Optional[MethodInfo]:
         """
         获取方法的元数据
@@ -922,6 +971,7 @@ class PluginManager(QObject):
             if method_name in self.methods_metadata_cache[namespace]:
                 return self.methods_metadata_cache[namespace][method_name]
         return None
+
     def get_method_info(self, full_name) -> Optional[dict]:
         """
         获取方法的完整信息（包括函数和额外数据）
@@ -973,9 +1023,20 @@ class PluginManager(QObject):
         if self.notebook is not None:
             try:
                 if position is not None:
-                    self.notebook.insertTab(position, tab_instance, tab_name)
+                    index = self.notebook.insertTab(position, tab_instance, tab_name)
                 else:
-                    self.notebook.addTab(tab_instance, tab_name)
+                    index = self.notebook.addTab(tab_instance, tab_name)
+
+                # 记录 UI 元素到注册表
+                self._register_ui_element(
+                    plugin_name=plugin_name,
+                    element_type="tab",
+                    name=tab_name,
+                    widget=tab_instance,
+                    parent=self.notebook,
+                    extra_data={"index": index, "position": position},
+                )
+
                 print(
                     f"[PluginManager] 已添加插件标签页：{tab_name} (插件：{plugin_name})"
                 )
@@ -1010,6 +1071,9 @@ class PluginManager(QObject):
             # 创建菜单
             menu = self.menu_bar.addMenu(menu_name)
 
+            # 记录所有 action 用于后续清理
+            actions = []
+
             # 添加菜单项
             for item in menu_items:
                 action = QAction(item["text"], self.main_window)
@@ -1021,6 +1085,17 @@ class PluginManager(QObject):
                     action.triggered.connect(item["callback"])
 
                 menu.addAction(action)
+                actions.append(action)
+
+            # 记录 UI 元素到注册表
+            self._register_ui_element(
+                plugin_name=plugin_name,
+                element_type="menu",
+                name=menu_name,
+                widget=menu,
+                parent=self.menu_bar,
+                extra_data={"actions": actions, "menu_items": menu_items},
+            )
 
             print(f"[PluginManager] 已添加插件菜单：{menu_name} (插件：{plugin_name})")
 
@@ -1080,37 +1155,279 @@ class PluginManager(QObject):
                     all_methods.append(f"{namespace}.{method_name}")
         return all_methods
 
-    def unload_plugin(self, plugin_name):
+    def _register_ui_element(
+        self,
+        plugin_name: str,
+        element_type: str,
+        name: str,
+        widget: Any,
+        parent: Any,
+        extra_data: dict = None,
+    ):
+        """
+        注册 UI 元素到插件的注册表
+
+        Args:
+            plugin_name: 插件名称
+            element_type: 元素类型 (tab, menu, toolbar 等)
+            name: 元素名称
+            widget: UI 组件实例
+            parent: 父组件
+            extra_data: 额外数据
+        """
+        if plugin_name not in self.ui_elements_registry:
+            self.ui_elements_registry[plugin_name] = []
+
+        element: RegisteredUIElement = {
+            "type": element_type,
+            "name": name,
+            "widget": widget,
+            "parent": parent,
+            "extra_data": extra_data or {},
+        }
+        self.ui_elements_registry[plugin_name].append(element)
+
+    def _unregister_plugin_ui_elements(self, plugin_name: str):
+        """
+        注销插件的所有 UI 元素（销毁并清理）
+
+        Args:
+            plugin_name: 插件名称
+        """
+        if plugin_name not in self.ui_elements_registry:
+            return
+
+        elements = self.ui_elements_registry[plugin_name]
+
+        # 按类型分组处理，确保按正确顺序清理
+        # 先清理子组件，再清理父组件
+
+        # 1. 先清理标签页
+        for element in elements:
+            if element["type"] == "tab":
+                self._destroy_tab_element(element)
+
+        # 2. 清理菜单
+        for element in elements:
+            if element["type"] == "menu":
+                self._destroy_menu_element(element)
+
+        # 3. 清理工具栏
+        for element in elements:
+            if element["type"] == "toolbar":
+                self._destroy_toolbar_element(element)
+
+        # 4. 清理其他类型
+        for element in elements:
+            if element["type"] not in ("tab", "menu", "toolbar"):
+                self._destroy_generic_element(element)
+
+        # 清空注册表
+        del self.ui_elements_registry[plugin_name]
+
+    def _destroy_tab_element(self, element: RegisteredUIElement):
+        """销毁标签页元素"""
+        try:
+            widget = element["widget"]
+            parent = element["parent"]
+
+            if parent is not None and widget is not None:
+                # 查找标签页索引
+                index = parent.indexOf(widget)
+                if index >= 0:
+                    parent.removeTab(index)
+                    print(f"[PluginManager] 已移除标签页：{element['name']}")
+
+            # 销毁 widget
+            if widget is not None:
+                widget.deleteLater()
+
+        except Exception as e:
+            print(f"[PluginManager] 销毁标签页失败：{element['name']}, 错误：{e}")
+
+    def _destroy_menu_element(self, element: RegisteredUIElement):
+        """销毁菜单元素"""
+        try:
+            widget = element["widget"]
+            parent = element["parent"]
+
+            if parent is not None and widget is not None:
+                # 从菜单栏中移除菜单
+                parent.removeAction(widget.menuAction())
+                print(f"[PluginManager] 已移除菜单：{element['name']}")
+
+            # 销毁菜单
+            if widget is not None:
+                widget.deleteLater()
+
+        except Exception as e:
+            print(f"[PluginManager] 销毁菜单失败：{element['name']}, 错误：{e}")
+
+    def _destroy_toolbar_element(self, element: RegisteredUIElement):
+        """销毁工具栏元素"""
+        try:
+            widget = element["widget"]
+            parent = element["parent"]
+
+            if parent is not None and widget is not None:
+                parent.removeToolBar(widget)
+                print(f"[PluginManager] 已移除工具栏：{element['name']}")
+
+            if widget is not None:
+                widget.deleteLater()
+
+        except Exception as e:
+            print(f"[PluginManager] 销毁工具栏失败：{element['name']}, 错误：{e}")
+
+    def _destroy_generic_element(self, element: RegisteredUIElement):
+        """销毁通用 UI 元素"""
+        try:
+            widget = element["widget"]
+            if widget is not None:
+                widget.deleteLater()
+        except Exception as e:
+            print(f"[PluginManager] 销毁 UI 元素失败：{element['name']}, 错误：{e}")
+
+    def unload_plugin(self, plugin_name, call_unload_callback: bool = True):
         """
         卸载插件
 
         Args:
             plugin_name: 插件名称
+            call_unload_callback: 是否调用插件的 unload_plugin 回调函数
         """
         if plugin_name not in self.loaded_plugins:
             print(f"[PluginManager] 插件未加载：{plugin_name}")
-            return
+            return False
 
         plugin_info = self.loaded_plugins[plugin_name]
 
         # 调用卸载回调
-        if hasattr(plugin_info["module"], "unload_plugin"):
+        if call_unload_callback and hasattr(plugin_info["module"], "unload_plugin"):
             try:
                 plugin_info["module"].unload_plugin(self)
             except Exception as e:
-                print(f"[PluginManager] 卸载插件失败：{plugin_name}, 错误：{e}")
+                print(f"[PluginManager] 插件卸载回调失败：{plugin_name}, 错误：{e}")
 
         # 清理注册的方法
-        if plugin_name in self.methods_registry:
-            del self.methods_registry[plugin_name]
+        namespace = (
+            plugin_info["config"].get("exports", {}).get("namespace", plugin_name)
+        )
+        if namespace in self.methods_registry:
+            del self.methods_registry[namespace]
 
-        # 移除标签页（TODO: 需要实现）
-        # 移除菜单（TODO: 需要实现）
+        # 清理方法元数据缓存
+        if namespace in self.methods_metadata_cache:
+            del self.methods_metadata_cache[namespace]
+
+        # 移除所有 UI 元素（标签页、菜单等）
+        self._unregister_plugin_ui_elements(plugin_name)
 
         # 从已加载列表中移除
         del self.loaded_plugins[plugin_name]
 
         print(f"[PluginManager] 插件 {plugin_name} 已卸载")
+        return True
+
+    def reload_plugin(self, plugin_name: str) -> bool:
+        """
+        热加载指定插件（卸载后重新加载）
+
+        Args:
+            plugin_name: 插件名称
+
+        Returns:
+            bool: 是否成功重新加载
+        """
+        print(f"[PluginManager] 开始热加载插件：{plugin_name}")
+
+        # 检查插件是否已加载
+        if plugin_name not in self.loaded_plugins:
+            print(f"[PluginManager] 插件未加载，尝试直接加载：{plugin_name}")
+            return self._load_plugin_by_name(plugin_name)
+
+        # 获取插件信息
+        plugin_info = self.loaded_plugins[plugin_name]
+        plugin_path = plugin_info.get("plugin_path") or os.path.dirname(
+            plugin_info["config_path"]
+        )
+        config_path = plugin_info.get("config_path") or os.path.join(
+            plugin_path, "plugin.json"
+        )
+
+        # 1. 卸载插件（不调用 unload_plugin 回调，因为我们要重新加载）
+        self.unload_plugin(plugin_name, call_unload_callback=False)
+
+        # 2. 清理模块缓存，强制重新导入
+        module_name = f"plugin_{plugin_name}"
+        if module_name in sys.modules:
+            # 递归清理子模块
+            self._remove_module_from_cache(module_name)
+
+        # 3. 重新加载插件
+        try:
+            self._load_single_plugin(plugin_path, config_path)
+            print(f"[PluginManager] 插件 {plugin_name} 热加载成功")
+            self.plugin_reloaded_signal.emit(plugin_name)
+            return True
+        except Exception as e:
+            print(f"[PluginManager] 插件 {plugin_name} 热加载失败：{e}")
+            import traceback
+
+            traceback.print_exc()
+            return False
+
+    def _remove_module_from_cache(self, module_name: str):
+        """从 sys.modules 中递归移除模块及其子模块"""
+        if module_name in sys.modules:
+            module = sys.modules[module_name]
+            # 获取子模块前缀
+            prefix = module_name + "."
+            # 找出所有子模块
+            submodules = [name for name in sys.modules if name.startswith(prefix)]
+            # 递归删除子模块
+            for sub in submodules:
+                self._remove_module_from_cache(sub)
+            # 删除当前模块
+            del sys.modules[module_name]
+            print(f"[PluginManager] 已从缓存移除模块：{module_name}")
+
+    def _load_plugin_by_name(self, plugin_name: str) -> bool:
+        """
+        根据插件名称加载插件
+
+        Args:
+            plugin_name: 插件名称
+
+        Returns:
+            bool: 是否成功加载
+        """
+        plugin_path = os.path.join(PLUGINS_DIR, plugin_name)
+        config_path = os.path.join(plugin_path, "plugin.json")
+
+        if not os.path.exists(config_path):
+            print(f"[PluginManager] 插件配置文件不存在：{config_path}")
+            return False
+
+        try:
+            self._load_single_plugin(plugin_path, config_path)
+            print(f"[PluginManager] 插件 {plugin_name} 加载成功")
+            return True
+        except Exception as e:
+            print(f"[PluginManager] 插件 {plugin_name} 加载失败：{e}")
+            import traceback
+
+            traceback.print_exc()
+            return False
+
+    def get_reloadable_plugins(self) -> list[str]:
+        """
+        获取可热加载的插件列表
+
+        Returns:
+            list: 已加载的插件名称列表
+        """
+        return list(self.loaded_plugins.keys())
 
 
 # 便捷的单例访问函数

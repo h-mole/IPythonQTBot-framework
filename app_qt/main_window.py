@@ -192,6 +192,16 @@ class QuickAssistant(QMainWindow):
         self.settings_action.triggered.connect(self.open_settings_panel)
         self.tools_menu.addAction(self.settings_action)
         
+        # 工具菜单 - 分隔线
+        self.tools_menu.addSeparator()
+        
+        # 工具菜单 - 重新加载插件子菜单
+        self.reload_plugins_menu = QMenu("🔄 重新加载插件", self)
+        self.tools_menu.addMenu(self.reload_plugins_menu)
+        
+        # 初始化插件重载菜单
+        self._init_reload_plugins_menu()
+        
         # self.
         
         # 添加到主布局
@@ -391,6 +401,140 @@ class QuickAssistant(QMainWindow):
             import traceback
             traceback.print_exc()
     
+    def _init_reload_plugins_menu(self):
+        """初始化重新加载插件菜单"""
+        # 清空现有菜单项
+        self.reload_plugins_menu.clear()
+        
+        # 重新加载全部插件选项
+        reload_all_action = QAction("🔄 重新加载全部插件", self)
+        reload_all_action.setToolTip("重新加载所有已启用的插件")
+        reload_all_action.triggered.connect(self._reload_all_plugins)
+        self.reload_plugins_menu.addAction(reload_all_action)
+        
+        self.reload_plugins_menu.addSeparator()
+        
+        # 获取插件管理器
+        from app_qt.plugin_manager import get_plugin_manager
+        plugin_manager = get_plugin_manager()
+        
+        # 为每个已加载的插件添加菜单项
+        reloadable_plugins = plugin_manager.get_reloadable_plugins()
+        
+        if reloadable_plugins:
+            for plugin_name in sorted(reloadable_plugins):
+                # 获取插件信息
+                plugin_info = plugin_manager.get_plugin_info(plugin_name)
+                version = plugin_info.get("version", "unknown") if plugin_info else "unknown"
+                
+                action = QAction(f"🔄 {plugin_name} (v{version})", self)
+                action.setToolTip(f"重新加载插件：{plugin_name}")
+                # 使用 lambda 捕获 plugin_name
+                action.triggered.connect(lambda checked, name=plugin_name: self._reload_single_plugin(name))
+                self.reload_plugins_menu.addAction(action)
+        else:
+            # 没有可重载的插件
+            no_plugins_action = QAction("(没有已加载的插件)", self)
+            no_plugins_action.setEnabled(False)
+            self.reload_plugins_menu.addAction(no_plugins_action)
+        
+        # 连接菜单的 aboutToShow 信号，在菜单显示前更新列表
+        self.reload_plugins_menu.aboutToShow.connect(self._update_reload_plugins_menu)
+    
+    def _update_reload_plugins_menu(self):
+        """更新重新加载插件菜单（动态刷新插件列表）"""
+        self._init_reload_plugins_menu()
+    
+    def _reload_single_plugin(self, plugin_name: str):
+        """重新加载单个插件"""
+        from app_qt.plugin_manager import get_plugin_manager
+        from PySide6.QtWidgets import QMessageBox
+        
+        plugin_manager = get_plugin_manager()
+        
+        # 显示确认对话框
+        reply = QMessageBox.question(
+            self,
+            "确认重新加载",
+            f"确定要重新加载插件 '{plugin_name}' 吗？\n\n"
+            f"注意：这将临时移除该插件的所有功能并重新初始化。",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            print(f"[MainWindow] 用户确认重新加载插件：{plugin_name}")
+            success = plugin_manager.reload_plugin(plugin_name)
+            
+            if success:
+                QMessageBox.information(
+                    self,
+                    "重新加载成功",
+                    f"插件 '{plugin_name}' 已成功重新加载！"
+                )
+            else:
+                QMessageBox.critical(
+                    self,
+                    "重新加载失败",
+                    f"插件 '{plugin_name}' 重新加载失败！\n请查看控制台日志了解详情。"
+                )
+    
+    def _reload_all_plugins(self):
+        """重新加载所有插件"""
+        from app_qt.plugin_manager import get_plugin_manager
+        from PySide6.QtWidgets import QMessageBox
+        
+        plugin_manager = get_plugin_manager()
+        reloadable_plugins = plugin_manager.get_reloadable_plugins()
+        
+        if not reloadable_plugins:
+            QMessageBox.information(
+                self,
+                "提示",
+                "当前没有已加载的插件。"
+            )
+            return
+        
+        # 显示确认对话框
+        reply = QMessageBox.question(
+            self,
+            "确认重新加载全部",
+            f"确定要重新加载所有插件吗？\n\n"
+            f"共 {len(reloadable_plugins)} 个插件：{', '.join(reloadable_plugins)}\n\n"
+            f"注意：这将临时移除所有插件功能并重新初始化。",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            print(f"[MainWindow] 用户确认重新加载所有插件")
+            
+            success_count = 0
+            failed_plugins = []
+            
+            for plugin_name in reloadable_plugins:
+                print(f"[MainWindow] 正在重新加载：{plugin_name}")
+                if plugin_manager.reload_plugin(plugin_name):
+                    success_count += 1
+                else:
+                    failed_plugins.append(plugin_name)
+            
+            # 显示结果
+            if success_count == len(reloadable_plugins):
+                QMessageBox.information(
+                    self,
+                    "重新加载完成",
+                    f"所有 {success_count} 个插件已成功重新加载！"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "重新加载部分失败",
+                    f"成功：{success_count} 个插件\n"
+                    f"失败：{len(failed_plugins)} 个插件\n\n"
+                    f"失败的插件：{', '.join(failed_plugins)}"
+                )
+
     def open_settings_panel(self):
         """打开设置面板"""
         try:

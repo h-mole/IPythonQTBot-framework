@@ -173,6 +173,93 @@ class PluginsAPI:
             print("-" * 60)
             
             return all_methods
+    
+    def reload(self, plugin_name: str = None):
+        """
+        热加载插件
+        
+        Args:
+            plugin_name: 插件名称，如果不提供则列出所有可重载的插件
+            
+        Returns:
+            bool: 是否成功（仅当指定插件名称时）
+        """
+        if plugin_name is None:
+            # 列出所有可重载的插件
+            reloadable = self.plugin_manager.get_reloadable_plugins()
+            print("可热加载的插件列表:")
+            print("-" * 60)
+            if reloadable:
+                for name in reloadable:
+                    info = self.plugin_manager.get_plugin_info(name)
+                    version = info.get('version', 'unknown') if info else 'unknown'
+                    print(f"  - {name} (v{version})")
+                print("-" * 60)
+                print(f"\n使用方法: plugins.reload('plugin_name')")
+            else:
+                print("  没有已加载的插件")
+            print("-" * 60)
+            return reloadable
+        
+        # 执行热重载
+        print(f"\n开始热加载插件: {plugin_name}")
+        print("-" * 60)
+        
+        success = execute_in_ui_thread(
+            lambda: self.plugin_manager.reload_plugin(plugin_name)
+        )
+        
+        if success:
+            print(f"✅ 插件 '{plugin_name}' 热加载成功！")
+        else:
+            print(f"❌ 插件 '{plugin_name}' 热加载失败！")
+        print("-" * 60)
+        
+        return success
+    
+    def ui_elements(self, plugin_name: str = None):
+        """
+        查看插件注册的 UI 元素
+        
+        Args:
+            plugin_name: 插件名称（可选），如果不提供则列出所有插件的 UI 元素
+            
+        Returns:
+            list: UI 元素列表
+        """
+        if plugin_name:
+            # 查看指定插件的 UI 元素
+            elements = self.plugin_manager.ui_elements_registry.get(plugin_name, [])
+            print(f"插件 '{plugin_name}' 注册的 UI 元素:")
+            print("-" * 60)
+            if elements:
+                for elem in elements:
+                    print(f"  [{elem['type']}] {elem['name']}")
+            else:
+                print("  没有注册的 UI 元素")
+            print("-" * 60)
+            return elements
+        else:
+            # 列出所有插件的 UI 元素
+            all_elements = {}
+            for name, elements in self.plugin_manager.ui_elements_registry.items():
+                all_elements[name] = [
+                    {"type": e["type"], "name": e["name"]} 
+                    for e in elements
+                ]
+            
+            print("所有插件注册的 UI 元素:")
+            print("-" * 60)
+            for name, elements in all_elements.items():
+                print(f"\n{name}:")
+                if elements:
+                    for elem in elements:
+                        print(f"  [{elem['type']}] {elem['name']}")
+                else:
+                    print("  (无)")
+            print("-" * 60)
+            
+            return all_elements
 
 
 # ==================== UI 线程执行机制 ====================
@@ -292,13 +379,18 @@ def init_ipython_plugins_api(plugin_manager):
     print("IPython 插件 API 已初始化")
     print("=" * 60)
     print("\n使用方法:")
-    print("  plugins.list()           - 列出所有插件")
-    print("  plugins.info('plugin')   - 查看插件详细信息")
-    print("  plugins.methods()        - 列出所有方法")
-    print("  plugins.methods('plugin')- 列出指定插件的方法")
+    print("  plugins.list()              - 列出所有插件")
+    print("  plugins.info('plugin')      - 查看插件详细信息")
+    print("  plugins.methods()           - 列出所有方法")
+    print("  plugins.methods('plugin')   - 列出指定插件的方法")
+    print("  plugins.reload()            - 列出可热加载的插件")
+    print("  plugins.reload('plugin')    - 热加载指定插件")
+    print("  plugins.ui_elements()       - 列出所有 UI 元素")
+    print("  plugins.ui_elements('plugin') - 列出指定插件的 UI 元素")
     print("  plugins.call.plugin_name.method_name() - 调用插件方法")
     print("\n示例:")
     print("  >>> plugins.list()")
+    print("  >>> plugins.reload('text_helper')")
     print("  >>> plugins.call.text_helper.get_text()")
     print("  >>> plugins.call.text_helper.set_text('Hello World')")
     print("=" * 60 + "\n")
