@@ -252,7 +252,8 @@ class TextEditorWidget(SyntaxEdit):
     def set_syntax_by_filepath(self, file_path):
         """根据文件路径设置语法高亮"""
         lexer = get_lexer_for_filename(file_path, guess=True)
-        self.setSyntax(lexer.name)
+        if lexer.name.lower() != "text only":
+            self.setSyntax(lexer.name)
 
     def show_context_menu(self, pos):
         """显示右键菜单"""

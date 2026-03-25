@@ -74,11 +74,8 @@ class QuickNotesTab(QWidget):
         # 插件管理器引用
         self.plugin_manager: PluginManager = None
         
-        # 标记是否由外部触发刷新（避免重复提示保存）
-        self.is_external_refresh = False
-        
         self.init_ui()
-        self.load_note_tree()
+        # 树在 init_ui 中已经加载，不需要再调用 load_note_tree()
 
     def init_ui(self):
         """初始化界面"""
@@ -95,7 +92,10 @@ class QuickNotesTab(QWidget):
         
         # 连接信号
         self.note_tree.note_clicked.connect(self.load_note_content)
-        self.note_tree.refresh_requested.connect(self.on_tree_refreshed)
+        # refresh_requested 现在只用于通知，不触发树刷新
+        self.note_tree.refresh_requested.connect(self.on_tree_operation_completed)
+        # 创建技能请求信号
+        self.note_tree.create_skill_requested.connect(self.create_skill_at_path)
         
         # 创建左侧布局（只包含树）
         left_container = QWidget()
@@ -232,7 +232,7 @@ class QuickNotesTab(QWidget):
         return right_widget
 
     def load_note_tree(self):
-        """加载笔记树状结构（委托给组件）"""
+        """手动刷新笔记树（仅刷新按钮调用）"""
         # 检查是否有未保存的修改
         if self.is_modified and self.current_note_path:
             reply = QMessageBox.question(
@@ -251,12 +251,13 @@ class QuickNotesTab(QWidget):
         
         self.note_tree.load_tree()
     
-    def on_tree_refreshed(self):
-        """树刷新后的处理"""
-        # 如果是由外部触发的刷新，重新加载当前笔记
-        if self.is_external_refresh and self.current_note_path:
-            self.load_note_content(self.current_note_path)
-            self.is_external_refresh = False
+    def on_tree_operation_completed(self):
+        """树操作完成后的处理（新建/删除/重命名等）"""
+        # 文件系统监听会自动更新树节点
+        # 此方法用于其他后续处理（如保持当前笔记打开状态）
+        if self.current_note_path and os.path.exists(self.current_note_path):
+            # 如果当前笔记仍然存在，确保编辑器状态正确
+            pass  # 可以在这里添加额外的处理逻辑
 
     def on_tree_item_clicked(self, item, column):
         """树节点点击事件"""
@@ -356,7 +357,7 @@ class QuickNotesTab(QWidget):
         if file_path:
             self.current_note_path = file_path
             self.save_current_note()
-            self.load_note_tree()
+            # 文件系统监听会自动添加节点到树
 
     def create_new_note(self):
         """创建新笔记"""
@@ -395,9 +396,8 @@ class QuickNotesTab(QWidget):
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write("")
 
-            # 刷新树并打开新笔记
-            self.is_external_refresh = True
-            self.load_note_tree()
+            # 文件系统监听会自动添加节点到树
+            # 直接打开新笔记
             self.load_note_content(file_path)
             self.editor.setFocus()
 
@@ -434,8 +434,7 @@ class QuickNotesTab(QWidget):
         # 创建文件夹
         try:
             os.makedirs(folder_path)
-            self.is_external_refresh = True
-            self.load_note_tree()
+            # 文件系统监听会自动添加节点到树
 
         except Exception as e:
             QMessageBox.critical(self, "错误", f"无法创建文件夹：{str(e)}")
@@ -483,8 +482,7 @@ class QuickNotesTab(QWidget):
                 self.is_modified = False
                 self.editor_toolbar.set_save_status(False)
 
-            self.is_external_refresh = True
-            self.load_note_tree()
+            # 文件系统监听会自动移除节点
 
         except Exception as e:
             QMessageBox.critical(self, "错误", f"无法删除：{str(e)}")
@@ -525,8 +523,7 @@ class QuickNotesTab(QWidget):
 
         try:
             os.rename(old_path, new_path)
-            self.is_external_refresh = True
-            self.load_note_tree()
+            # 文件系统监听会自动更新节点
 
             # 如果重命名的是当前打开的笔记，更新路径
             if old_path == self.current_note_path:
@@ -682,19 +679,48 @@ class QuickNotesTab(QWidget):
         self.editor.addAction(redo_shortcut)
     
     def create_new_skill(self):
-        """创建新技能 - agentskills-core 兼容"""
+        """创建新技能 - agentskills-core 兼容（工具栏按钮调用）"""
+        # 获取当前选中的目录作为父路径
+        selected_items = self.note_tree.selectedItems()
+        parent_path = None
+        
+        if selected_items:
+            selected_path = selected_items[0].data(0, Qt.ItemDataRole.UserRole)
+            # 如果是文件，取父目录
+            if os.path.isfile(selected_path):
+                parent_path = os.path.dirname(selected_path)
+            else:
+                parent_path = selected_path
+        
+        self._do_create_skill(parent_path)
+    
+    def create_skill_at_path(self, parent_path: str):
+        """在指定路径创建技能（树组件信号调用）"""
+        self._do_create_skill(parent_path)
+    
+    def _do_create_skill(self, parent_path: str = None):
+        """实际执行创建技能"""
+        # 确定技能目录
+        if parent_path and os.path.isdir(parent_path):
+            # 检查是否是 skills 目录或其子目录
+            if parent_path == self.skills_dir or parent_path.startswith(self.skills_dir + os.sep):
+                target_skills_dir = parent_path
+            else:
+                # 如果在其他目录，创建到 skills 根目录
+                target_skills_dir = self.skills_dir
+        else:
+            target_skills_dir = self.skills_dir
+        
         try:
             # 显示创建技能对话框
-            dialog = CreateSkillDialog(self, skills_dir=self.skills_dir)
+            dialog = CreateSkillDialog(self, skills_dir=target_skills_dir)
             
             if dialog.exec() == int(QDialog.DialogCode.Accepted):
-                # 技能创建成功，刷新树
-                self.is_external_refresh = True
-                self.load_note_tree()
+                # 技能创建成功，文件系统监听会自动添加节点
                 QMessageBox.information(
                     self, 
                     "成功", 
-                    f"技能已创建！\n位置：{self.skills_dir}\n\n提示：技能文件夹可以在文件树中查看和管理。"
+                    f"技能已创建！\n位置：{target_skills_dir}\n\n提示：技能文件夹可以在文件树中查看和管理。"
                 )
         
         except Exception as e:
@@ -729,9 +755,7 @@ class QuickNotesTab(QWidget):
         with open(file_path, "w", encoding="utf-8") as f:
             f.write("")
 
-        # 刷新树并打开新笔记
-        self.is_external_refresh = True
-        self.load_note_tree()
+        # 文件系统监听会自动添加节点到树
         self.load_note_content(file_path)
 
         return file_path
@@ -1095,6 +1119,87 @@ class QuickNotesTab(QWidget):
 
         return ret
 
+    def copy_file_api(self, source_path: str, target_path: str) -> str:
+        """
+        API: 复制文件到新路径
+
+        Args:
+            source_path: 源文件相对路径（相对于笔记目录）
+            target_path: 目标文件相对路径（相对于笔记目录）
+
+        Returns:
+            str: 操作结果，"success"表示成功，其他为错误信息
+        """
+        import shutil
+        
+        full_source = os.path.join(self.notes_dir, source_path)
+        full_target = os.path.join(self.notes_dir, target_path)
+        
+        # 检查源文件是否存在
+        if not os.path.exists(full_source):
+            return f"source file not found: {source_path}"
+        
+        # 只能复制文件
+        if not os.path.isfile(full_source):
+            return f"source is not a file: {source_path}"
+        
+        # 确保目标目录存在
+        try:
+            os.makedirs(os.path.dirname(full_target), exist_ok=True)
+            shutil.copy2(full_source, full_target)
+            
+            # 文件系统监听会自动添加节点到树
+            
+            return "success"
+        except Exception as e:
+            return f"copy failed: {str(e)}"
+
+    def backup_file_api(self, file_path: str, backup_name: str = None) -> str:
+        """
+        API: 备份文件到 backups 文件夹
+
+        Args:
+            file_path: 要备份的文件相对路径（相对于笔记目录）
+            backup_name: 备份文件名（可选，默认在原文件名后加时间戳）
+
+        Returns:
+            str: 操作结果，"success"表示成功，其他为错误信息
+        """
+        import shutil
+        from datetime import datetime
+        
+        full_source = os.path.join(self.notes_dir, file_path)
+        
+        # 检查源文件是否存在
+        if not os.path.exists(full_source):
+            return f"file not found: {file_path}"
+        
+        # 只能备份文件
+        if not os.path.isfile(full_source):
+            return f"not a file: {file_path}"
+        
+        # 创建 backups 目录
+        backups_dir = os.path.join(self.notes_dir, "backups")
+        os.makedirs(backups_dir, exist_ok=True)
+        
+        # 确定备份文件名
+        original_name = os.path.basename(file_path)
+        if backup_name:
+            backup_filename = backup_name
+        else:
+            # 默认格式：原文件名_YYYYMMDD_HHMMSS.ext
+            name, ext = os.path.splitext(original_name)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_filename = f"{name}_{timestamp}{ext}"
+        
+        full_backup = os.path.join(backups_dir, backup_filename)
+        
+        try:
+            shutil.copy2(full_source, full_backup)
+            return "success"
+        except Exception as e:
+            return f"backup failed: {str(e)}"
+
     def on_ipython_ready(self):
         """
         处理IPython就绪事件，在
@@ -1167,6 +1272,24 @@ def load_plugin(plugin_manager: "PluginManager"):
         "quick_notes", 
         "get_skill_detail", 
         notes_tab.get_skill_detail_api,
+        extra_data={"enable_mcp": True}
+    )
+    plugin_manager.register_method(
+        "quick_notes", 
+        "query_skills", 
+        notes_tab.query_skills_api,
+        extra_data={"enable_mcp": True}
+    )
+    plugin_manager.register_method(
+        "quick_notes", 
+        "copy_file", 
+        notes_tab.copy_file_api,
+        extra_data={"enable_mcp": True}
+    )
+    plugin_manager.register_method(
+        "quick_notes", 
+        "backup_file", 
+        notes_tab.backup_file_api,
         extra_data={"enable_mcp": True}
     )
 

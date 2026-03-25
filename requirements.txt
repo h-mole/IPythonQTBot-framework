@@ -16,3 +16,4 @@ pyside6-settings
 toml
 whats_that_code
 docstring-parser>=0.16
+watchdog>=3.0.0

@@ -268,6 +268,71 @@
         "extra_data": {
           "enable_mcp": true
         }
+      },
+      {
+        "name": "query_skills",
+        "description": "查询所有技能名称列表",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "str",
+          "description": "技能名称列表，多个技能名称用换行符分隔"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
+        "name": "copy_file",
+        "description": "复制文件到新路径",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "source_path",
+            "type": "str",
+            "description": "源文件相对路径（相对于笔记目录）",
+            "required": true
+          },
+          {
+            "name": "target_path",
+            "type": "str",
+            "description": "目标文件相对路径（相对于笔记目录）",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "str",
+          "description": "操作结果，success表示成功，其他为错误信息"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
+        "name": "backup_file",
+        "description": "备份文件到backups文件夹",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "file_path",
+            "type": "str",
+            "description": "要备份的文件相对路径（相对于笔记目录）",
+            "required": true
+          },
+          {
+            "name": "backup_name",
+            "type": "str",
+            "description": "备份文件名（可选，默认在原文件名后加时间戳）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "str",
+          "description": "操作结果，success表示成功，其他为错误信息"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
       }
     ]
   },
