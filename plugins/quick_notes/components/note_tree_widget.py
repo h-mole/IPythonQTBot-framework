@@ -603,7 +603,7 @@ class NoteTreeWidget(QTreeWidget):
         clipboard.setText(text)
     
     def copy_selected_file(self):
-        """复制选中的文件到内部剪贴板"""
+        """复制选中的文件到内部剪贴板（静默操作）"""
         selected_items = self.selectedItems()
         if not selected_items:
             return
@@ -615,10 +615,10 @@ class NoteTreeWidget(QTreeWidget):
         
         NoteTreeWidget._clipboard_path = path
         NoteTreeWidget._clipboard_cut = False
-        QMessageBox.information(self, "成功", f"已复制文件：{os.path.basename(path)}")
+        # 静默操作，不弹出对话框
     
     def cut_selected_file(self):
-        """剪切选中的文件到内部剪贴板"""
+        """剪切选中的文件到内部剪贴板（静默操作）"""
         selected_items = self.selectedItems()
         if not selected_items:
             return
@@ -630,7 +630,7 @@ class NoteTreeWidget(QTreeWidget):
         
         NoteTreeWidget._clipboard_path = path
         NoteTreeWidget._clipboard_cut = True
-        QMessageBox.information(self, "成功", f"已剪切文件：{os.path.basename(path)}")
+        # 静默操作，不弹出对话框
     
     def paste_file(self):
         """粘贴文件到当前选中的文件夹"""
@@ -668,7 +668,6 @@ class NoteTreeWidget(QTreeWidget):
             if NoteTreeWidget._clipboard_cut:
                 # 剪切操作：移动文件
                 shutil.move(source_path, target_file_path)
-                QMessageBox.information(self, "成功", f"已移动文件到：{target_dir}")
                 # 清除剪贴板
                 NoteTreeWidget._clipboard_path = None
                 NoteTreeWidget._clipboard_cut = False
@@ -676,10 +675,9 @@ class NoteTreeWidget(QTreeWidget):
             else:
                 # 复制操作
                 shutil.copy2(source_path, target_file_path)
-                QMessageBox.information(self, "成功", f"已复制文件到：{target_dir}")
                 # 文件系统监听会自动处理节点更新
             
-            # 注意：不再手动调用 load_tree()，由文件系统监听处理
+            # 静默操作，不弹出成功对话框，只在出错时提示
             
         except Exception as e:
             QMessageBox.critical(self, "错误", f"操作失败：{str(e)}")
