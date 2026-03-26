@@ -70,14 +70,14 @@ class EmailClient:
     
     def fetch_email_ids(self, folder='inbox', limit=None):
         """
-        获取邮件 ID 列表（最新的在前）
+        获取邮件 UID 列表（最新的在前）
         
         Args:
             folder: 文件夹名称，默认 'inbox'
             limit: 限制数量，None 表示全部
             
         Returns:
-            list: 邮件 ID 列表（最新的在前）
+            list: 邮件 UID 列表（最新的在前）
         """
         try:
             if not self.imap_conn:
@@ -86,8 +86,8 @@ class EmailClient:
             # 选择文件夹
             self.imap_conn.select(folder)
             
-            # 搜索所有邮件
-            status, messages = self.imap_conn.search(None, 'ALL')
+            # 使用 UID 搜索所有邮件（UID 是持久的，不会因邮箱状态变化而改变）
+            status, messages = self.imap_conn.uid('search', None, 'ALL')
             email_ids = messages[0].split()
             
             # 限制数量
@@ -107,7 +107,7 @@ class EmailClient:
     
     def fetch_email_ids_with_offset(self, folder='inbox', limit=20, offset=0):
         """
-        获取邮件 ID 列表，支持偏移量（用于分页加载）
+        获取邮件 UID 列表，支持偏移量（用于分页加载）
         
         Args:
             folder: 文件夹名称，默认 'inbox'
@@ -115,7 +115,7 @@ class EmailClient:
             offset: 偏移量（跳过最新的 offset 封邮件）
             
         Returns:
-            list: 邮件 ID 列表（最新的在前）
+            list: 邮件 UID 列表（最新的在前）
         """
         try:
             if not self.imap_conn:
@@ -124,8 +124,8 @@ class EmailClient:
             # 选择文件夹
             self.imap_conn.select(folder)
             
-            # 搜索所有邮件
-            status, messages = self.imap_conn.search(None, 'ALL')
+            # 使用 UID 搜索所有邮件
+            status, messages = self.imap_conn.uid('search', None, 'ALL')
             all_email_ids = messages[0].split()
             
             # 逆序排列（最新的在前）
@@ -151,7 +151,7 @@ class EmailClient:
         获取邮件日期（仅获取 HEADER，不下载完整内容）
         
         Args:
-            email_id: 邮件 ID
+            email_id: 邮件 UID
             folder: 文件夹名称
             
         Returns:
@@ -163,8 +163,8 @@ class EmailClient:
             
             self.imap_conn.select(folder)
             
-            # 只获取日期头信息
-            status, msg_data = self.imap_conn.fetch(email_id.encode(), '(BODY.PEEK[HEADER.FIELDS (DATE)])')
+            # 使用 UID 获取日期头信息
+            status, msg_data = self.imap_conn.uid('fetch', email_id.encode(), '(BODY.PEEK[HEADER.FIELDS (DATE)])')
             
             if status == 'OK' and msg_data and msg_data[0]:
                 header_data = msg_data[0][1]
@@ -186,7 +186,7 @@ class EmailClient:
         获取原始邮件数据
         
         Args:
-            email_id: 邮件 ID
+            email_id: 邮件 UID
             folder: 文件夹名称，默认 'inbox'
             
         Returns:
@@ -199,7 +199,8 @@ class EmailClient:
             # 选择文件夹（FETCH 命令需要在 SELECTED 状态下执行）
             self.imap_conn.select(folder)
             
-            status, msg_data = self.imap_conn.fetch(email_id.encode(), '(RFC822)')
+            # 使用 UID 获取邮件内容
+            status, msg_data = self.imap_conn.uid('fetch', email_id.encode(), '(RFC822)')
             raw_email = msg_data[0][1]
             
             logger.debug(f"获取邮件 {email_id} 原始数据成功")
