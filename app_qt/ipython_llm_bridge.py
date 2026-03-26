@@ -1083,45 +1083,10 @@ class Agent:
         """
         将消息列表渲染为Markdown形式,调用text_helper里面的接口方法进行显示
         """
-        message_strs = []
-        for i, msg in enumerate(self.messages):
-            msg_new = msg.copy()
-            if "content" in msg_new:
-                msg_new["content"] = f"..."
-            if "reasoning_content" in msg_new:
-                msg_new["reasoning_content"] = f"..."
-            text = f"""
-# {i+1}. {msg['role']}:
-
-## Metadata:
-
-```json
-{json.dumps(msg_new, ensure_ascii=False, indent=4)}
-```
-
-            """
-            text += (f"""               
-## Content:
-{msg.get('content', '[No content]')}
-
-            """) if "content" in msg else ""
-            text += (f"""             
-## Reasoning:
-{msg.get('reasoning_content', '[No Reasoning Content]')}
-
-            """) if "reasoning_content" in msg else ""
-
-            message_strs.append(text)
-        method = self.plugin_manager.get_method(
-            "text_helper.render_markdown",
-        )
-        if method:
-            method("\n".join(message_strs))
-            logger.info("[LLM Bridge] 消息已渲染为 Markdown 并显示")
+        if self.plugin_manager is not None:
+            self.plugin_manager.agent_request_view_messages_signal.emit(self.messages)
         else:
-            logger.error(
-                "[LLM Bridge] 未找到 text_helper.render_markdown 方法，无法显示消息"
-            )
+            raise ValueError("[LLM Bridge] 未找到插件管理器，无法显示消息")
 
 
 # ==================== Magic 命令注册 ====================

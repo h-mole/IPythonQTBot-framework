@@ -1,0 +1,53 @@
+{
+  "name": "messages_view",
+  "description": "OpenAI Messages 可视化插件 - 在浏览器中展示 OpenAI API 的消息内容",
+  "version": "1.1.0",
+  "author": "MyHelper Team",
+  "main": "main",
+  
+  "dependencies": [
+    {
+      "name": "plugin:http_server",
+      "version": ">=1.0.0",
+      "required": true,
+      "description": "Flask HTTP 服务器插件"
+    }
+  ],
+  
+  "exports": {
+    "namespace": "messages_view",
+    "description": "Messages 可视化 API",
+    "methods": [
+      {
+        "name": "view_messages",
+        "description": "在浏览器中展示 messages 列表",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "messages",
+            "type": "list",
+            "description": "OpenAI API 格式的 messages 列表（list of dict）",
+            "required": true
+          },
+          {
+            "name": "title",
+            "type": "str",
+            "description": "页面标题（可选）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "包含 success(bool), url(str), error(str) 等字段"
+        }
+      }
+    ]
+  },
+  
+  "callbacks": {
+    "on_load": "load_plugin",
+    "on_unload": "unload_plugin"
+  },
+  
+  "tabs": []
+}

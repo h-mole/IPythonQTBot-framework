@@ -1,0 +1,138 @@
+{
+  "name": "http_server",
+  "description": "Flask HTTP 服务器插件 - 提供统一的 HTTP 服务，支持注册路由和 Blueprint",
+  "version": "1.0.0",
+  "author": "MyHelper Team",
+  "main": "main",
+  
+  "dependencies": [],
+  
+  "exports": {
+    "namespace": "http_server",
+    "description": "HTTP 服务器核心 API",
+    "methods": [
+      {
+        "name": "start",
+        "description": "启动 HTTP 服务器",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "host",
+            "type": "str",
+            "description": "主机地址，默认为 127.0.0.1",
+            "required": false
+          },
+          {
+            "name": "port",
+            "type": "int",
+            "description": "端口号，默认为 0（自动分配）",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "包含 success(bool), host(str), port(int), url(str) 等字段"
+        }
+      },
+      {
+        "name": "stop",
+        "description": "停止 HTTP 服务器",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "dict",
+          "description": "包含 success(bool), message(str) 等字段"
+        }
+      },
+      {
+        "name": "is_running",
+        "description": "检查服务器是否正在运行",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "bool",
+          "description": "服务器是否运行中"
+        }
+      },
+      {
+        "name": "get_url",
+        "description": "获取服务器访问 URL",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "str",
+          "description": "服务器 URL，如果未启动则返回 None"
+        }
+      },
+      {
+        "name": "register_blueprint",
+        "description": "注册 Flask Blueprint（路由组）",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "blueprint",
+            "type": "Blueprint",
+            "description": "Flask Blueprint 实例",
+            "required": true
+          },
+          {
+            "name": "url_prefix",
+            "type": "str",
+            "description": "URL 前缀，例如 /api/v1",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "包含 success(bool), message(str) 等字段"
+        }
+      },
+      {
+        "name": "register_route",
+        "description": "注册单个路由函数",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "route",
+            "type": "str",
+            "description": "路由路径，例如 /hello",
+            "required": true
+          },
+          {
+            "name": "view_func",
+            "type": "callable",
+            "description": "视图函数",
+            "required": true
+          },
+          {
+            "name": "methods",
+            "type": "list",
+            "description": "HTTP 方法列表，例如 ['GET', 'POST']",
+            "required": false
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "包含 success(bool), message(str) 等字段"
+        }
+      },
+      {
+        "name": "get_app",
+        "description": "获取 Flask 应用实例（高级用法）",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "Flask",
+          "description": "Flask 应用实例，如果未启动则返回 None"
+        }
+      }
+    ]
+  },
+  
+  "callbacks": {
+    "on_load": "load_plugin",
+    "on_unload": "unload_plugin"
+  },
+  
+  "tabs": []
+}

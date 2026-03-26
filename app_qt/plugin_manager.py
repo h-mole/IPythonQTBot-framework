@@ -168,6 +168,9 @@ class PluginManager(QObject):
     update_ui_signal = Signal(object)
     ipython_ready_signal = Signal()
     plugin_reloaded_signal = Signal(str)  # 插件重新加载完成信号，参数为插件名
+    agent_request_view_messages_signal = Signal(
+        list
+    )  # LLM agent请求查看消息,list是OpenAI格式的消息列表
 
     def _exec_update_ui_callback(self, callback):
         callback()
@@ -1355,8 +1358,8 @@ class PluginManager(QObject):
             plugin_path, "plugin.json"
         )
 
-        # 1. 卸载插件（不调用 unload_plugin 回调，因为我们要重新加载）
-        self.unload_plugin(plugin_name, call_unload_callback=False)
+        # 1. 卸载插件（调用 unload_plugin 回调，让插件执行清理工作）
+        self.unload_plugin(plugin_name, call_unload_callback=True)
 
         # 2. 清理模块缓存，强制重新导入
         module_name = f"plugin_{plugin_name}"
