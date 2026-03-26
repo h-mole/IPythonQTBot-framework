@@ -177,6 +177,13 @@ class MultiSelectFilter(QWidget):
             self.selected_items.clear()
         self.update_button_text()
 
+    def set_selected_items(self, items_to_select):
+        """设置选中的项目"""
+        self.selected_items = set(items_to_select)
+        self.select_all = len(self.selected_items) == len(self.items)
+        self.update_button_text()
+        self.filterChanged.emit()
+
 
 class TaskDialog(QDialog):
     """任务编辑对话框"""
@@ -537,6 +544,10 @@ class TasksManagerTab(QWidget):
     def init_default_state(self):
         self.reverse_check.setChecked(True)
         self.sort_combo.setCurrentIndex(0)
+        
+        # 设置完成状态筛选器默认不选择"已完成"
+        default_statuses = [s for s in DEFAULT_STATUSES if s != "已完成"]
+        self.status_filter.set_selected_items(default_statuses)
 
     def load_categories_to_filters(self):
         """加载分类到筛选器"""
@@ -557,12 +568,20 @@ class TasksManagerTab(QWidget):
     def save_categories(self):
         """保存分类到文件"""
         try:
+            # 去重并保持原有顺序
+            categories = list(dict.fromkeys(self.category_filter.items))
+            subcategories = list(dict.fromkeys(self.subcategory_filter.items))
+            
             data = {
-                "categories": self.category_filter.items,
-                "subcategories": self.subcategory_filter.items,
+                "categories": categories,
+                "subcategories": subcategories,
             }
             with open(self.categories_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
+            
+            # 更新内存中的列表为去重后的版本
+            self.category_filter.items = categories
+            self.subcategory_filter.items = subcategories
         except Exception as e:
             print(f"保存分类失败：{e}")
 
@@ -679,7 +698,9 @@ class TasksManagerTab(QWidget):
         """刷新表格显示"""
         data_to_show = filtered_data if filtered_data is not None else self.tasks_data
         self.table.setRowCount(0)
+        self.table.clearSpans()  # 清除之前的合并
 
+        # 第一遍：插入所有行数据
         for task in data_to_show:
             row_position = self.table.rowCount()
             self.table.insertRow(row_position)
@@ -687,12 +708,16 @@ class TasksManagerTab(QWidget):
             self.table.setItem(
                 row_position, 0, QTableWidgetItem(str(task.get("id", "")))
             )
-            self.table.setItem(
-                row_position, 1, QTableWidgetItem(task.get("category", ""))
-            )
-            self.table.setItem(
-                row_position, 2, QTableWidgetItem(task.get("subcategory", ""))
-            )
+
+            # 任务大类（先填充所有单元格，后续合并）
+            category_item = QTableWidgetItem(task.get("category", ""))
+            category_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row_position, 1, category_item)
+
+            # 任务小类（先填充所有单元格，后续合并）
+            subcategory_item = QTableWidgetItem(task.get("subcategory", ""))
+            subcategory_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row_position, 2, subcategory_item)
 
             # 任务说明列添加 tooltip
             description_item = QTableWidgetItem(task.get("description", ""))
@@ -735,6 +760,46 @@ class TasksManagerTab(QWidget):
             notes_item = QTableWidgetItem(task.get("notes", ""))
             notes_item.setToolTip(task.get("notes", ""))
             self.table.setItem(row_position, 8, notes_item)
+
+        # 第二遍：计算并设置合并
+        if len(data_to_show) > 1:
+            self._merge_category_columns(data_to_show)
+
+    def _merge_category_columns(self, data_to_show):
+        """计算并设置大类和小类列的合并"""
+        n_rows = len(data_to_show)
+        
+        # 处理大类列（列1）
+        i = 0
+        while i < n_rows:
+            current_category = data_to_show[i].get("category", "")
+            # 查找连续相同的行数
+            span_count = 1
+            for j in range(i + 1, n_rows):
+                if data_to_show[j].get("category", "") == current_category:
+                    span_count += 1
+                else:
+                    break
+            # 如果有多行相同，设置合并
+            if span_count > 1:
+                self.table.setSpan(i, 1, span_count, 1)
+            i += span_count
+        
+        # 处理小类列（列2）
+        i = 0
+        while i < n_rows:
+            current_subcategory = data_to_show[i].get("subcategory", "")
+            # 查找连续相同的行数
+            span_count = 1
+            for j in range(i + 1, n_rows):
+                if data_to_show[j].get("subcategory", "") == current_subcategory:
+                    span_count += 1
+                else:
+                    break
+            # 如果有多行相同，设置合并
+            if span_count > 1:
+                self.table.setSpan(i, 2, span_count, 1)
+            i += span_count
 
     def apply_filters(self):
         """应用筛选条件"""
