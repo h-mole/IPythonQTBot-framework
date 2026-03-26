@@ -137,34 +137,33 @@ class SettingsDialog(QDialog):
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_area.setStyleSheet("""
             QScrollArea { 
                 background-color: transparent; 
                 border: none; 
             }
-            QScrollArea QWidget {
+            QScrollArea > QWidget > QWidget {
                 background-color: transparent;
             }
         """)
         
-        # 创建表单
-        self.settings_form = self.settings.create_form()
+        # 创建表单（使用 create_form_widget 避免嵌套滚动区域）
+        self.settings_form = self.settings.create_form_widget()
         self.settings_form.setStyleSheet("""
             QWidget {
                 background-color: transparent;
             }
             QGroupBox {
-                border: none;
-                margin: 0;
-                padding: 5px;
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding: 10px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
                 left: 10px;
                 padding: 0 5px;
-            }
-            QScrollArea {
-                border: none;
             }
         """)
         scroll_area.setWidget(self.settings_form)
@@ -209,11 +208,23 @@ class SettingsDialog(QDialog):
                 )
                 
                 # 重新创建表单
-                layout = self.settings_form.layout()
-                if layout:
-                    QWidget().setLayout(layout)  # 清空旧布局
-                
-                self.settings_form = self.settings.create_form()
+                self.settings_form = self.settings.create_form_widget()
+                self.settings_form.setStyleSheet("""
+                    QWidget {
+                        background-color: transparent;
+                    }
+                    QGroupBox {
+                        border: 1px solid #e0e0e0;
+                        border-radius: 5px;
+                        margin-top: 10px;
+                        padding: 10px;
+                    }
+                    QGroupBox::title {
+                        subcontrol-origin: margin;
+                        left: 10px;
+                        padding: 0 5px;
+                    }
+                """)
                 scroll_area = self.findChild(QScrollArea)
                 if scroll_area:
                     scroll_area.setWidget(self.settings_form)

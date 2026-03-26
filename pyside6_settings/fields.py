@@ -16,6 +16,8 @@ _WIDGET_TYPES = Literal[
     "textarea",
 ]
 _FS_MODE = Literal["file", "folder", "save_file"]
+_DISPLAY_MODE = Literal["list", "tabs"]  # List[BaseSettings] 的展示方式
+_FORM_DISPLAY_MODE = Literal["vertical", "tabs"]  # 整个 form 的展示方式
 
 
 class WidgetMetadata(BaseModel):
@@ -27,6 +29,8 @@ class WidgetMetadata(BaseModel):
     widget: Optional[_WIDGET_TYPES] = PydanticField(default=None)
     choices: Optional[list] = PydanticField(default=None)  # Used by QComboBox
     fs_mode: Optional[_FS_MODE] = PydanticField(default=None)  # User by Path
+    display_mode: _DISPLAY_MODE = PydanticField(default="list")  # List[BaseSettings] 的展示方式
+    as_tab: bool = PydanticField(default=False)  # 是否将该字段作为选项卡页面显示
 
 
 def Field(
@@ -39,6 +43,8 @@ def Field(
     widget: Optional[_WIDGET_TYPES] = None,
     choices: Optional[list] = None,
     fs_mode: Optional[_FS_MODE] = None,
+    display_mode: _DISPLAY_MODE = "list",
+    as_tab: bool = False,
     ge: Optional[float] = None,
     le: Optional[float] = None,
     gt: Optional[float] = None,
@@ -56,6 +62,8 @@ def Field(
         widget=widget,
         choices=choices,
         fs_mode=fs_mode,
+        display_mode=display_mode,
+        as_tab=as_tab,
         **extra_params,
     )
 
