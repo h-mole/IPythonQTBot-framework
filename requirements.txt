@@ -19,4 +19,6 @@ docstring-parser>=0.16
 watchdog>=3.0.0
 flask>=2.0.0
 flask-cors>=4.0.0
-semgrep
+pylint
+pydot
+networkx
