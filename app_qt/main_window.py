@@ -406,6 +406,13 @@ class QuickAssistant(QMainWindow):
         # 清空现有菜单项
         self.reload_plugins_menu.clear()
         
+        # 先断开之前的 aboutToShow 信号连接，避免重复连接导致卡顿
+        try:
+            self.reload_plugins_menu.aboutToShow.disconnect(self._update_reload_plugins_menu)
+        except (TypeError, RuntimeError):
+            # 没有之前的连接时会抛出异常，忽略即可
+            pass
+        
         # 重新加载全部插件选项
         reload_all_action = QAction("🔄 重新加载全部插件", self)
         reload_all_action.setToolTip("重新加载所有已启用的插件")

@@ -4,17 +4,107 @@
   "version": "1.0.0",
   "author": "IPythonQTBot Team",
   "main": "main",
-  
-  "dependencies": [
-  ],
+  "dependencies": [],
   "exports": {
     "namespace": "text_helper",
     "description": "文本处理核心组件",
     "methods": [
       {
+        "name": "add_menu_to_menubar",
+        "description": "API: 将 QMenu组件添加到菜单栏",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "menu",
+            "type": "any",
+            "description": "QMenu组件实例",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否添加成功"
+        }
+      },
+      {
+        "name": "register_text_action",
+        "description": "API: 注册自定义文本处理菜单项",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "name",
+            "type": "any",
+            "description": "菜单项名称",
+            "required": true
+          },
+          {
+            "name": "callback",
+            "type": "any",
+            "description": "回调函数，接收当前文本作为参数，返回处理后的文本",
+            "required": true
+          },
+          {
+            "name": "shortcut",
+            "type": "any",
+            "description": "快捷键（可选），如 'Ctrl+Alt+X'",
+            "required": false,
+            "default": null
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否注册成功"
+        }
+      },
+      {
+        "name": "get_text",
+        "description": "API: 获取当前输入框中的文本",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "str",
+          "description": "当前输入框中的文本"
+        }
+      },
+      {
+        "name": "set_text",
+        "description": "API: 设置输入框中的文本",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "text",
+            "type": "any",
+            "description": "要设置的文本",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否设置成功"
+        }
+      },
+      {
+        "name": "render_markdown",
+        "description": "API: 渲染 Markdown 文本并显示预览窗口",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "text",
+            "type": "any",
+            "description": "可选参数，如果不传则使用输入框中的文本",
+            "required": false,
+            "default": null
+          }
+        ],
+        "returns": {
+          "type": "bool",
+          "description": "是否成功显示预览窗口"
+        }
+      },
+      {
         "name": "create_menu",
         "description": "创建新的顶部菜单",
-        "stable": true,
+        "stable": false,
         "parameters": [
           {
             "name": "menu_name",
@@ -33,88 +123,13 @@
           "type": "bool",
           "description": "是否创建成功"
         }
-      },
-      {
-        "name": "register_text_action",
-        "description": "注册自定义文本处理菜单项",
-        "stable": true,
-        "parameters": [
-          {
-            "name": "name",
-            "type": "str",
-            "description": "菜单项名称",
-            "required": true
-          },
-          {
-            "name": "callback",
-            "type": "function",
-            "description": "回调函数，接收当前文本作为参数，返回处理后的文本",
-            "required": true
-          },
-          {
-            "name": "shortcut",
-            "type": "str",
-            "description": "快捷键（可选），如 'Ctrl+Alt+X'",
-            "required": false
-          }
-        ],
-        "returns": {
-          "type": "bool",
-          "description": "是否注册成功"
-        }
-      },
-      {
-        "name": "get_text",
-        "description": "获取当前输入框中的文本",
-        "stable": true,
-        "parameters": [],
-        "returns": {
-          "type": "str",
-          "description": "当前输入框中的文本"
-        }
-      },
-      {
-        "name": "set_text",
-        "description": "设置输入框中的文本",
-        "stable": true,
-        "parameters": [
-          {
-            "name": "text",
-            "type": "str",
-            "description": "要设置的文本",
-            "required": true
-          }
-        ],
-        "returns": {
-          "type": "bool",
-          "description": "是否设置成功"
-        }
-      },
-      {
-        "name": "render_markdown",
-        "description": "渲染 Markdown 文本并显示预览窗口",
-        "stable": true,
-        "parameters": [
-          {
-            "name": "text",
-            "type": "str",
-            "description": "要渲染的文本",
-            "required": true
-          }
-        ],
-        "returns": {
-          "type": "bool",
-          "description": "是否成功显示预览窗口"
-        }
       }
     ]
   },
-  
   "callbacks": {
     "on_load": "load_plugin",
     "on_unload": "unload_plugin"
   },
-  
   "tabs": [
     {
       "name": "📝 文本处理",

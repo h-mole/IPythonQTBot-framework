@@ -122,7 +122,26 @@ pip install mcp openai python-dotenv
 
 ### 2. 在插件中使用
 
-只需在插件方法的 `plugin.json` 中配置 `enable_mcp: true`：
+**方式一：代码中声明（推荐）**
+
+在注册方法时通过 `extra_data` 参数声明：
+
+```python
+def load_plugin(plugin_manager):
+    tab = MyPluginTab()
+    
+    # 注册为 MCP 工具
+    plugin_manager.register_method(
+        "text_helper", 
+        "get_text", 
+        tab.get_text_api,
+        extra_data={"enable_mcp": True}  # 关键：声明为 MCP 工具
+    )
+```
+
+**方式二：plugin.json 中声明**
+
+也可以在 `plugin.json` 中配置（代码中仍需提供）：
 
 ```json
 {
@@ -140,10 +159,22 @@ pip install mcp openai python-dotenv
 }
 ```
 
+```python
+# 代码中必须对应提供 extra_data
+plugin_manager.register_method(
+    "text_helper", 
+    "get_text", 
+    tab.get_text_api,
+    extra_data={"enable_mcp": True}
+)
+```
+
+⚠️ **注意**：系统会以代码中的 `extra_data` 为准，自动同步到 `plugin.json`。
+
 ### 3. Agent 会自动处理
 
 当创建 Agent 时，它会自动：
-1. 扫描所有启用 MCP 的方法
+1. 扫描所有启用 MCP 的方法（检查 `extra_data.enable_mcp`）
 2. 使用 MCP 的类型解析机制转换为 OpenAI Tool 格式
 3. 添加到 LLM 的工具列表中
 
@@ -203,3 +234,4 @@ import inspect as insp_module
 1. **MCP 是可选依赖**：如果不安装会回退到基础实现
 2. **类型注解必需**：为了让 MCP 正确解析，建议为函数参数添加类型注解
 3. **文档字符串推荐**：虽然不是必需的，但推荐使用标准格式的 docstring
+4. **代码优先原则**：`extra_data` 以代码中的声明为准，会自动同步到 `plugin.json`

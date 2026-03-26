@@ -211,6 +211,10 @@ class PluginManager(QObject):
         # 用于追踪每个插件注册的 UI 元素，支持热加载时清理
         self.ui_elements_registry: dict[str, list[RegisteredUIElement]] = {}
 
+        # 当前加载中的插件信息（用于元数据同步）
+        self._current_loading_plugin: str | None = None
+        self._current_plugin_registered_methods: dict[str, dict] = {}
+
         # 从threading.Thread或者QThread发送UI更新回调，在UI线程执行。
         self.update_ui_signal.connect(self._exec_update_ui_callback)
 
@@ -529,9 +533,41 @@ class PluginManager(QObject):
         sys.modules[f"plugin_{plugin_name}"] = plugin_module  # 注册到 sys.modules
         spec.loader.exec_module(plugin_module)
 
+        # 设置当前加载中的插件（用于元数据同步）
+        self._current_loading_plugin = plugin_name
+        self._current_plugin_registered_methods = {}
+
         # 执行加载函数
         if hasattr(plugin_module, "load_plugin"):
             result = plugin_module.load_plugin(self)
+
+            # ===== 元数据同步：以代码为准更新 plugin.json =====
+            try:
+                from .plugin_metadata_sync import sync_plugin_metadata
+                
+                updated_config, sync_summary = sync_plugin_metadata(
+                    plugin_path=plugin_path,
+                    plugin_config=plugin_config,
+                    registered_methods=self._current_plugin_registered_methods,
+                    save_to_file=True
+                )
+                
+                # 使用更新后的配置
+                plugin_config = updated_config
+                
+                # 如果有变更，打印摘要
+                if sync_summary and "无需更新" not in sync_summary:
+                    print(f"[PluginManager] {sync_summary}")
+                    
+            except Exception as e:
+                # 同步失败不应影响插件加载，仅记录错误
+                print(f"[PluginManager] 警告：插件 '{plugin_name}' 元数据同步失败: {e}")
+                import traceback
+                traceback.print_exc()
+
+            # 清理当前加载状态
+            self._current_loading_plugin = None
+            self._current_plugin_registered_methods = {}
 
             # 缓存方法的元数据（从 plugin.json 的 exports.methods）
             exports = plugin_config.get("exports", {})
@@ -564,6 +600,9 @@ class PluginManager(QObject):
 
             print(f"[PluginManager] 插件 {plugin_name} 加载成功")
         else:
+            # 清理当前加载状态
+            self._current_loading_plugin = None
+            self._current_plugin_registered_methods = {}
             raise Exception(f"插件 {plugin_name} 缺少 load_plugin 函数")
 
     def _check_plugin_dependencies(self, dependencies, plugin_name):
@@ -826,10 +865,21 @@ class PluginManager(QObject):
         assert (
             method_name not in self.methods_registry[namespace]
         ), f"命名空间 {namespace} 下已存在同名方法：{method_name}"
+        
         # 存储方法及其元数据
-        self.methods_registry[namespace][method_name] = {
+        method_entry = {
             "func": func,
         }
+        self.methods_registry[namespace][method_name] = method_entry
+
+        # 记录到当前插件的注册方法中（用于元数据同步）
+        if self._current_loading_plugin:
+            self._current_plugin_registered_methods[method_name] = {
+                "func": func,
+                "extra_data": extra_data,
+                "llm_tool_info": llm_tool_info,
+                "namespace": namespace,
+            }
 
         print(f"[PluginManager] 注册方法：{namespace}.{method_name}")
         if extra_data:

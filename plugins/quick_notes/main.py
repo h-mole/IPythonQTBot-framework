@@ -1242,17 +1242,25 @@ def load_plugin(plugin_manager: "PluginManager"):
     )
     plugin_manager.register_method("quick_notes", "load_note", notes_tab.load_note_api)
     plugin_manager.register_method(
-        "quick_notes", "load_note_to_ipython", notes_tab.load_note_to_ipython_api
+        "quick_notes", "read_note", notes_tab.load_note_api,
+        extra_data={"enable_mcp": True}
+    )
+    plugin_manager.register_method(
+        "quick_notes", "load_note_to_ipython", notes_tab.load_note_to_ipython_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method("quick_notes", "save_note", notes_tab.save_note_api)
     plugin_manager.register_method(
-        "quick_notes", "query_note_by_name", notes_tab.query_note_by_name_api
+        "quick_notes", "query_note_by_name", notes_tab.query_note_by_name_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
-        "quick_notes", "query_notes_by_text", notes_tab.query_notes_by_text_api
+        "quick_notes", "query_notes_by_text", notes_tab.query_notes_by_text_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
-        "quick_notes", "save_textfile_safe", notes_tab.save_textfile_safe_api
+        "quick_notes", "save_textfile_safe", notes_tab.save_textfile_safe_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
         "quick_notes", "patch_textfile_safe", notes_tab.patch_textfile_safe_api, extra_data={"enable_mcp": True}

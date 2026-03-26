@@ -10,48 +10,66 @@
     "methods": [
       {
         "name": "create_note",
-        "description": "创建新笔记",
+        "description": "API: 创建新笔记",
         "stable": true,
         "parameters": [
           {
             "name": "name",
-            "type": "str",
+            "type": "any",
             "description": "笔记名称",
             "required": true
           },
           {
             "name": "folder",
-            "type": "str",
-            "description": "所属文件夹路径（可选）,只接受相对路径",
-            "required": false
+            "type": "any",
+            "description": "所属文件夹路径（可选）",
+            "required": false,
+            "default": null
           }
         ],
         "returns": {
-          "type": "str",
-          "description": "返回创建的笔记完整路径"
+          "type": "any",
+          "description": ""
+        }
+      },
+      {
+        "name": "load_note",
+        "description": "API: 加载笔记内容",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "path",
+            "type": "any",
+            "description": "笔记文件相对路径，如 \"folder/notes.txt\"",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "any",
+          "description": ""
         }
       },
       {
         "name": "load_note_to_ipython",
-        "description": "加载笔记内容到IPython",
+        "description": "API: 加载笔记内容到IPython为一个字符串，变量名自拟。在不需要读取笔记全部内容，或需要将该内容加载到ipython使用时，推荐优先使用该方法",
         "stable": true,
         "parameters": [
           {
             "name": "variable_name",
             "type": "str",
-            "description": "笔记内容保存的变量名",
+            "description": "str, 笔记内容保存的变量名",
             "required": true
           },
           {
             "name": "path",
             "type": "str",
-            "description": "笔记文件路径",
+            "description": "笔记文件路径(相对路径)",
             "required": true
           }
         ],
         "returns": {
           "type": "str",
-          "description": "返回'success'表示成功加载到IPython，返回其他错误日志表示失败"
+          "description": "str: 笔记文本内容，返回'success'表示成功加载到IPython，返回其他错误信息表示失败"
         },
         "extra_data": {
           "enable_mcp": true
@@ -59,94 +77,42 @@
       },
       {
         "name": "save_note",
-        "description": "保存笔记",
+        "description": "API: 保存笔记",
         "stable": true,
         "parameters": [
           {
             "name": "path",
-            "type": "str",
+            "type": "any",
             "description": "笔记文件路径",
             "required": true
           },
           {
             "name": "content",
-            "type": "str",
+            "type": "any",
             "description": "笔记内容",
             "required": true
           }
         ],
         "returns": {
-          "type": "bool",
-          "description": "保存是否成功"
-        }
-      },
-      {
-        "name": "save_textfile_safe",
-        "description": "保存笔记,仅允许操作allow list路径下面的文件",
-        "stable": true,
-        "parameters": [
-          {
-            "name": "path",
-            "type": "str",
-            "description": "文件相对路径",
-            "required": true
-          },
-          {
-            "name": "content",
-            "type": "str",
-            "description": "文件内容",
-            "required": true
-          }
-        ],
-        "returns": {
-          "type": "bool",
-          "description": "保存是否成功"
-        },
-        "extra_data": {
-          "enable_mcp": true
-        }
-      },
-      {
-        "name": "patch_textfile_safe",
-        "description": "保存笔记,仅允许操作allow list路径下面的文件",
-        "stable": true,
-        "parameters": [
-          {
-            "name": "path",
-            "type": "str",
-            "description": "文件相对路径",
-            "required": true
-          },
-          {
-            "name": "patch",
-            "type": "str",
-            "description": "文件内容",
-            "required": true
-          }
-        ],
-        "returns": {
-          "type": "bool",
-          "description": "保存是否成功"
-        },
-        "extra_data": {
-          "enable_mcp": true
+          "type": "any",
+          "description": ""
         }
       },
       {
         "name": "query_note_by_name",
-        "description": "查询笔记名称",
+        "description": "API: 查询笔记名称",
         "stable": true,
         "parameters": [
           {
             "name": "name_query",
             "type": "str",
-            "description": "笔记名称查询字符串，模糊匹配",
+            "description": "str 笔记名称查询字符串，模糊匹配",
             "required": true
           }
         ],
         "returns": {
-          "type": "str",
-          "description": "笔记相对路径，如果找到多个匹配项，则返回第一个匹配项的路径。若无匹配则为空字符串"
+          "type": "any",
+          "description": ""
         },
         "extra_data": {
           "enable_mcp": true
@@ -154,96 +120,99 @@
       },
       {
         "name": "query_notes_by_text",
-        "description": "查询笔记内容",
+        "description": "API: 全局查询笔记内容，支持正则表达式、限制条数和字符数，默认情况下不需要调整。",
         "stable": true,
         "parameters": [
           {
             "name": "text_query",
             "type": "str",
-            "description": "笔记内容查询字符串，模糊匹配",
+            "description": "str 笔记内容查询字符串，模糊匹配",
             "required": true
+          },
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "返回的结果条数限制",
+            "required": false,
+            "default": 10
           },
           {
             "name": "chunk_size",
             "type": "int",
             "description": "每个笔记块的字符数限制",
-            "required": false
-          },
-          {
-            "name": "limit",
-            "type": "int",
-            "description": "返回结果条数限制",
-            "required": false
+            "required": false,
+            "default": 1000
           },
           {
             "name": "regex",
             "type": "bool",
-            "description": "是否使用正则表达式匹配",
-            "required": false
+            "description": "是否使用正则表达式匹配,正则匹配时将直接用正则匹配,否则文本将被以空格切分后按照or的逻辑匹配返回.",
+            "required": false,
+            "default": false
           },
           {
             "name": "folder",
             "type": "str",
-            "description": "查询的文件夹路径,默认为空,则从根目录开始查询",
-            "required": false
+            "description": "查询的文件夹相对路径,如\"scripts/\",默认为空,则从根目录开始查询",
+            "required": false,
+            "default": ""
           }
         ],
         "returns": {
           "type": "list",
-          "description": "返回笔记相对路径列表，如果找到多个匹配项，则返回所有匹配项的路径。若无匹配则为空列表"
+          "description": "list[tuple[str, str]]: 笔记的相对路径和内容的列表"
         },
         "extra_data": {
           "enable_mcp": true
         }
       },
       {
-        "name": "read_note",
-        "description": "读取笔记内容",
+        "name": "save_textfile_safe",
+        "description": "API: 保存文本文件, 目前仅允许操作scripts/下面的文件以及skills/../scripts/下面的文件。比如\"scripts/demo.py\", \"skills/myskill/ability1/scripts/xx.py\"是允许创建的, \"abc/demo.py\"就是不允许创建的",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "path",
+            "type": "any",
+            "description": "str, 文件相对路径",
+            "required": true
+          },
+          {
+            "name": "content",
+            "type": "any",
+            "description": "str, 文件内容",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "any",
+          "description": ""
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
+        "name": "patch_textfile_safe",
+        "description": "API: 安全地应用文本补丁，允许修改的文件也是scripts/下面的文件以及skills/../scripts/下面的文件 接收 search...replace 格式的补丁，格式如下： <<<< SEARCH 要搜索的内容 ==== 替换后的内容 >>>> REPLACE",
         "stable": true,
         "parameters": [
           {
             "name": "path",
             "type": "str",
-            "description": "笔记文件路径",
+            "description": "str, 文件相对路径（只允许 scripts/ 和 skills/../scripts/ 下的文件）",
+            "required": true
+          },
+          {
+            "name": "patch",
+            "type": "str",
+            "description": "str, 补丁内容（search...replace 格式）",
             "required": true
           }
         ],
         "returns": {
           "type": "str",
-          "description": "返回笔记文本内容"
-        },
-        "extra_data": {
-          "enable_mcp": true
-        }
-      },
-      {
-        "name": "get_all_skills_summary",
-        "description": "获取所有技能的概要信息列表，包括技能名称、描述、路径等基本信息",
-        "stable": true,
-        "parameters": [],
-        "returns": {
-          "type": "list",
-          "description": "技能概要信息列表，每个元素包含 name、description、path 等字段"
-        },
-        "extra_data": {
-          "enable_mcp": true
-        }
-      },
-      {
-        "name": "get_skill_detail",
-        "description": "获取单个技能的详细信息，包括完整的元数据、Markdown 内容、脚本和参考资料列表",
-        "stable": true,
-        "parameters": [
-          {
-            "name": "skill_name",
-            "type": "str",
-            "description": "技能名称（kebab-case 格式，如 'pdf-processing'）",
-            "required": true
-          }
-        ],
-        "returns": {
-          "type": "dict",
-          "description": "技能详细信息字典，包含 metadata、content、scripts、references 等字段"
+          "description": "str: 操作结果状态信息 - \"success\": 补丁应用成功 - \"path not allowed: {path}\": 路径不允许 - \"file not found\": 文件不存在 - \"patch format error\": 补丁格式错误 - \"search content not found\": 搜索内容在文件中未找到 - \"syntax error: {error}\": Python 语法错误（仅对 .py 文件）"
         },
         "extra_data": {
           "enable_mcp": true
@@ -251,19 +220,52 @@
       },
       {
         "name": "exec_note_in_ipython",
-        "description": "执行笔记内容",
+        "description": "API: 在IPython中执行记事本中保存的Python文件，返回执行结果",
         "stable": true,
         "parameters": [
           {
             "name": "path",
             "type": "str",
-            "description": "笔记文件路径",
+            "description": "文件路径(相对路径, 如scripts/demo.py)",
             "required": true
           }
         ],
         "returns": {
-          "type": "object",
-          "description": "返回执行结果"
+          "type": "dict",
+          "description": "dict: {\"success\": bool, \"output\": str, \"result\": object, \"error\": str} success: 是否执行成功，output: print输出的内容，result: IPython代码块执行的返回值，error: 错误信息"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
+        "name": "get_all_skills_summary",
+        "description": "API: 获取所有技能的概要信息（MCP 接口）",
+        "stable": true,
+        "parameters": [],
+        "returns": {
+          "type": "list",
+          "description": "list[dict]: 技能概要信息列表，每个包含: - name: 技能名称 - description: 技能描述 - path: 技能路径 - has_scripts: 是否有 scripts 目录 - has_references: 是否有 references 目录 - has_assets: 是否有 assets 目录 - version: 版本号 - author: 作者 - license: 许可证"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
+        "name": "get_skill_detail",
+        "description": "API: 获取单个技能的详细信息（MCP 接口）",
+        "stable": true,
+        "parameters": [
+          {
+            "name": "skill_name",
+            "type": "str",
+            "description": "case 格式，如 \"pdf-processing\"）",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "dict",
+          "description": "dict: 技能详细信息，包含: - name: 技能名称 - description: 技能描述 - path: 技能路径 - metadata: 完整的 YAML 元数据 - content: Markdown 正文内容 - full_content: 完整内容（包含 frontmatter） - scripts: scripts 目录下的文件列表 - references: references 目录下的文件列表 - assets: assets 目录下的文件列表"
         },
         "extra_data": {
           "enable_mcp": true
@@ -271,12 +273,12 @@
       },
       {
         "name": "query_skills",
-        "description": "查询所有技能名称列表",
+        "description": "API: 查询技能名称",
         "stable": true,
         "parameters": [],
         "returns": {
-          "type": "str",
-          "description": "技能名称列表，多个技能名称用换行符分隔"
+          "type": "any",
+          "description": ""
         },
         "extra_data": {
           "enable_mcp": true
@@ -284,7 +286,7 @@
       },
       {
         "name": "copy_file",
-        "description": "复制文件到新路径",
+        "description": "API: 复制文件到新路径",
         "stable": true,
         "parameters": [
           {
@@ -302,7 +304,7 @@
         ],
         "returns": {
           "type": "str",
-          "description": "操作结果，success表示成功，其他为错误信息"
+          "description": "str: 操作结果，\"success\"表示成功，其他为错误信息"
         },
         "extra_data": {
           "enable_mcp": true
@@ -310,7 +312,7 @@
       },
       {
         "name": "backup_file",
-        "description": "备份文件到backups文件夹",
+        "description": "API: 备份文件到 backups 文件夹",
         "stable": true,
         "parameters": [
           {
@@ -323,12 +325,33 @@
             "name": "backup_name",
             "type": "str",
             "description": "备份文件名（可选，默认在原文件名后加时间戳）",
-            "required": false
+            "required": false,
+            "default": null
           }
         ],
         "returns": {
           "type": "str",
-          "description": "操作结果，success表示成功，其他为错误信息"
+          "description": "str: 操作结果，\"success\"表示成功，其他为错误信息"
+        },
+        "extra_data": {
+          "enable_mcp": true
+        }
+      },
+      {
+        "name": "read_note",
+        "description": "读取笔记内容",
+        "stable": false,
+        "parameters": [
+          {
+            "name": "path",
+            "type": "str",
+            "description": "笔记文件路径",
+            "required": true
+          }
+        ],
+        "returns": {
+          "type": "str",
+          "description": "返回笔记文本内容"
         },
         "extra_data": {
           "enable_mcp": true

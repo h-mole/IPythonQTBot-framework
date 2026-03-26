@@ -1369,19 +1369,23 @@ def load_plugin(plugin_manager: PluginManager):
 
     # 注册暴露的方法到全局域
     plugin_manager.register_method(
-        "daily_tasks", "get_all_enum_values", tasks_tab.get_all_enum_values_api
+        "daily_tasks", "get_all_enum_values", tasks_tab.get_all_enum_values_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
-        "daily_tasks", "add_task", tasks_tab.add_task_api
+        "daily_tasks", "add_task", tasks_tab.add_task_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
         "daily_tasks", "delete_task", tasks_tab.delete_task_api
     )
     plugin_manager.register_method(
-        "daily_tasks", "get_tasks", tasks_tab.get_tasks_api
+        "daily_tasks", "get_tasks", tasks_tab.get_tasks_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
-        "daily_tasks", "get_todo_tasks", tasks_tab.get_todo_tasks_api
+        "daily_tasks", "get_todo_tasks", tasks_tab.get_todo_tasks_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
         "daily_tasks", "get_task_by_id", tasks_tab.get_task_by_id_api

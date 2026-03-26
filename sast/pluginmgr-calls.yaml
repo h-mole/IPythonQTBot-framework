@@ -1,0 +1,23 @@
+rules:
+  - id: plugin-manager-method-call
+    languages:
+      - python
+    severity: INFO
+    message: "Detected PluginManager method call: $CALL"
+    mode: search
+    pattern-either:
+      # Match case 1: def (xx: PluginManager) or xx: PluginManager = ...
+      - pattern: |
+          $VAR: PluginManager = ...
+          ...
+          $VAR.$METHOD(...)
+      # Match case 2: def func($VAR: PluginManager)
+      - pattern: |
+          def $FUNC(..., $VAR: PluginManager, ...):
+            ...
+            $VAR.$METHOD(...)
+      # Match case 3: xx = get_plugin_manager()
+      - pattern: |
+          $VAR = get_plugin_manager()
+          ...
+          $VAR.$METHOD(...)

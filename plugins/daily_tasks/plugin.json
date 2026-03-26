@@ -11,7 +11,7 @@
     "methods": [
       {
         "name": "get_all_enum_values",
-        "description": "获得枚举值清单",
+        "description": "API: 获得全部可能的枚举值清单，当添加任务时不知道枚举值时，需要用该方法查询。\nArgs:\n    无\n\nReturns:\n    dict[str, list[str]]: 过滤器名称列表，比如 {\"category\": [\"类别1\", \"类别2\"], \"subcategory\": [\"小类1\", \"小类2\"], \"reminder_type\": [...], \"status\": [...] }",
         "stable": true,
         "parameters": [
           {
@@ -22,8 +22,8 @@
           }
         ],
         "returns": {
-          "type": "list",
-          "description": "枚举值清单"
+          "type": "dict",
+          "description": ""
         },
         "extra_data": {
           "enable_mcp": true
@@ -31,19 +31,19 @@
       },
       {
         "name": "add_task",
-        "description": "添加新任务",
+        "description": "API: 添加任务，注意如果发现有的枚举值不知道该怎么填的时候，应当首先查询枚举值清单，不要随意填写。",
         "stable": true,
         "parameters": [
           {
             "name": "task_data",
             "type": "dict",
-            "description": "任务数据字典，包含 category、subcategory、description、due_date、reminder_type、reminder_time、status、notes 等字段",
+            "description": "任务数据字典，包含以下字段：\n- category(str): 任务大类，需查阅枚举值清单，如果没有贴切的，就取名为 \"其他\"\n- subcategory(str): 任务小类，需查阅枚举值清单，如果没有贴切的，就取名为 \"其他\"\n- description(str): 任务说明，不能为空\n- due_date(str): 完成日期 (格式：yyyy-MM-dd)，不能为空\n- reminder_type(str): 提醒方式，需查阅枚举值清单，如果没有则设置为“其他”\n- reminder_time(str): 提醒时间 (格式：HH:mm), 如 \"12:00\"，如果无需设置则设置为当日\"10:30\"\n- status(str): 完成状态，需查阅枚举值清单，如果没有则设置为“其他”\n- notes(str): 备注",
             "required": true
           }
         ],
         "returns": {
           "type": "int",
-          "description": "新任务的 ID，失败返回 -1"
+          "description": "新任务的 ID，如果失败返回 -1"
         },
         "extra_data": {
           "enable_mcp": true
@@ -51,7 +51,7 @@
       },
       {
         "name": "delete_task",
-        "description": "删除任务",
+        "description": "API: 删除任务",
         "stable": true,
         "parameters": [
           {
@@ -68,14 +68,15 @@
       },
       {
         "name": "get_tasks",
-        "description": "获取任务列表",
+        "description": "API: 获取任务列表",
         "stable": true,
         "parameters": [
           {
             "name": "filters",
             "type": "dict",
-            "description": "过滤条件（可选），支持 category、subcategory、status、due_date_from、due_date_to",
-            "required": false
+            "description": "过滤条件（可选），支持：\n- category: 任务大类（字符串或列表）\n- subcategory: 任务小类（字符串或列表）\n- status: 完成状态（字符串或列表）\n- due_date_from: 开始日期 (格式：yyyy-MM-dd)\n- due_date_to: 结束日期 (格式：yyyy-MM-dd)",
+            "required": false,
+            "default": null
           }
         ],
         "returns": {
@@ -88,7 +89,7 @@
       },
       {
         "name": "get_todo_tasks",
-        "description": "获取状态非“完成”的任务列表",
+        "description": "API: 获取状态非“完成”的任务列表",
         "stable": true,
         "parameters": [],
         "returns": {
@@ -101,7 +102,7 @@
       },
       {
         "name": "get_task_by_id",
-        "description": "根据 ID 获取任务",
+        "description": "API: 根据 ID 获取任务",
         "stable": true,
         "parameters": [
           {
@@ -118,7 +119,7 @@
       },
       {
         "name": "update_task",
-        "description": "更新任务",
+        "description": "API: 更新任务",
         "stable": true,
         "parameters": [
           {
@@ -141,7 +142,7 @@
       },
       {
         "name": "filter_tasks_by_date",
-        "description": "按日期过滤任务",
+        "description": "API: 按日期过滤任务",
         "stable": true,
         "parameters": [
           {
@@ -153,8 +154,9 @@
           {
             "name": "end_date",
             "type": "str",
-            "description": "结束日期（可选，格式：yyyy-MM-dd）",
-            "required": false
+            "description": "结束日期（可选，格式：yyyy-MM-dd），不提供则只过滤当天的",
+            "required": false,
+            "default": null
           }
         ],
         "returns": {
@@ -164,7 +166,7 @@
       },
       {
         "name": "mark_task_complete",
-        "description": "标记任务为完成",
+        "description": "API: 标记任务为完成",
         "stable": true,
         "parameters": [
           {

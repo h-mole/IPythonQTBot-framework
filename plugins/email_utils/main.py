@@ -44,16 +44,19 @@ def load_plugin(plugin_manager):
     )
     
     plugin_manager.register_method(
-        "email_utils", "get_recent_emails", get_recent_emails_api
+        "email_utils", "get_recent_emails", get_recent_emails_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
         "email_utils", "get_email_detail", get_email_detail_api
     )
     plugin_manager.register_method(
-        "email_utils", "send_email", send_email_api
+        "email_utils", "send_email", send_email_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
-        "email_utils", "reply_email", reply_email_api
+        "email_utils", "reply_email", reply_email_api,
+        extra_data={"enable_mcp": True}
     )
     plugin_manager.register_method(
         "email_utils", "get_attachments", get_attachments_api
@@ -62,7 +65,8 @@ def load_plugin(plugin_manager):
         "email_utils", "download_attachment", download_attachment_api
     )
     plugin_manager.register_method(
-        "email_utils", "get_accounts", get_accounts_api
+        "email_utils", "get_accounts", get_accounts_api,
+        extra_data={"enable_mcp": True}
     )
     
     # 添加到标签页
