@@ -86,7 +86,7 @@
       {
         "name": "render_markdown",
         "description": "API: 渲染 Markdown 文本并显示预览窗口",
-        "stable": true,
+        "stable": false,
         "parameters": [
           {
             "name": "text",

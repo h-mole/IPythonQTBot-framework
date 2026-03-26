@@ -85,6 +85,7 @@ class VariablesTable(QWidget):
                 gridline-color: #ddd;
                 font-family: Consolas;
                 font-size: 10pt;
+                alternate-background-color: #f5f5f5;
             }
             QTableWidget#variablesTable::item {
                 padding: 5px;
