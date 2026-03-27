@@ -178,15 +178,6 @@ class HttpServerPlugin:
             return None
         return f"http://{self._host}:{self._port}"
     
-    def get_app(self) -> Optional[Any]:
-        """
-        获取 Flask 应用实例
-        
-        Returns:
-            Flask: Flask 应用实例，如果未启动则返回 None
-        """
-        return self._app
-    
     def register_blueprint(self, blueprint: Any, url_prefix: Optional[str] = None) -> Dict[str, Any]:
         """
         注册 Flask Blueprint（路由组）
@@ -315,10 +306,6 @@ def load_plugin(plugin_manager):
     plugin_manager.register_method(
         "http_server", "register_route", _plugin_instance.register_route
     )
-    plugin_manager.register_method(
-        "http_server", "get_app", _plugin_instance.get_app
-    )
-    
     # 自动启动服务器（在后台线程中）
     result = _plugin_instance.start()
     if result["success"]:

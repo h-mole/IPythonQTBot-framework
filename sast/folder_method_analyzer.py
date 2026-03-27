@@ -862,8 +862,8 @@ class FolderMethodAnalyzer:
                           label="project",
                           shape="box",
                           style="rounded,filled",
-                          fillcolor="lightcyan",
-                          color="darkblue",
+                          fillcolor="#E0FFFF",
+                          color="#00008B",
                           penwidth=2)
             
             # 添加 System 节点
@@ -876,8 +876,8 @@ class FolderMethodAnalyzer:
                           label="system",
                           shape="box",
                           style="rounded,filled",
-                          fillcolor="lightsteelblue",
-                          color="darkblue")
+                          fillcolor="#B0C4DE",
+                          color="#00008B")
             
             # 添加 MCP 节点
             has_mcp_methods = any(
@@ -889,8 +889,8 @@ class FolderMethodAnalyzer:
                           label="MCP",
                           shape="diamond",
                           style="filled",
-                          fillcolor="gold",
-                          color="darkorange",
+                          fillcolor="#FFD700",
+                          color="#FF8C00",
                           penwidth=2)
             
             # 添加插件节点
@@ -901,8 +901,8 @@ class FolderMethodAnalyzer:
                           label=plugin_name,
                           shape="box",
                           style="rounded,filled",
-                          fillcolor="lightblue",
-                          color="darkblue")
+                          fillcolor="#ADD8E6",
+                          color="#00008B")
             
             # 添加方法节点和提供关系边
             for method_name, info in global_method_registry.items():
@@ -918,12 +918,12 @@ class FolderMethodAnalyzer:
                           shape="ellipse",
                           style="filled",
                           fillcolor=fillcolor,
-                          color="darkgoldenrod")
+                          color="#B8860B")
                 
                 # 插件 -> 方法（提供关系，深绿色）
                 G.add_edge(plugin_name, method_name,
                           edge_type="provides",
-                          color="darkgreen",
+                          color="#006400",
                           penwidth=1.2)
                 
                 # MCP -> 方法（虚线，enable_mcp）
@@ -931,7 +931,7 @@ class FolderMethodAnalyzer:
                     G.add_edge("MCP", method_name,
                               edge_type="mcp",
                               style="dashed",
-                              color="orange",
+                              color="#FFA500",
                               penwidth=1.5,
                               label="enable_mcp")
             
@@ -947,7 +947,7 @@ class FolderMethodAnalyzer:
                             # 添加依赖边：源插件 -> 目标方法
                             G.add_edge(source_plugin, target_method_name,
                                       edge_type="depends",
-                                      color="crimson",
+                                      color="#DC143C",
                                       penwidth=1.0,
                                       label="uses")
                         else:
@@ -961,12 +961,12 @@ class FolderMethodAnalyzer:
                                           full_name=target_method_name,
                                           shape="ellipse",
                                           style="dashed,filled",
-                                          fillcolor="lightgray",
-                                          color="gray")
+                                          fillcolor="#D3D3D3",
+                                          color="#808080")
                             # 添加依赖边
                             G.add_edge(source_plugin, target_method_name,
                                       edge_type="external_depends",
-                                      color="gray",
+                                      color="#808080",
                                       style="dashed",
                                       penwidth=0.8)
         else:
@@ -1004,14 +1004,14 @@ class FolderMethodAnalyzer:
                       label=plugin_name,
                       shape="box",
                       style="rounded,filled",
-                      fillcolor="lightblue")
+                      fillcolor="#ADD8E6")
         
         # 添加依赖边
         for source_plugin, target_plugins in plugin_deps.items():
             for target_plugin in target_plugins:
                 G.add_edge(source_plugin, target_plugin,
                           edge_type="depends",
-                          color="crimson")
+                          color="#DC143C")
     
     def _generate_plugin_level_graph(self, G: 'nx.DiGraph', 
                                      folder_to_plugin: dict,
@@ -1025,7 +1025,7 @@ class FolderMethodAnalyzer:
                       label=plugin_name,
                       shape="box",
                       style="rounded,filled",
-                      fillcolor="lightblue")
+                      fillcolor="#ADD8E6")
         
         # 分析插件间的依赖
         for summary in self.folder_summaries:
@@ -1145,8 +1145,8 @@ class FolderMethodAnalyzer:
                 safe_node = self._dot_safe_id(node)
                 label = attrs.get("label", node)
                 lines.append(f'    {safe_node} [label="{label}", shape=box, '
-                            f'style="rounded,filled", fillcolor=lightcyan, '
-                            f'color=darkblue, penwidth=2];')
+                            f'style="rounded,filled", fillcolor="#E0FFFF", '
+                            f'color="#00008B", penwidth=2];')
             lines.append("")
         
         # 添加 System 节点
@@ -1156,8 +1156,8 @@ class FolderMethodAnalyzer:
                 safe_node = self._dot_safe_id(node)
                 label = attrs.get("label", node)
                 lines.append(f'    {safe_node} [label="{label}", shape=box, '
-                            f'style="rounded,filled", fillcolor=lightsteelblue, '
-                            f'color=darkblue, penwidth=1.5];')
+                            f'style="rounded,filled", fillcolor="#B0C4DE", '
+                            f'color="#00008B", penwidth=1.5];')
             lines.append("")
         
         # 添加 MCP 节点
@@ -1167,7 +1167,7 @@ class FolderMethodAnalyzer:
                 safe_node = self._dot_safe_id(node)
                 label = attrs.get("label", node)
                 lines.append(f'    {safe_node} [label="{label}", shape=diamond, '
-                            f'style=filled, fillcolor=gold, color=darkorange, penwidth=2];')
+                            f'style=filled, fillcolor="#FFD700", color="#FF8C00", penwidth=2];')
             lines.append("")
         
         # 添加插件节点
@@ -1179,12 +1179,12 @@ class FolderMethodAnalyzer:
                 # system 节点使用更突出的样式
                 if node == "system":
                     lines.append(f'    {safe_node} [label="{label}", shape=box, '
-                                f'style="rounded,filled", fillcolor=darkslateblue, '
-                                f'color=darkblue, penwidth=2, fontcolor=white];')
+                                f'style="rounded,filled", fillcolor="#483D8B", '
+                                f'color="#00008B", penwidth=2, fontcolor="#FFFFFF"];')
                 else:
                     lines.append(f'    {safe_node} [label="{label}", shape=box, '
-                                f'style="rounded,filled", fillcolor=lightblue, '
-                                f'color=darkblue, penwidth=1.5];')
+                                f'style="rounded,filled", fillcolor="#ADD8E6", '
+                                f'color="#00008B", penwidth=1.5];')
             lines.append("")
         
         # 添加方法节点
@@ -1195,8 +1195,8 @@ class FolderMethodAnalyzer:
                 label = attrs.get("label", node)
                 full_name = attrs.get("full_name", node)
                 lines.append(f'    {safe_node} [label="{label}", shape=ellipse, '
-                            f'style=filled, fillcolor=lightyellow, '
-                            f'color=darkgoldenrod, tooltip="{full_name}"];')
+                            f'style=filled, fillcolor="#FFFFE0", '
+                            f'color="#B8860B", tooltip="{full_name}"];')
             lines.append("")
         
         # 添加外部方法节点
@@ -1207,8 +1207,8 @@ class FolderMethodAnalyzer:
                 label = attrs.get("label", node)
                 full_name = attrs.get("full_name", node)
                 lines.append(f'    {safe_node} [label="{label}", shape=ellipse, '
-                            f'style="dashed,filled", fillcolor=lightgray, '
-                            f'color=gray, tooltip="{full_name}"];')
+                            f'style="dashed,filled", fillcolor="#D3D3D3", '
+                            f'color="#808080", tooltip="{full_name}"];')
             lines.append("")
         
         # 添加边，按类型分组
@@ -1234,7 +1234,7 @@ class FolderMethodAnalyzer:
             for source, target, attrs in provides_edges:
                 safe_source = self._dot_safe_id(source)
                 safe_target = self._dot_safe_id(target)
-                lines.append(f'    {safe_source} -> {safe_target} [color=darkgreen, penwidth=1.2];')
+                lines.append(f'    {safe_source} -> {safe_target} [color="#006400", penwidth=1.2];')
             lines.append("")
         
         # 依赖关系边（Plugin -> Method，深红色）
@@ -1243,7 +1243,7 @@ class FolderMethodAnalyzer:
             for source, target, attrs in depends_edges:
                 safe_source = self._dot_safe_id(source)
                 safe_target = self._dot_safe_id(target)
-                lines.append(f'    {safe_source} -> {safe_target} [color=crimson, '
+                lines.append(f'    {safe_source} -> {safe_target} [color="#DC143C", '
                             f'penwidth=1.0, label="uses"];')
             lines.append("")
         
@@ -1253,7 +1253,7 @@ class FolderMethodAnalyzer:
             for source, target, attrs in external_depends_edges:
                 safe_source = self._dot_safe_id(source)
                 safe_target = self._dot_safe_id(target)
-                lines.append(f'    {safe_source} -> {safe_target} [color=gray, '
+                lines.append(f'    {safe_source} -> {safe_target} [color="#808080", '
                             f'style=dashed, penwidth=0.8];')
             lines.append("")
         
@@ -1264,8 +1264,8 @@ class FolderMethodAnalyzer:
                 safe_source = self._dot_safe_id(source)
                 safe_target = self._dot_safe_id(target)
                 lines.append(f'    {safe_source} -> {safe_target} [style=dashed, '
-                            f'color=orange, penwidth=1.5, label="enable_mcp", '
-                            f'fontcolor=darkorange, fontsize=9];')
+                            f'color="#FFA500", penwidth=1.5, label="enable_mcp", '
+                            f'fontcolor="#FF8C00", fontsize=9];')
             lines.append("")
         
         lines.append("}")

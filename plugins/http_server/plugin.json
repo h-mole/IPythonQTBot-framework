@@ -4,9 +4,7 @@
   "version": "1.0.0",
   "author": "MyHelper Team",
   "main": "main",
-  
   "dependencies": [],
-  
   "exports": {
     "namespace": "http_server",
     "description": "HTTP 服务器核心 API",
@@ -19,19 +17,21 @@
           {
             "name": "host",
             "type": "str",
-            "description": "主机地址，默认为 127.0.0.1",
-            "required": false
+            "description": "主机地址，默认 127.0.0.1",
+            "required": false,
+            "default": "127.0.0.1"
           },
           {
             "name": "port",
             "type": "int",
-            "description": "端口号，默认为 0（自动分配）",
-            "required": false
+            "description": "端口号，默认 0（自动分配）",
+            "required": false,
+            "default": 0
           }
         ],
         "returns": {
           "type": "dict",
-          "description": "包含 success(bool), host(str), port(int), url(str) 等字段"
+          "description": "包含成功状态、host、port、url 等信息"
         }
       },
       {
@@ -41,7 +41,7 @@
         "parameters": [],
         "returns": {
           "type": "dict",
-          "description": "包含 success(bool), message(str) 等字段"
+          "description": "包含成功状态和消息"
         }
       },
       {
@@ -60,7 +60,7 @@
         "stable": true,
         "parameters": [],
         "returns": {
-          "type": "str",
+          "type": "typing.str | None",
           "description": "服务器 URL，如果未启动则返回 None"
         }
       },
@@ -71,20 +71,21 @@
         "parameters": [
           {
             "name": "blueprint",
-            "type": "Blueprint",
+            "type": "typing.Any",
             "description": "Flask Blueprint 实例",
             "required": true
           },
           {
             "name": "url_prefix",
-            "type": "str",
+            "type": "typing.str | None",
             "description": "URL 前缀，例如 /api/v1",
-            "required": false
+            "required": false,
+            "default": null
           }
         ],
         "returns": {
           "type": "dict",
-          "description": "包含 success(bool), message(str) 等字段"
+          "description": "包含成功状态和消息"
         }
       },
       {
@@ -100,7 +101,7 @@
           },
           {
             "name": "view_func",
-            "type": "callable",
+            "type": "typing.Callable",
             "description": "视图函数",
             "required": true
           },
@@ -108,31 +109,20 @@
             "name": "methods",
             "type": "list",
             "description": "HTTP 方法列表，例如 ['GET', 'POST']",
-            "required": false
+            "required": false,
+            "default": null
           }
         ],
         "returns": {
           "type": "dict",
-          "description": "包含 success(bool), message(str) 等字段"
-        }
-      },
-      {
-        "name": "get_app",
-        "description": "获取 Flask 应用实例（高级用法）",
-        "stable": true,
-        "parameters": [],
-        "returns": {
-          "type": "Flask",
-          "description": "Flask 应用实例，如果未启动则返回 None"
+          "description": "包含成功状态和消息"
         }
       }
     ]
   },
-  
   "callbacks": {
     "on_load": "load_plugin",
     "on_unload": "unload_plugin"
   },
-  
   "tabs": []
 }

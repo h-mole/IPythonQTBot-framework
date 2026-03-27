@@ -148,9 +148,18 @@ class LLMConfigSettings(BaseSettings):
             if provider.name == self.provider:
                 return provider
         raise ValueError(f"Provider {self.provider} not found in provider list: {self.format_providers_list()}")
+class OtherSettings(BaseSettings):
+    demo: str = Field(default="", title="some_value")
+
 class MainAppConfigSettings(BaseSettings):
+    # 类属性：设置表单展示模式为选项卡式
+    _form_display_mode = "tabs"
+    
     llm_config: LLMConfigSettings = Field(
         default_factory=LLMConfigSettings, title="LLM Config"
+    )
+    other_settings: OtherSettings = Field(
+         default_factory=OtherSettings, title="Other Config"
     )
 
     def is_provider_configured(self) -> bool:

@@ -29,14 +29,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# 导入 Markdown 渲染组件
-try:
-    from QMarkdownView import MarkdownView, LinkMiddlewarePolicy
-    HAS_MARKDOWN = True
-except ImportError:
-    HAS_MARKDOWN = False
-    print("[TextHelper] 警告：未找到 QMarkdownView，Markdown 渲染功能将不可用")
-
 
 class TextHelperTab(QWidget):
     """文本处理标签页"""
@@ -98,14 +90,6 @@ class TextHelperTab(QWidget):
         self.text_menu.addAction(self.remove_filename_action)
 
         self.text_menu.addSeparator()
-
-        # 添加 Markdown 渲染菜单项
-        if HAS_MARKDOWN:
-            self.markdown_render_action = QAction("📄 渲染 Markdown", self)
-            self.markdown_render_action.setShortcut(QKeySequence("Ctrl+Alt+M"))
-            self.markdown_render_action.triggered.connect(lambda *args: self.show_markdown_preview())
-            self.text_menu.addAction(self.markdown_render_action)
-            self.text_menu.addSeparator()
 
         self.copy_action = QAction("复制结果", self)
         self.copy_action.setShortcut(QKeySequence("Ctrl+C"))
@@ -328,18 +312,6 @@ class TextHelperTab(QWidget):
 
         return "".join(allowed_chars)
 
-    def render_markdown_api(self, text=None):
-        """
-        API: 渲染 Markdown 文本并显示预览窗口
-
-        Args:
-            text: 可选参数，如果不传则使用输入框中的文本
-
-        Returns:
-            bool: 是否成功显示预览窗口
-        """
-        return self.show_markdown_preview(text)
-
     def load_initial_clipboard(self):
         """加载初始剪贴板内容"""
         try:
@@ -456,86 +428,6 @@ class TextHelperTab(QWidget):
         self.text_input.setPlainText(text)
         print(f"[TextHelper] 已将 {len(text)} 字符的内容发送到编辑器")
 
-    def show_markdown_preview(self, text=None):
-        """
-        显示 Markdown 预览窗口
-        
-        Args:
-            text: 可选参数，如果不传则使用输入框中的文本
-        """
-        if not HAS_MARKDOWN:
-            print("[TextHelper] Markdown 渲染功能不可用")
-            return False
-
-        try:
-            # 获取当前输入框中的文本（如果没有传入 text）
-            if text is None:
-                markdown_text = self.text_input.toPlainText()
-            else:
-                markdown_text = text
-            
-            if not markdown_text.strip():
-                print("[TextHelper] 没有可渲染的 Markdown 内容")
-                return False
-
-            # 创建预览对话框
-            self.preview_dialog = QDialog(self)
-            self.preview_dialog.setWindowTitle("Markdown 预览")
-            self.preview_dialog.resize(800, 600)
-
-            # 设置布局
-            layout = QVBoxLayout()
-            self.preview_dialog.setLayout(layout)
-
-            # 创建 Markdown 视图
-            markdown_view = MarkdownView()
-            markdown_view.setExtensions([
-                "markdown.extensions.tables",
-                "markdown.extensions.extra",
-                "markdown.extensions.codehilite",
-                "markdown.extensions.toc"
-            ])
-            markdown_view.loadFinished.connect(lambda: markdown_view.setValue(markdown_text))
-            # 设置 Markdown 内容
-            
-
-            # 添加到布局
-            layout.addWidget(markdown_view)
-
-            # 创建按钮区域
-            button_layout = QHBoxLayout()
-
-            # 发送到编辑器按钮 - 将原始内容发送到主编辑控件
-            send_btn = QPushButton("发送到编辑器")
-            send_btn.clicked.connect(lambda: self._send_to_editor(markdown_text))
-            button_layout.addWidget(send_btn)
-
-            # 刷新按钮
-            refresh_btn = QPushButton("刷新")
-            refresh_btn.clicked.connect(lambda: markdown_view.setValue(self.text_input.toPlainText() if text is None else text))
-            button_layout.addWidget(refresh_btn)
-
-            # 关闭按钮
-            close_btn = QPushButton("关闭")
-            close_btn.clicked.connect(self.preview_dialog.close)
-            button_layout.addWidget(close_btn)
-
-            button_layout.addStretch()
-
-            layout.addLayout(button_layout)
-
-            # 显示对话框
-            self.preview_dialog.exec_()
-
-            print("[TextHelper] Markdown 预览已关闭")
-            return True
-
-        except Exception as e:
-            print(f"[TextHelper] Markdown 渲染失败：{e}")
-            import traceback
-            traceback.print_exc()
-            return False
-
 
 # ==================== 插件入口函数 ====================
 
@@ -564,7 +456,6 @@ def load_plugin(plugin_manager):
     )
     plugin_manager.register_method("text_helper", "get_text", text_tab.get_text_api)
     plugin_manager.register_method("text_helper", "set_text", text_tab.set_text_api)
-    plugin_manager.register_method("text_helper", "render_markdown", text_tab.render_markdown_api)
 
     # 添加到标签页（由插件管理器统一管理）
     plugin_manager.add_plugin_tab("text_helper", "📝 文本处理", text_tab, position=0)
