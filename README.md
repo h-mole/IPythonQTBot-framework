@@ -106,3 +106,5 @@ After configuration is complete:
 3. **Multi-Tab Interface** - Main window supports multi-tab layout
 4. **API Export** - Plugins can export APIs for LLM Agent invocation
 5. **Third-party MCP Tools Integration** - Quick import of MCP tools support, compatible with CherryStudio tool MCP configuration format
+
+## 🧾 Future Plan

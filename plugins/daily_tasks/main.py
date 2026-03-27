@@ -43,6 +43,7 @@ from openpyxl.utils import get_column_letter
 import plyer
 from app_qt.configs import PLUGIN_DATA_DIR
 from app_qt.widgets.custom_checkbox import CustomCheckBox
+from .colors import TaskColorManager, DateUrgency
 # 默认分类
 DEFAULT_CATEGORIES = ["论文", "项目"]
 DEFAULT_SUBCATEGORIES = ["行政", "项目", "会议", "学习"]
@@ -736,7 +737,21 @@ class TasksManagerTab(QWidget):
             else:
                 due_date_display = due_date
 
-            self.table.setItem(row_position, 4, QTableWidgetItem(due_date_display))
+            due_date_item = QTableWidgetItem(due_date_display)
+            
+            # 为日期列添加颜色提示（支持多层级红色系）
+            urgency = TaskColorManager.get_date_urgency(due_date)
+            if urgency != DateUrgency.NORMAL:
+                bg_color, text_color = TaskColorManager.get_date_urgency_color(urgency)
+                due_date_item.setBackground(bg_color)
+                due_date_item.setForeground(text_color)
+                # 添加提示文字
+                urgency_text = TaskColorManager.get_urgency_display_text(urgency)
+                if urgency_text:
+                    due_date_item.setToolTip(urgency_text)
+            
+            due_date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row_position, 4, due_date_item)
             self.table.setItem(
                 row_position, 5, QTableWidgetItem(task.get("reminder_type", ""))
             )
@@ -744,15 +759,16 @@ class TasksManagerTab(QWidget):
                 row_position, 6, QTableWidgetItem(task.get("reminder_time", ""))
             )
 
-            # 状态列根据状态设置颜色
-            status_item = QTableWidgetItem(task.get("status", ""))
+            # 状态列根据状态设置颜色（状态颜色保持一致，不受日期影响）
             status = task.get("status", "")
-            if status == "已完成":
-                status_item.setBackground(QColor(0, 255, 0))  # 绿色
-            elif status == "进行中":
-                status_item.setBackground(QColor(255, 255, 0))  # 黄色
-            elif status == "已取消":
-                status_item.setBackground(QColor(128, 128, 128))  # 灰色
+            status_item = QTableWidgetItem(status)
+            
+            # 只使用状态颜色，确保同一状态颜色一致
+            bg_color, text_color = TaskColorManager.get_status_color(status)
+            status_item.setBackground(bg_color)
+            status_item.setForeground(text_color)
+            # 设置文字居中
+            status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
             self.table.setItem(row_position, 7, status_item)
 
