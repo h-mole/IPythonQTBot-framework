@@ -39,6 +39,7 @@ from app_qt.widgets.custom_titlebar import CustomTitleBar
 from app_qt.widgets.theme_manager import get_theme_manager
 # 导入设置面板
 from app_qt.widgets.settings_panel import SettingsDialog, UnconfiguredDialog, check_and_show_unconfigured_dialog
+from app_qt.i18n import _
 
 # 任务管理器已迁移到插件
 
@@ -242,11 +243,11 @@ class QuickAssistant(QMainWindow):
         self.menu_bar = menubar
         
         # 视图菜单
-        self.view_menu = QMenu("👁️ 视图", self)
+        self.view_menu = QMenu(_("👁️ View"), self)
         menubar.addMenu(self.view_menu)
         
         # 视图菜单 - 主题子菜单
-        self.theme_menu = QMenu("🌓 主题", self)
+        self.theme_menu = QMenu(_("🌓 Theme"), self)
         self.view_menu.addMenu(self.theme_menu)
         
         # 创建 QActionGroup 实现互斥选择
@@ -255,13 +256,13 @@ class QuickAssistant(QMainWindow):
         self.theme_action_group.setExclusive(True)
         
         # 浅色主题选项（带选择标记）
-        self.light_theme_action = QAction("☀️ 浅色主题", self)
+        self.light_theme_action = QAction(_("☀️ Light Theme"), self)
         self.light_theme_action.setCheckable(True)
         self.theme_action_group.addAction(self.light_theme_action)
         self.theme_menu.addAction(self.light_theme_action)
         
         # 深色主题选项（带选择标记）
-        self.dark_theme_action = QAction("🌙 深色主题", self)
+        self.dark_theme_action = QAction(_("🌙 Dark Theme"), self)
         self.dark_theme_action.setCheckable(True)
         self.theme_action_group.addAction(self.dark_theme_action)
         self.theme_menu.addAction(self.dark_theme_action)
@@ -273,32 +274,32 @@ class QuickAssistant(QMainWindow):
         self._update_theme_menu_check_state()
         
         # 编辑菜单
-        self.edit_menu = QMenu("✏️ 编辑", self)
+        self.edit_menu = QMenu(_("✏️ Edit"), self)
         menubar.addMenu(self.edit_menu)
         
         # 编辑菜单 - 清空剪贴板
-        self.clear_clipboard_action = QAction("🗑️ 清空剪贴板", self)
-        self.clear_clipboard_action.setToolTip("清空剪贴板历史记录")
+        self.clear_clipboard_action = QAction(_("🗑️ Clear Clipboard"), self)
+        self.clear_clipboard_action.setToolTip(_("Clear clipboard history"))
         self.clear_clipboard_action.triggered.connect(self.clear_clipboard_history)
         self.edit_menu.addAction(self.clear_clipboard_action)
         
         # 帮助菜单
-        self.help_menu = QMenu("ℹ️ 帮助", self)
+        self.help_menu = QMenu(_("ℹ️ Help"), self)
         menubar.addMenu(self.help_menu)
         
         # 帮助菜单 - 关于
-        self.about_action = QAction("ℹ️ 关于", self)
-        self.about_action.setToolTip("关于 IPythonQTBot")
+        self.about_action = QAction(_("ℹ️ About"), self)
+        self.about_action.setToolTip(_("About IPythonQTBot"))
         self.about_action.triggered.connect(self.show_about)
         self.help_menu.addAction(self.about_action)
                 
         # 工具菜单 - 设置
-        self.tools_menu = QMenu("🔧 工具", self)
+        self.tools_menu = QMenu(_("🔧 Tools"), self)
         menubar.addMenu(self.tools_menu)
                 
         # 工具菜单 - 设置
-        self.settings_action = QAction("⚙️ 设置", self)
-        self.settings_action.setToolTip("打开系统设置面板")
+        self.settings_action = QAction(_("⚙️ Settings"), self)
+        self.settings_action.setToolTip(_("Open system settings panel"))
         self.settings_action.setShortcut("Ctrl+,")  # Ctrl+逗号快捷键
         self.settings_action.triggered.connect(self.open_settings_panel)
         self.tools_menu.addAction(self.settings_action)
@@ -307,7 +308,7 @@ class QuickAssistant(QMainWindow):
         self.tools_menu.addSeparator()
         
         # 工具菜单 - 重新加载插件子菜单
-        self.reload_plugins_menu = QMenu("🔄 重新加载插件", self)
+        self.reload_plugins_menu = QMenu(_("🔄 Reload Plugins"), self)
         self.tools_menu.addMenu(self.reload_plugins_menu)
         
         # 初始化插件重载菜单
@@ -328,29 +329,29 @@ class QuickAssistant(QMainWindow):
         
         # 显示提示
         from PySide6.QtWidgets import QMessageBox
-        QMessageBox.information(self, "提示", "剪贴板历史已清空！")
+        QMessageBox.information(self, _("Information"), _("Clipboard history cleared!"))
     
     def show_about(self):
         """显示关于对话框"""
         from PySide6.QtWidgets import QMessageBox
-        about_text = """
+        about_text = f"""
         <h2>🛠️ IPythonQTBot</h2>
-        <p><b>版本：</b> v1.0.0</p>
-        <p><b>现代化 UI 设计</b></p>
+        <p><b>{_('Version:')}</b> v1.0.0</p>
+        <p><b>{_('Modern UI Design')}</b></p>
         <hr/>
-        <p>功能特性：</p>
+        <p>{_('Features:')}</p>
         <ul>
-            <li>✅ 自定义无边框标题栏</li>
-            <li>✅ 浅色/深色主题切换</li>
-            <li>✅ IPython 控制台集成</li>
-            <li>✅ MCP 工具管理</li>
-            <li>✅ 变量监视器</li>
-            <li>✅ 插件系统支持</li>
+            <li>✅ {_('Custom borderless title bar')}</li>
+            <li>✅ {_('Light/Dark theme switching')}</li>
+            <li>✅ {_('IPython console integration')}</li>
+            <li>✅ {_('MCP tools management')}</li>
+            <li>✅ {_('Variable watcher')}</li>
+            <li>✅ {_('Plugin system support')}</li>
         </ul>
         <hr/>
-        <p style="color: #666;">采用现代化 UI 设计，提供统一的视觉体验</p>
+        <p style="color: #666;">{_('Modern UI design for consistent visual experience')}</p>
         """
-        QMessageBox.about(self, "关于IPythonQTBot", about_text)
+        QMessageBox.about(self, _("About IPythonQTBot"), about_text)
     
     def update_status(self, status: str, color: str = "#4caf50"):
         """更新状态栏提示"""
@@ -398,7 +399,7 @@ class QuickAssistant(QMainWindow):
         
         # 第一标签页：IPython 控制台
         self.ipython_console = IPythonConsoleTab()
-        self.notebook.addTab(self.ipython_console, "🐍 IPythonBot")
+        self.notebook.addTab(self.ipython_console, _("🐍 IPythonBot"))
         
         # 同步控制台主题（确保与当前应用主题一致）
         from app_qt.widgets.theme_manager import get_theme_manager
@@ -463,13 +464,13 @@ class QuickAssistant(QMainWindow):
         # 创建托盘菜单
         tray_menu = QMenu()
 
-        show_action = QAction("打开主界面", self)
+        show_action = QAction(_("Show Main Window"), self)
         show_action.triggered.connect(self.show_window)
         tray_menu.addAction(show_action)
 
         tray_menu.addSeparator()
 
-        quit_action = QAction("退出程序", self)
+        quit_action = QAction(_("Quit"), self)
         quit_action.triggered.connect(self.quit_app)
         tray_menu.addAction(quit_action)
 
@@ -530,8 +531,8 @@ class QuickAssistant(QMainWindow):
             pass
         
         # 重新加载全部插件选项
-        reload_all_action = QAction("🔄 重新加载全部插件", self)
-        reload_all_action.setToolTip("重新加载所有已启用的插件")
+        reload_all_action = QAction(_("🔄 Reload All Plugins"), self)
+        reload_all_action.setToolTip(_("Reload all enabled plugins"))
         reload_all_action.triggered.connect(self._reload_all_plugins)
         self.reload_plugins_menu.addAction(reload_all_action)
         
@@ -551,13 +552,13 @@ class QuickAssistant(QMainWindow):
                 version = plugin_info.get("version", "unknown") if plugin_info else "unknown"
                 
                 action = QAction(f"🔄 {plugin_name} (v{version})", self)
-                action.setToolTip(f"重新加载插件：{plugin_name}")
+                action.setToolTip(_("Reload plugin: {}").format(plugin_name))
                 # 使用 lambda 捕获 plugin_name
                 action.triggered.connect(lambda checked, name=plugin_name: self._reload_single_plugin(name))
                 self.reload_plugins_menu.addAction(action)
         else:
             # 没有可重载的插件
-            no_plugins_action = QAction("(没有已加载的插件)", self)
+            no_plugins_action = QAction(_("(No loaded plugins)"), self)
             no_plugins_action.setEnabled(False)
             self.reload_plugins_menu.addAction(no_plugins_action)
         
@@ -578,9 +579,9 @@ class QuickAssistant(QMainWindow):
         # 显示确认对话框
         reply = QMessageBox.question(
             self,
-            "确认重新加载",
-            f"确定要重新加载插件 '{plugin_name}' 吗？\n\n"
-            f"注意：这将临时移除该插件的所有功能并重新初始化。",
+            _("Confirm Reload"),
+            _("Are you sure you want to reload plugin '{}' ?\n\n").format(plugin_name)
+            + _("Note: This will temporarily remove all plugin functions and reinitialize."),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -592,14 +593,14 @@ class QuickAssistant(QMainWindow):
             if success:
                 QMessageBox.information(
                     self,
-                    "重新加载成功",
-                    f"插件 '{plugin_name}' 已成功重新加载！"
+                    _("Reload Successful"),
+                    _("Plugin '{}' has been successfully reloaded!").format(plugin_name)
                 )
             else:
                 QMessageBox.critical(
                     self,
-                    "重新加载失败",
-                    f"插件 '{plugin_name}' 重新加载失败！\n请查看控制台日志了解详情。"
+                    _("Reload Failed"),
+                    _("Plugin '{}' reload failed! Please check console logs for details.").format(plugin_name)
                 )
     
     def _reload_all_plugins(self):
@@ -613,18 +614,18 @@ class QuickAssistant(QMainWindow):
         if not reloadable_plugins:
             QMessageBox.information(
                 self,
-                "提示",
-                "当前没有已加载的插件。"
+                _("Information"),
+                _("No plugins are currently loaded.")
             )
             return
         
         # 显示确认对话框
         reply = QMessageBox.question(
             self,
-            "确认重新加载全部",
-            f"确定要重新加载所有插件吗？\n\n"
-            f"共 {len(reloadable_plugins)} 个插件：{', '.join(reloadable_plugins)}\n\n"
-            f"注意：这将临时移除所有插件功能并重新初始化。",
+            _("Confirm Reload All"),
+            _("Are you sure you want to reload all plugins ?\n\n")
+            + f"{len(reloadable_plugins)} plugins: {', '.join(reloadable_plugins)}\n\n"
+            + _("Note: This will temporarily remove all plugin functions and reinitialize."),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -646,16 +647,15 @@ class QuickAssistant(QMainWindow):
             if success_count == len(reloadable_plugins):
                 QMessageBox.information(
                     self,
-                    "重新加载完成",
-                    f"所有 {success_count} 个插件已成功重新加载！"
+                    _("Reload Complete"),
+                    _("All {} plugins have been successfully reloaded!").format(success_count)
                 )
             else:
                 QMessageBox.warning(
                     self,
-                    "重新加载部分失败",
-                    f"成功：{success_count} 个插件\n"
-                    f"失败：{len(failed_plugins)} 个插件\n\n"
-                    f"失败的插件：{', '.join(failed_plugins)}"
+                    _("Partial Reload Failed"),
+                    _("Success: {} plugins Failed: {} plugins Failed plugins: {}").format(
+                        success_count, len(failed_plugins), ', '.join(failed_plugins))
                 )
 
     def open_settings_panel(self):
@@ -685,8 +685,8 @@ class QuickAssistant(QMainWindow):
             # 显示错误提示
             QMessageBox.critical(
                 self,
-                "错误",
-                f"无法打开设置对话框：{str(e)}"
+                _("Error"),
+                _("Cannot open settings dialog: {}").format(str(e))
             )
     
     def _get_edge_position(self, pos):
@@ -783,23 +783,27 @@ class QuickAssistant(QMainWindow):
         self.setCursor(Qt.ArrowCursor)
 
 window = None  # 声明全局变量
-def main():
-    """主函数"""
-    global window
-    app = QApplication(sys.argv)
+# def main():
+#     """主函数"""
+#     global window
+#     app = QApplication(sys.argv)
+    
+#     # 初始化 i18n
+#     from app_qt.i18n import init_i18n
+#     init_i18n()
 
-    # 设置应用信息
-    app.setApplicationName("IPythonQTBot")
-    app.setOrganizationName("IPythonQTBot")
+#     # 设置应用信息
+#     app.setApplicationName("IPythonQTBot")
+#     app.setOrganizationName("IPythonQTBot")
 
-    window = QuickAssistant()
-    window.show()
+#     window = QuickAssistant()
+#     window.show()
 
-    # 初始隐藏到托盘
-    window.hide()
+#     # 初始隐藏到托盘
+#     window.hide()
 
-    sys.exit(app.exec())
+#     sys.exit(app.exec())
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

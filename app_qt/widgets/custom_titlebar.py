@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal, QPoint
 from PySide6.QtGui import QFont, QCursor
+from app_qt.i18n import _
 
 
 class CustomTitleBar(QWidget):
@@ -94,7 +95,7 @@ class CustomTitleBar(QWidget):
         self.minimize_btn = QToolButton()
         self.minimize_btn.setObjectName("titleBarButton")
         self.minimize_btn.setText("─")  # Unicode 减号
-        self.minimize_btn.setToolTip("最小化")
+        self.minimize_btn.setToolTip(_("Minimize"))
         self.minimize_btn.setFixedSize(46, 48)
         self.minimize_btn.clicked.connect(self.on_minimize_clicked)
         
@@ -104,7 +105,7 @@ class CustomTitleBar(QWidget):
         self.maximize_btn = QToolButton()
         self.maximize_btn.setObjectName("titleBarButton")
         self.maximize_btn.setText("◻")  # Unicode 方块
-        self.maximize_btn.setToolTip("最大化")
+        self.maximize_btn.setToolTip(_("Maximize"))
         self.maximize_btn.setFixedSize(46, 48)
         self.maximize_btn.clicked.connect(self.on_maximize_clicked)
         # 设置深色按钮符号
@@ -114,7 +115,7 @@ class CustomTitleBar(QWidget):
         self.close_btn = QToolButton()
         self.close_btn.setObjectName("titleBarButton")
         self.close_btn.setText("✕")  # Unicode 乘号
-        self.close_btn.setToolTip("关闭")
+        self.close_btn.setToolTip(_("Close"))
         self.close_btn.setFixedSize(46, 48)
         self.close_btn.clicked.connect(self.on_close_clicked)
         right_layout.addWidget(self.close_btn)
@@ -133,11 +134,11 @@ class CustomTitleBar(QWidget):
             if self.parent_window.isMaximized():
                 self.parent_window.showNormal()
                 self.maximize_btn.setText("□")
-                self.maximize_btn.setToolTip("最大化")
+                self.maximize_btn.setToolTip(_("Maximize"))
             else:
                 self.parent_window.showMaximized()
                 self.maximize_btn.setText("❐")  # Unicode 重叠方块
-                self.maximize_btn.setToolTip("还原")
+                self.maximize_btn.setToolTip(_("Restore"))
         self.maximize_btn.style().unpolish(self.maximize_btn)
         self.maximize_btn.style().polish(self.maximize_btn)
     

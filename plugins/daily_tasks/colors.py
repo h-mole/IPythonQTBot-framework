@@ -84,6 +84,11 @@ class TaskColorManager:
             tuple: (背景色, 文字色)
         """
         status_map = {
+            "Completed": (cls.STATUS_COMPLETED, cls.STATUS_COMPLETED_TEXT),
+            "In Progress": (cls.STATUS_IN_PROGRESS, cls.STATUS_IN_PROGRESS_TEXT),
+            "Cancelled": (cls.STATUS_CANCELLED, cls.STATUS_CANCELLED_TEXT),
+            "Not Started": (cls.STATUS_NOT_STARTED, cls.STATUS_NOT_STARTED_TEXT),
+            # 兼容旧数据的中文状态
             "已完成": (cls.STATUS_COMPLETED, cls.STATUS_COMPLETED_TEXT),
             "进行中": (cls.STATUS_IN_PROGRESS, cls.STATUS_IN_PROGRESS_TEXT),
             "已取消": (cls.STATUS_CANCELLED, cls.STATUS_CANCELLED_TEXT),

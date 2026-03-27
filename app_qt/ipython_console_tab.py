@@ -22,6 +22,7 @@ import logging
 import sys
 from app_qt.plugin_manager import get_plugin_manager
 from IPython.utils.capture import capture_output
+from app_qt.i18n import _
 
 # 导入变量表格组件
 from .widgets.variables_table import VariablesTable
@@ -60,7 +61,7 @@ class KernelInitThread(QThread):
 
         except Exception as e:
             self.error_occurred.emit(
-                f"错误：内核初始化失败 - {e}\n请确保已安装：pip install ipython qtconsole"
+                _("Error: Kernel initialization failed - {}\nPlease ensure installed: pip install ipython qtconsole").format(e)
             )
 
 class CustomJupyterKernelWidget(RichJupyterWidget):    
@@ -91,7 +92,7 @@ class CustomJupyterKernelWidget(RichJupyterWidget):
                 ):
                     cursor = self._control.textCursor()
                     if not cursor.hasSelection(): # 当有文本被选中时, 不会触发 停止, 而要进行复制
-                        print("[IPythonConsoleTab] 检测到 Ctrl+C，正在停止生成...")
+                        print("[IPythonConsoleTab] Ctrl+C detected, stopping generation...")
                         self.console_tab.ctrl_c_pressed.emit()
                         return True  # 阻止事件继续传递
                 # 鼠标按下时判断是否点到了链接
@@ -158,7 +159,7 @@ class IPythonConsoleTab(QWidget):
         splitter.setOrientation(Qt.Horizontal)
 
         # 左侧：IPython 控制台
-        console_group = QGroupBox("IPython Console")
+        console_group = QGroupBox(_("IPython Console"))
         console_layout = QVBoxLayout()
         console_group.setLayout(console_layout)
 
@@ -171,7 +172,7 @@ class IPythonConsoleTab(QWidget):
         console_layout.addWidget(self.console_widget)
 
         # 右侧：变量表格
-        variables_group = QGroupBox("Variables")
+        variables_group = QGroupBox(_("Variables"))
         variables_layout = QVBoxLayout()
         variables_group.setLayout(variables_layout)
 
@@ -203,7 +204,7 @@ class IPythonConsoleTab(QWidget):
         toolbar_widget.setMinimumHeight(40)
 
         # 清空按钮
-        self.clear_btn = QPushButton("🗑️ 清空")
+        self.clear_btn = QPushButton(_("🗑️ Clear"))
         self.clear_btn.setProperty("cssClass", "btn-danger")
         self.clear_btn.clicked.connect(self.clear_console)
         # 按钮固定高度
@@ -212,7 +213,7 @@ class IPythonConsoleTab(QWidget):
         toolbar_layout.addWidget(self.clear_btn)
 
         # 重启按钮
-        self.restart_btn = QPushButton("🔄 重启")
+        self.restart_btn = QPushButton(_("🔄 Restart"))
         self.restart_btn.setProperty("cssClass", "btn-primary")
         self.restart_btn.clicked.connect(self.restart_console)
         # 按钮固定高度
@@ -221,7 +222,7 @@ class IPythonConsoleTab(QWidget):
         toolbar_layout.addWidget(self.restart_btn)
 
         # 新对话按钮
-        self.new_chat_btn = QPushButton("💬 新对话")
+        self.new_chat_btn = QPushButton(_("💬 New Chat"))
         self.new_chat_btn.setProperty("cssClass", "btn-success")
         self.new_chat_btn.clicked.connect(self.start_new_chat)
         # 按钮固定高度
@@ -233,7 +234,7 @@ class IPythonConsoleTab(QWidget):
         toolbar_layout.addSpacing(20)
 
         # MCP 工具管理按钮
-        self.mcp_tools_btn = QPushButton("🔧 MCP 工具")
+        self.mcp_tools_btn = QPushButton(_("🔧 MCP Tools"))
         self.mcp_tools_btn.setProperty("cssClass", "btn-warning")
         self.mcp_tools_btn.clicked.connect(self.show_mcp_tools_manager)
         # 按钮固定高度
@@ -253,7 +254,7 @@ class IPythonConsoleTab(QWidget):
         status_widget.setMinimumHeight(32)
 
         # 状态标签
-        self.status_label = QLabel("⚪ 空闲")
+        self.status_label = QLabel(_("⚪ Idle"))
         self.status_label.setProperty("cssClass", "status-idle")
         # 标签固定高度
         self.status_label.setMaximumHeight(30)
@@ -261,7 +262,7 @@ class IPythonConsoleTab(QWidget):
         status_layout.addWidget(self.status_label)
 
         # 停止生成按钮（默认隐藏）
-        self.stop_btn = QPushButton("⏹️ 停止生成")
+        self.stop_btn = QPushButton(_("⏹️ Stop Generation"))
         self.stop_btn.setProperty("cssClass", "btn-warning")
         self.stop_btn.clicked.connect(self.stop_generation)
         # 按钮固定高度
@@ -271,7 +272,7 @@ class IPythonConsoleTab(QWidget):
         status_layout.addWidget(self.stop_btn)
 
         # Token 数量显示
-        self.token_label = QLabel("📊 Tokens: -1")
+        self.token_label = QLabel(_("📊 Tokens: {}").format(-1))
         self.token_label.setProperty("cssClass", "info-badge")
         # 标签固定高度
         self.token_label.setMaximumHeight(30)
@@ -393,25 +394,25 @@ class IPythonConsoleTab(QWidget):
             # 状态到 QSS 类和文本的映射
             status_config = {
                 "idle": {
-                    "text": "⚪ 空闲",
+                    "text": _("⚪ Idle"),
                     "css_class": "status-idle",
                     "show_stop": False,
                     "enable_new_chat": True
                 },
                 "generating": {
-                    "text": "🟢 运行中",
+                    "text": _("🟢 Running"),
                     "css_class": "status-running",
                     "show_stop": True,
                     "enable_new_chat": False
                 },
                 "finished": {
-                    "text": "✅ 生成完毕",
+                    "text": _("✅ Generation Complete"),
                     "css_class": "status-completed",
                     "show_stop": False,
                     "enable_new_chat": True
                 },
                 "error": {
-                    "text": "🔴 错误",
+                    "text": _("🔴 Error"),
                     "css_class": "status-error",
                     "show_stop": False,
                     "enable_new_chat": True
@@ -434,7 +435,7 @@ class IPythonConsoleTab(QWidget):
             # 更新 token 数量
             if tokens is not None:
                 self.token_count = tokens
-                self.token_label.setText(f"📊 Tokens: {tokens}")
+                self.token_label.setText(_("📊 Tokens: {}").format(tokens))
 
         # 在主线程中执行
         exec_main_thread_callback(update)
@@ -509,12 +510,12 @@ class IPythonConsoleTab(QWidget):
                 ),
             }
         else:
-            print("[IPythonConsoleTab] 警告：kernel_manager 未就绪，无法执行代码")
+            print("[IPythonConsoleTab] Warning: kernel_manager not ready, cannot execute code")
             return {
                 "success": False,
                 "output": "",
                 "result": "",
-                "error": "警告：kernel_manager 未就绪，无法执行代码",
+                "error": "Warning: kernel_manager not ready, cannot execute code",
             }
 
     def get_variable(self, name: str):
@@ -625,7 +626,7 @@ class IPythonConsoleTab(QWidget):
         """在后台线程中异步初始化内核"""
         # 显示加载提示
         if self.console_widget:
-            self.console_widget._append_plain_text("正在启动 IPython 内核...\n")
+            self.console_widget._append_plain_text(_("Starting IPython kernel..."))
 
         # 创建并启动内核初始化线程
         self.kernel_thread = KernelInitThread()
@@ -667,7 +668,7 @@ class IPythonConsoleTab(QWidget):
         self._inject_llm_agent_api()
 
         if self.console_widget:
-            self.console_widget._append_plain_text("IPython 内核已就绪！\n\n")
+            self.console_widget._append_plain_text(_("IPython kernel is ready!\n\n"))
 
     def _on_kernel_error(self, error_msg):
         """内核初始化错误处理（在主线程中执行）"""

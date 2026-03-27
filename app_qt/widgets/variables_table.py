@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QFont
 from app_qt.plugin_manager import get_plugin_manager
 from qtconsole.inprocess import QtInProcessKernelManager
+from app_qt.i18n import _
 
 
 class VariablesTable(QWidget):
@@ -47,7 +48,7 @@ class VariablesTable(QWidget):
         # 标题和刷新按钮
         header_layout = QHBoxLayout()
 
-        title_label = QLabel("📊 变量监视器")
+        title_label = QLabel(_("📊 Variable Watcher"))
         title_label.setFont(QFont("Microsoft YaHei UI", 12, 75))
         title_label.setObjectName("subTitleLabel")
         header_layout.addWidget(title_label)
@@ -55,7 +56,7 @@ class VariablesTable(QWidget):
         header_layout.addStretch()
 
         # 刷新按钮
-        refresh_btn = QPushButton("🔄 刷新")
+        refresh_btn = QPushButton(_("🔄 Refresh"))
         refresh_btn.setObjectName("successBtn")
         refresh_btn.clicked.connect(self.refresh_variables)
         header_layout.addWidget(refresh_btn)
@@ -65,7 +66,7 @@ class VariablesTable(QWidget):
         # 创建表格
         self.table = QTableWidget()
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["变量名", "类型", "值", "大小"])
+        self.table.setHorizontalHeaderLabels([_("Variable Name"), _("Type"), _("Value"), _("Size")])
 
         # 设置表格属性
         header = self.table.horizontalHeader()
@@ -153,7 +154,7 @@ class VariablesTable(QWidget):
                     except Exception as e:
                         user_vars[name] = {
                             "type": type(value).__name__,
-                            "value": "<无法显示>",
+                            "value": _("<unable to display>"),
                             "size": "-",
                         }
 

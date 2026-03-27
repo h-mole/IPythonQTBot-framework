@@ -20,6 +20,7 @@ from PySide6.QtCore import Qt, Signal
 from app_qt.plugin_manager import get_plugin_manager
 from app_qt.widgets.custom_checkbox import CustomCheckBox
 from app_qt.widgets.collapsible_group import CollapsibleGroup
+from app_qt.i18n import _
 
 
 class MCPToolsManagerWidget(QDialog):
@@ -29,7 +30,7 @@ class MCPToolsManagerWidget(QDialog):
     
     def __init__(self, parent=None, agent_instance=None):
         super().__init__(parent)
-        self.setWindowTitle("MCP 工具管理")
+        self.setWindowTitle(_("MCP Tools Manager"))
         self.setMinimumSize(600, 500)
         
         self.agent_instance = agent_instance
@@ -54,11 +55,11 @@ class MCPToolsManagerWidget(QDialog):
         search_layout = QVBoxLayout(search_frame)
         search_layout.setContentsMargins(12, 8, 12, 8)
         
-        search_label = QLabel("<b>搜索工具</b>")
+        search_label = QLabel(_("<b>Search Tools</b>"))
         search_layout.addWidget(search_label)
         
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("输入工具名称进行搜索...")
+        self.search_edit.setPlaceholderText(_("Enter tool name to search..."))
         
         self.completer = QCompleter(self)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
@@ -70,7 +71,7 @@ class MCPToolsManagerWidget(QDialog):
         self.main_layout.addWidget(search_frame)
         
         # 工具列表区域
-        tools_label = QLabel("<b>MCP 工具列表</b>")
+        tools_label = QLabel(_("<b>MCP Tools List</b>"))
         self.main_layout.addWidget(tools_label)
         
         self.scroll = QScrollArea()
@@ -94,7 +95,7 @@ class MCPToolsManagerWidget(QDialog):
         btn_layout.setContentsMargins(12, 8, 12, 8)
         btn_layout.setSpacing(6)
         
-        btn_label = QLabel("<b>快捷操作</b>")
+        btn_label = QLabel(_("<b>Quick Actions</b>"))
         btn_layout.addWidget(btn_label)
         
         btn_row = QWidget()
@@ -103,25 +104,25 @@ class MCPToolsManagerWidget(QDialog):
         btn_row_layout.setSpacing(8)
         
         # 全选所有 - 使用 btn-info 样式
-        select_all_btn = QPushButton("全选所有")
+        select_all_btn = QPushButton(_("Select All"))
         select_all_btn.setProperty("cssClass", "btn-info")
         select_all_btn.clicked.connect(lambda: self._set_all_checkboxes(True))
         btn_row_layout.addWidget(select_all_btn)
         
         # 反选所有 - 使用 btn-warning 样式
-        invert_btn = QPushButton("反选所有")
+        invert_btn = QPushButton(_("Invert Selection"))
         invert_btn.setProperty("cssClass", "btn-warning")
         invert_btn.clicked.connect(self._invert_all_checkboxes)
         btn_row_layout.addWidget(invert_btn)
         
         # 展开全部 - 使用 btn-secondary 样式
-        expand_all_btn = QPushButton("展开全部")
+        expand_all_btn = QPushButton(_("Expand All"))
         expand_all_btn.setProperty("cssClass", "btn-secondary")
         expand_all_btn.clicked.connect(self._expand_all_groups)
         btn_row_layout.addWidget(expand_all_btn)
         
         # 折叠全部 - 使用 btn-success 样式
-        collapse_all_btn = QPushButton("折叠全部")
+        collapse_all_btn = QPushButton(_("Collapse All"))
         collapse_all_btn.setProperty("cssClass", "btn-success")
         collapse_all_btn.clicked.connect(self._collapse_all_groups)
         btn_row_layout.addWidget(collapse_all_btn)
@@ -132,7 +133,7 @@ class MCPToolsManagerWidget(QDialog):
         self.main_layout.addWidget(btn_frame)
         
         # 确定按钮 - 使用 btn-primary 样式
-        ok_btn = QPushButton("确定")
+        ok_btn = QPushButton(_("OK"))
         ok_btn.setProperty("cssClass", "btn-primary")
         ok_btn.clicked.connect(self._apply_selection)
         self.main_layout.addWidget(ok_btn)

@@ -17,6 +17,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 
 from app_qt.configs import MainAppConfigSettings
+from app_qt.i18n import _
 
 
 class SettingsDialog(QDialog):
@@ -31,7 +32,7 @@ class SettingsDialog(QDialog):
         self.setObjectName("settingsDialog")
         
         # 设置对话框属性
-        self.setWindowTitle("⚙️ 系统设置")
+        self.setWindowTitle(_("⚙️ System Settings"))
         self.setMinimumSize(900, 700)
         self.resize(1000, 800)
         
@@ -49,7 +50,7 @@ class SettingsDialog(QDialog):
     def _init_ui(self):
         """初始化用户界面"""
         # ===== 标题区域 =====
-        title_label = QLabel("⚙️ 系统设置")
+        title_label = QLabel(_("⚙️ System Settings"))
         title_font = QFont()
         title_font.setPointSize(16)
         title_font.setBold(True)
@@ -66,7 +67,7 @@ class SettingsDialog(QDialog):
         btn_layout.setSpacing(10)
         
         # 保存按钮
-        self.save_button = QPushButton("💾 保存配置")
+        self.save_button = QPushButton(_("💾 Save Configuration"))
         self.save_button.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
@@ -87,7 +88,7 @@ class SettingsDialog(QDialog):
         btn_layout.addWidget(self.save_button)
         
         # 重置按钮
-        self.reset_button = QPushButton("🔄 重置")
+        self.reset_button = QPushButton(_("🔄 Reset"))
         self.reset_button.setStyleSheet("""
             QPushButton {
                 background-color: #f44336;
@@ -110,7 +111,7 @@ class SettingsDialog(QDialog):
         btn_layout.addStretch()
         
         # 关闭按钮
-        close_button = QPushButton("关闭")
+        close_button = QPushButton(_("Close"))
         close_button.setStyleSheet("""
             QPushButton {
                 background-color: #9e9e9e;
@@ -179,22 +180,22 @@ class SettingsDialog(QDialog):
             # 显示成功提示
             QMessageBox.information(
                 self,
-                "保存成功",
-                f"配置已成功保存, 文件路径：{self.settings._config_file}！"
+                _("Save Successful"),
+                _("Configuration saved successfully to: {}").format(self.settings._config_file)
             )
         except Exception as e:
             QMessageBox.critical(
                 self,
-                "保存失败",
-                f"保存配置时出错：{str(e)}"
+                _("Save Failed"),
+                _("Error saving configuration: {}").format(str(e))
             )
     
     def _reset_config(self):
         """重置配置"""
         reply = QMessageBox.question(
             self,
-            "确认重置",
-            "确定要重置所有配置吗？这将恢复到上次保存的状态。",
+            _("Confirm Reset"),
+            _("Are you sure you want to reset all configurations? This will restore to the last saved state."),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -231,14 +232,14 @@ class SettingsDialog(QDialog):
                 
                 QMessageBox.information(
                     self,
-                    "重置成功",
-                    "配置已重置！"
+                    _("Reset Successful"),
+                    _("Configuration has been reset!")
                 )
             except Exception as e:
                 QMessageBox.critical(
                     self,
-                    "重置失败",
-                    f"重置配置时出错：{str(e)}"
+                    _("Reset Failed"),
+                    _("Error resetting configuration: {}").format(str(e))
                 )
 
 
@@ -248,7 +249,7 @@ class UnconfiguredDialog(QDialog):
     def __init__(self, settings: MainAppConfigSettings, parent=None):
         super().__init__(parent)
         self.settings = settings
-        self.setWindowTitle("需要配置 LLM 提供商")
+        self.setWindowTitle(_("LLM Provider Configuration Required"))
         self.setModal(False)  # 非模态对话框
         self.setMinimumSize(500, 300)
         
@@ -261,7 +262,7 @@ class UnconfiguredDialog(QDialog):
         layout.setSpacing(15)
         
         # 标题
-        title_label = QLabel("⚠️ 尚未配置 LLM 提供商")
+        title_label = QLabel(_("⚠️ LLM Provider Not Configured"))
         title_font = QFont()
         title_font.setPointSize(14)
         title_font.setBold(True)
@@ -270,13 +271,13 @@ class UnconfiguredDialog(QDialog):
         
         # 说明文字
         info_label = QLabel(
-            "您还没有配置 LLM 提供商信息。\n\n"
-            "为了正常使用相关功能，请先完成以下配置：\n"
-            "• 添加 LLM 提供商（如 OpenAI、Azure 等）\n"
-            "• 设置 API Key\n"
-            "• 设置 API URL\n"
-            "• 选择默认提供商和模型\n\n"
-            "配置完成后点击'保存配置'按钮。"
+            _("You have not configured LLM provider information yet.\n\n"
+              "To use related functions properly, please complete the following configurations first:\n"
+              "• Add LLM provider (e.g., OpenAI, Azure, etc.)\n"
+              "• Set API Key\n"
+              "• Set API URL\n"
+              "• Select default provider and model\n\n"
+              "Click 'Save Configuration' button after configuration is complete.")
         )
         info_label.setWordWrap(True)
         info_label.setStyleSheet("color: #666; padding: 10px;")
@@ -287,12 +288,12 @@ class UnconfiguredDialog(QDialog):
         btn_layout.addStretch()
         
         # 稍后配置按钮
-        later_button = QPushButton("稍后配置")
+        later_button = QPushButton(_("Configure Later"))
         later_button.clicked.connect(self.close)
         btn_layout.addWidget(later_button)
         
         # 立即配置按钮
-        config_button = QPushButton("立即配置 ➡️")
+        config_button = QPushButton(_("Configure Now") + " ➡️")
         config_button.setStyleSheet("""
             QPushButton {
                 background-color: #2196F3;

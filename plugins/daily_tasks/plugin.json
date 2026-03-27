@@ -189,7 +189,7 @@
   },
   "tabs": [
     {
-      "name": "📋 任务管理",
+      "name": "📋 Task Manager",
       "class": "TasksManagerTab",
       "position": 1
     }

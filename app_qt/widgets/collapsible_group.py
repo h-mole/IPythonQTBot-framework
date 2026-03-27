@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap, QTransform
 
 from app_qt.widgets.custom_checkbox import CustomCheckBox
+from app_qt.i18n import _
 
 
 class CollapsibleGroup(QWidget):
@@ -86,7 +87,7 @@ class CollapsibleGroup(QWidget):
         header_layout.addWidget(self.count_label)
         
         # 全选复选框
-        self.select_all_cb = CustomCheckBox("全选")
+        self.select_all_cb = CustomCheckBox(_("Select All"))
         self.select_all_cb.setChecked(True)
         self.select_all_cb.stateChanged.connect(self._on_select_all_changed)
         header_layout.addWidget(self.select_all_cb)

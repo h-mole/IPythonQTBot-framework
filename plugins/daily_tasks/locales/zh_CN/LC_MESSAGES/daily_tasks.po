@@ -1,0 +1,231 @@
+# Chinese (Simplified) translations for Daily Tasks Plugin
+msgid ""
+msgstr ""
+"Project-Id-Version: Daily Tasks Plugin 1.0.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+#: main.py
+msgid "Paper"
+msgstr "论文"
+
+#: main.py
+msgid "Project"
+msgstr "项目"
+
+#: main.py
+msgid "Admin"
+msgstr "行政"
+
+#: main.py
+msgid "Meeting"
+msgstr "会议"
+
+#: main.py
+msgid "Study"
+msgstr "学习"
+
+#: main.py
+msgid "Completed"
+msgstr "已完成"
+
+#: main.py
+msgid "In Progress"
+msgstr "进行中"
+
+#: main.py
+msgid "Cancelled"
+msgstr "已取消"
+
+#: main.py
+msgid "Not Started"
+msgstr "未开始"
+
+#: main.py
+msgid "Daily"
+msgstr "每天"
+
+#: main.py
+msgid "On Due Date"
+msgstr "当天"
+
+#: main.py
+msgid "Once"
+msgstr "仅一次"
+
+#: main.py
+msgid "All"
+msgstr "全部"
+
+#: main.py
+msgid "Please select..."
+msgstr "请选择..."
+
+#: main.py
+msgid "All ({})"
+msgstr "全部 ({})"
+
+#: main.py
+msgid "No items selected"
+msgstr "未选择任何项"
+
+#: main.py
+msgid "Selected {} items"
+msgstr "已选 {} 项"
+
+#: main.py
+msgid "Add/Edit Task"
+msgstr "添加/编辑任务"
+
+#: main.py
+msgid "Category:"
+msgstr "任务大类："
+
+#: main.py
+msgid "Subcategory:"
+msgstr "任务小类："
+
+#: main.py
+msgid "Description:"
+msgstr "任务说明："
+
+#: main.py
+msgid "Due Date:"
+msgstr "完成日期："
+
+#: main.py
+msgid "Reminder Type:"
+msgstr "提醒方式："
+
+#: main.py
+msgid "Reminder Time:"
+msgstr "提醒时间："
+
+#: main.py
+msgid "Status:"
+msgstr "状态："
+
+#: main.py
+msgid "Notes:"
+msgstr "备注："
+
+#: main.py
+msgid "Normal Date"
+msgstr "一般日期"
+
+#: main.py
+msgid "Long Term"
+msgstr "长期"
+
+#: main.py
+msgid "No Deadline"
+msgstr "无固定期限"
+
+#: main.py
+msgid "Sort:"
+msgstr "排序："
+
+#: main.py
+msgid "By Category"
+msgstr "按类别"
+
+#: main.py
+msgid "By Due Date"
+msgstr "按截止期限"
+
+#: main.py
+msgid "Reverse"
+msgstr "倒序"
+
+#: main.py
+msgid "➕ Add Task"
+msgstr "➕ 添加任务"
+
+#: main.py
+msgid "✏️ Edit Task"
+msgstr "✏️ 编辑任务"
+
+#: main.py
+msgid "🗑️ Delete Task"
+msgstr "🗑️ 删除任务"
+
+#: main.py
+msgid "✅ Mark Complete"
+msgstr "✅ 标记完成"
+
+#: main.py
+msgid "🔄 Refresh"
+msgstr "🔄 刷新"
+
+#: main.py
+msgid "Total: {} | Incomplete: {} | Completed: {} | In Progress: {} | Cancelled: {} | Not Started: {}"
+msgstr "总任务数：{} | 未完成：{} | 已完成：{} | 进行中：{} | 已取消：{} | 未开始：{}"
+
+#: main.py
+msgid "Success"
+msgstr "成功"
+
+#: main.py
+msgid "Task added successfully!"
+msgstr "任务添加成功！"
+
+#: main.py
+msgid "Warning"
+msgstr "警告"
+
+#: main.py
+msgid "Please select a task to edit!"
+msgstr "请先选择要编辑的任务！"
+
+#: main.py
+msgid "Task updated successfully!"
+msgstr "任务更新成功！"
+
+#: main.py
+msgid "Please select a task to delete!"
+msgstr "请先选择要删除的任务！"
+
+#: main.py
+msgid "Confirm Delete"
+msgstr "确认删除"
+
+#: main.py
+msgid "Are you sure you want to delete the selected task?"
+msgstr "确定要删除选中的任务吗？"
+
+#: main.py
+msgid "Task deleted successfully!"
+msgstr "任务删除成功！"
+
+#: main.py
+msgid "Please select a task to mark as complete!"
+msgstr "请先选择要标记完成的任务！"
+
+#: main.py
+msgid "Task marked as complete!"
+msgstr "任务已标记为完成！"
+
+#: main.py
+msgid "📋 Task Reminder"
+msgstr "📋 任务提醒"
+
+#: main.py
+msgid "Due Date:"
+msgstr "完成期限："
+
+#: main.py
+msgid "Daily Task Reminder"
+msgstr "每日任务提醒器"
+
+#: main.py
+msgid "Failed to load tasks: {}"
+msgstr "加载任务失败：{}"
+
+#: main.py
+msgid "Failed to save tasks: {}"
+msgstr "保存任务失败：{}"
+
+#: main.py
+msgid "Error"
+msgstr "错误"

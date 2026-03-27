@@ -5,6 +5,7 @@
 import os
 import sys
 import json
+from pathlib import Path
 from datetime import datetime, time as dt_time
 from PySide6.QtWidgets import (
     QWidget,
@@ -43,12 +44,50 @@ from openpyxl.utils import get_column_letter
 import plyer
 from app_qt.configs import PLUGIN_DATA_DIR
 from app_qt.widgets.custom_checkbox import CustomCheckBox
+from app_qt.plugin_i18n import PluginI18n
 from .colors import TaskColorManager, DateUrgency
-# 默认分类
-DEFAULT_CATEGORIES = ["论文", "项目"]
-DEFAULT_SUBCATEGORIES = ["行政", "项目", "会议", "学习"]
-DEFAULT_STATUSES = [ "已完成", "进行中", "已取消","未开始"]
-REMINDER_TYPES = ["每天", "当天", "仅一次"]
+
+# Initialize plugin i18n
+import os as _os
+_plugin_dir = _os.path.dirname(_os.path.abspath(__file__))
+_plugin_i18n = PluginI18n("daily_tasks", Path(_plugin_dir))
+_ = _plugin_i18n.gettext
+# 默认分类（使用英文存储，显示时翻译）
+DEFAULT_CATEGORIES = ["Paper", "Project"]
+DEFAULT_SUBCATEGORIES = ["Admin", "Project", "Meeting", "Study"]
+DEFAULT_STATUSES = ["Completed", "In Progress", "Cancelled", "Not Started"]
+REMINDER_TYPES = ["Daily", "On Due Date", "Once"]
+
+# 显示翻译映射
+def tr_category(cat):
+    """翻译分类显示"""
+    mapping = {
+        "Paper": _("Paper"),
+        "Project": _("Project"),
+        "Admin": _("Admin"),
+        "Meeting": _("Meeting"),
+        "Study": _("Study"),
+    }
+    return mapping.get(cat, cat)
+
+def tr_status(status):
+    """翻译状态显示"""
+    mapping = {
+        "Completed": _("Completed"),
+        "In Progress": _("In Progress"),
+        "Cancelled": _("Cancelled"),
+        "Not Started": _("Not Started"),
+    }
+    return mapping.get(status, status)
+
+def tr_reminder_type(rt):
+    """翻译提醒方式显示"""
+    mapping = {
+        "Daily": _("Daily"),
+        "On Due Date": _("On Due Date"),
+        "Once": _("Once"),
+    }
+    return mapping.get(rt, rt)
 
 # 插件数据文件路径
 DAILY_TASKS_DATA_DIR = os.path.join(PLUGIN_DATA_DIR, "daily_tasks")
@@ -59,8 +98,8 @@ CATEGORIES_FILE = os.path.join(DAILY_TASKS_DATA_DIR, "task_categories.json")
 # 特殊日期映射
 
 SPECIAL_DATES = [
-    ("1999-09-10", "长期", "long_term"),
-    ("1999-09-09", "无固定期限", "no_deadline"),
+    ("1999-09-10", _("Long Term"), "long_term"),
+    ("1999-09-09", _("No Deadline"), "no_deadline"),
 ]
 
 class MultiSelectFilter(QWidget):
@@ -71,7 +110,7 @@ class MultiSelectFilter(QWidget):
     def __init__(self, label_text, items=None, parent=None):
         super().__init__(parent)
         self.items = items or []
-        self.all_option = "全部"
+        self.all_option = _("All")
 
         # 创建布局
         layout = QHBoxLayout()
@@ -83,7 +122,7 @@ class MultiSelectFilter(QWidget):
         layout.addWidget(QLabel(label_text))
 
         # 筛选按钮
-        self.filter_btn = QPushButton("请选择...")
+        self.filter_btn = QPushButton(_("Please select..."))
         self.filter_btn.setMinimumWidth(120)
         self.filter_btn.clicked.connect(self.show_menu)
         layout.addWidget(self.filter_btn)
@@ -153,13 +192,13 @@ class MultiSelectFilter(QWidget):
     def update_button_text(self):
         """更新按钮显示文本"""
         if self.select_all:
-            self.filter_btn.setText(f"全部 ({len(self.items)})")
+            self.filter_btn.setText(_("All ({})").format(len(self.items)))
         elif len(self.selected_items) == 0:
-            self.filter_btn.setText("未选择任何项")
+            self.filter_btn.setText(_("No items selected"))
         elif len(self.selected_items) <= 3:
             self.filter_btn.setText(", ".join(sorted(self.selected_items)))
         else:
-            self.filter_btn.setText(f"已选 {len(self.selected_items)} 项")
+            self.filter_btn.setText(_("Selected {} items").format(len(self.selected_items)))
 
     def get_selected(self):
         """获取选中的项目"""
@@ -218,7 +257,7 @@ class TaskDialog(QDialog):
 
     def init_ui(self):
         """初始化界面"""
-        self.setWindowTitle("添加/编辑任务")
+        self.setWindowTitle(_("Add/Edit Task"))
         self.setMinimumWidth(500)
 
         layout = QFormLayout()
@@ -230,7 +269,7 @@ class TaskDialog(QDialog):
         self.category_combo.addItems(self.user_categories)
         if self.task_data and self.task_data.get("category"):
             self.category_combo.setCurrentText(self.task_data["category"])
-        layout.addRow("任务大类:", self.category_combo)
+        layout.addRow(_("Category:"), self.category_combo)
 
         # 任务小类
         self.subcategory_combo = QComboBox()
@@ -238,14 +277,14 @@ class TaskDialog(QDialog):
         self.subcategory_combo.addItems(self.user_subcategories)
         if self.task_data and self.task_data.get("subcategory"):
             self.subcategory_combo.setCurrentText(self.task_data["subcategory"])
-        layout.addRow("任务小类:", self.subcategory_combo)
+        layout.addRow(_("Subcategory:"), self.subcategory_combo)
 
         # 任务说明
         self.description_edit = QTextEdit()
         self.description_edit.setMaximumHeight(100)
         if self.task_data and self.task_data.get("description"):
             self.description_edit.setPlainText(self.task_data["description"])
-        layout.addRow("任务说明:", self.description_edit)
+        layout.addRow(_("Description:"), self.description_edit)
 
         # 完成日期
         self.due_date_edit = QDateTimeEdit()
@@ -262,14 +301,14 @@ class TaskDialog(QDialog):
                 self.due_date_edit.setDateTime(QtCore_QDateTime.currentDateTime())
         else:
             self.due_date_edit.setDateTime(QtCore_QDateTime.currentDateTime())
-        layout.addRow("任务完成日期:", self.due_date_edit)
+        layout.addRow(_("Due Date:"), self.due_date_edit)
 
         # 提醒方式
         self.reminder_type_combo = QComboBox()
         self.reminder_type_combo.addItems(REMINDER_TYPES)
         if self.task_data and self.task_data.get("reminder_type"):
             self.reminder_type_combo.setCurrentText(self.task_data["reminder_type"])
-        layout.addRow("提醒方式:", self.reminder_type_combo)
+        layout.addRow(_("Reminder Type:"), self.reminder_type_combo)
 
         # 提醒时间（只设置时刻，不设置日期）
         self.reminder_time_edit = QTimeEdit()
@@ -277,9 +316,9 @@ class TaskDialog(QDialog):
 
         # 特殊时间下拉菜单
         self.special_time_combo = QComboBox()
-        self.special_time_combo.addItem("一般日期", "normal")
+        self.special_time_combo.addItem(_("Normal Date"), "normal")
         for date_str, text, optionname in SPECIAL_DATES:
-            self.special_time_combo.addItem(text, optionname)
+            self.special_time_combo.addItem(_(text), optionname)
         self.special_time_combo.currentTextChanged.connect(self.on_special_time_changed)
 
         # 创建水平布局放置时间选择器和下拉菜单
@@ -315,21 +354,21 @@ class TaskDialog(QDialog):
         else:
             self.reminder_time_edit.setTime(QTime.currentTime())
 
-        layout.addRow("提醒时间:", time_layout)
+        layout.addRow(_("Reminder Time:"), time_layout)
 
         # 完成状态
         self.status_combo = QComboBox()
         self.status_combo.addItems(DEFAULT_STATUSES)
         if self.task_data and self.task_data.get("status"):
             self.status_combo.setCurrentText(self.task_data["status"])
-        layout.addRow("完成状态:", self.status_combo)
+        layout.addRow(_("Status:"), self.status_combo)
 
         # 备注
         self.notes_edit = QTextEdit()
         self.notes_edit.setMaximumHeight(80)
         if self.task_data and self.task_data.get("notes"):
             self.notes_edit.setPlainText(self.task_data["notes"])
-        layout.addRow("备注:", self.notes_edit)
+        layout.addRow(_("Notes:"), self.notes_edit)
 
         # 按钮
         button_box = QDialogButtonBox(
@@ -376,14 +415,14 @@ class TasksManagerTab(QWidget):
     # 表格列定义
     COLUMNS = [
         "ID",
-        "任务大类",
-        "任务小类",
-        "任务说明",
-        "任务完成日期",
-        "提醒方式",
-        "提醒时间",
-        "完成状态",
-        "备注",
+        _("Category"),
+        _("Subcategory"),
+        _("Description"),
+        _("Due Date"),
+        _("Reminder"),
+        _("Reminder Time"),
+        _("Status"),
+        _("Notes"),
     ]
 
     def __init__(self, plugin_manager=None):
@@ -417,17 +456,17 @@ class TasksManagerTab(QWidget):
         control_frame.setLayout(control_layout)
 
         # 筛选控件 - 使用独立的多选筛选组件
-        self.category_filter = MultiSelectFilter("任务大类:", DEFAULT_CATEGORIES.copy())
+        self.category_filter = MultiSelectFilter(_("Category:"), DEFAULT_CATEGORIES.copy())
         self.category_filter.filterChanged.connect(self.apply_filters)
         control_layout.addWidget(self.category_filter)
 
         self.subcategory_filter = MultiSelectFilter(
-            "任务小类:", DEFAULT_SUBCATEGORIES.copy()
+            _("Subcategory:"), DEFAULT_SUBCATEGORIES.copy()
         )
         self.subcategory_filter.filterChanged.connect(self.apply_filters)
         control_layout.addWidget(self.subcategory_filter)
 
-        self.status_filter = MultiSelectFilter("完成状态:", DEFAULT_STATUSES.copy())
+        self.status_filter = MultiSelectFilter(_("Status:"), DEFAULT_STATUSES.copy())
         self.status_filter.filterChanged.connect(self.apply_filters)
         control_layout.addWidget(self.status_filter)
 
@@ -437,15 +476,15 @@ class TasksManagerTab(QWidget):
         control_layout.addStretch()
 
         # 排序控件
-        control_layout.addWidget(QLabel("排序:"))
+        control_layout.addWidget(QLabel(_("Sort:")))
         self.sort_combo = QComboBox()
-        self.sort_combo.addItem("按类别", "categories")
-        self.sort_combo.addItem("按截止期限", "due")
+        self.sort_combo.addItem(_("By Category"), "categories")
+        self.sort_combo.addItem(_("By Due Date"), "due")
         self.sort_combo.currentIndexChanged.connect(self.apply_filters)
         control_layout.addWidget(self.sort_combo)
 
         # 倒序选项
-        self.reverse_check = CustomCheckBox("倒序")
+        self.reverse_check = CustomCheckBox(_("Reverse"))
         self.reverse_check.stateChanged.connect(self.apply_filters)
         control_layout.addWidget(self.reverse_check)
 
@@ -458,19 +497,19 @@ class TasksManagerTab(QWidget):
         button_layout = QHBoxLayout()
         button_frame.setLayout(button_layout)
 
-        self.add_btn = QPushButton("➕ 添加任务")
+        self.add_btn = QPushButton(_("➕ Add Task"))
         self.add_btn.clicked.connect(lambda :self.add_task(True))
         button_layout.addWidget(self.add_btn)
 
-        self.edit_btn = QPushButton("✏️ 编辑任务")
+        self.edit_btn = QPushButton(_("✏️ Edit Task"))
         self.edit_btn.clicked.connect(self.edit_task)
         button_layout.addWidget(self.edit_btn)
 
-        self.delete_btn = QPushButton("🗑️ 删除任务")
+        self.delete_btn = QPushButton(_("🗑️ Delete Task"))
         self.delete_btn.clicked.connect(self.delete_task)
         button_layout.addWidget(self.delete_btn)
 
-        self.complete_btn = QPushButton("✅ 标记完成")
+        self.complete_btn = QPushButton(_("✅ Mark Complete"))
         self.complete_btn.clicked.connect(self.mark_complete)
         button_layout.addWidget(self.complete_btn)
 
@@ -529,12 +568,12 @@ class TasksManagerTab(QWidget):
         status_layout = QHBoxLayout()
         status_frame.setLayout(status_layout)
 
-        self.status_label = QLabel(f"总任务数：0 | 未完成：0 | 已完成：0 | 进行中：0 | 已取消：0 | 未开始：0")
+        self.status_label = QLabel(_("Total: {} | Incomplete: {} | Completed: {} | In Progress: {} | Cancelled: {} | Not Started: {}").format(0, 0, 0, 0, 0, 0))
         status_layout.addWidget(self.status_label)
 
         status_layout.addStretch()
 
-        self.refresh_btn = QPushButton("🔄 刷新")
+        self.refresh_btn = QPushButton(_("🔄 Refresh"))
         self.refresh_btn.clicked.connect(self.load_tasks)
         status_layout.addWidget(self.refresh_btn)
 
@@ -547,7 +586,7 @@ class TasksManagerTab(QWidget):
         self.sort_combo.setCurrentIndex(0)
         
         # 设置完成状态筛选器默认不选择"已完成"
-        default_statuses = [s for s in DEFAULT_STATUSES if s != "已完成"]
+        default_statuses = [s for s in DEFAULT_STATUSES if s != "Completed"]
         self.status_filter.set_selected_items(default_statuses)
 
     def load_categories_to_filters(self):
@@ -630,7 +669,7 @@ class TasksManagerTab(QWidget):
             else:
                 self.tasks_data = []
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"加载任务失败：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to load tasks: {}").format(str(e)))
             self.tasks_data = []
         # 重置已通知记录，避免重启后不再提醒
         self.notified_tasks = {}
@@ -693,7 +732,7 @@ class TasksManagerTab(QWidget):
             wb.save(self.tasks_file)
             wb.close()
         except Exception as e:
-            exec_main_thread_callback(lambda : QMessageBox.critical(self, "错误", f"保存任务失败：{str(e)}"))
+            exec_main_thread_callback(lambda : QMessageBox.critical(self, _("Error"), _("Failed to save tasks: {}").format(str(e))))
 
     def refresh_table(self, filtered_data=None):
         """刷新表格显示"""
@@ -753,7 +792,7 @@ class TasksManagerTab(QWidget):
             due_date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(row_position, 4, due_date_item)
             self.table.setItem(
-                row_position, 5, QTableWidgetItem(task.get("reminder_type", ""))
+                row_position, 5, QTableWidgetItem(tr_reminder_type(task.get("reminder_type", "")))
             )
             self.table.setItem(
                 row_position, 6, QTableWidgetItem(task.get("reminder_time", ""))
@@ -761,7 +800,7 @@ class TasksManagerTab(QWidget):
 
             # 状态列根据状态设置颜色（状态颜色保持一致，不受日期影响）
             status = task.get("status", "")
-            status_item = QTableWidgetItem(status)
+            status_item = QTableWidgetItem(tr_status(status))
             
             # 只使用状态颜色，确保同一状态颜色一致
             bg_color, text_color = TaskColorManager.get_status_color(status)
@@ -896,14 +935,14 @@ class TasksManagerTab(QWidget):
                     self.load_categories_to_filters()
                     self.load_tasks()
                 exec_main_thread_callback(save_and_load)
-                QMessageBox.information(self, "成功", "任务添加成功！")
+                QMessageBox.information(self, _("Success"), _("Task added successfully!"))
         return True
 
     def edit_task(self):
         """编辑任务"""
         selected_rows = self.table.selectedItems()
         if not selected_rows:
-            QMessageBox.warning(self, "警告", "请先选择要编辑的任务！")
+            QMessageBox.warning(self, _("Warning"), _("Please select a task to edit!"))
             return
 
         row = selected_rows[0].row()
@@ -933,19 +972,19 @@ class TasksManagerTab(QWidget):
 
                 self.save_tasks()
                 self.load_tasks()
-                QMessageBox.information(self, "成功", "任务更新成功！")
+                QMessageBox.information(self, _("Success"), _("Task updated successfully!"))
 
     def delete_task(self):
         """删除任务"""
         selected_rows = self.table.selectedItems()
         if not selected_rows:
-            QMessageBox.warning(self, "警告", "请先选择要删除的任务！")
+            QMessageBox.warning(self, _("Warning"), _("Please select a task to delete!"))
             return
 
         reply = QMessageBox.question(
             self,
-            "确认删除",
-            "确定要删除选中的任务吗？",
+            _("Confirm Delete"),
+            _("Are you sure you want to delete the selected task?"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -960,13 +999,13 @@ class TasksManagerTab(QWidget):
             self.tasks_data = [t for t in self.tasks_data if t.get("id") != task_id]
             self.save_tasks()
             self.load_tasks()
-            QMessageBox.information(self, "成功", "任务删除成功！")
+            QMessageBox.information(self, _("Success"), _("Task deleted successfully!"))
 
     def mark_complete(self):
         """标记任务为完成"""
         selected_rows = self.table.selectedItems()
         if not selected_rows:
-            QMessageBox.warning(self, "警告", "请先选择要标记完成的任务！")
+            QMessageBox.warning(self, _("Warning"), _("Please select a task to mark as complete!"))
             return
 
         row = selected_rows[0].row()
@@ -983,7 +1022,7 @@ class TasksManagerTab(QWidget):
 
         self.save_tasks()
         self.load_tasks()
-        QMessageBox.information(self, "成功", "任务已标记为完成！")
+        QMessageBox.information(self, _("Success"), _("Task marked as complete!"))
 
     def check_reminders(self):
         """检查是否需要提醒"""
@@ -1009,13 +1048,13 @@ class TasksManagerTab(QWidget):
             should_remind = False
             task_key = f"{task.get('id')}_{current_date_str}"
 
-            if reminder_type == "每天":
+            if reminder_type == "Daily":
                 # 每天都提醒，只需要检查今天是否已经提醒过
                 if task_key not in self.notified_tasks:
                     should_remind = True
                     self.notified_tasks[task_key] = True
 
-            elif reminder_type == "当天":
+            elif reminder_type == "On Due Date":
                 # 只在完成日期当天提醒
                 due_date = task.get("due_date", "")
                 if due_date:
@@ -1035,7 +1074,7 @@ class TasksManagerTab(QWidget):
                     except:
                         pass
 
-            elif reminder_type == "仅一次":
+            elif reminder_type == "Once":
                 # 只提醒一次
                 if task_key not in self.notified_tasks:
                     should_remind = True
@@ -1051,33 +1090,34 @@ class TasksManagerTab(QWidget):
 
     def show_system_notification(self, task):
         """显示系统通知"""
-        title = f"📋 任务提醒"
-        message = f"【{task.get('category', '')} - {task.get('subcategory', '')}】\n{task.get('description', '')}\n\n完成期限：{task.get('due_date', '')}"
+        title = _("📋 Task Reminder")
+        message = f"【{task.get('category', '')} - {task.get('subcategory', '')}】\n{task.get('description', '')}\n\n{_('Due Date:')}{task.get('due_date', '')}"
 
         try:
             # 使用 plyer 发送系统通知
             plyer.notification.notify(
                 title=title,
                 message=message,
-                app_name="每日任务提醒器",
+                app_name=_("Daily Task Reminder"),
                 timeout=10,  # 通知显示 10 秒
             )
         except Exception as e:
-            print(f"系统通知失败：{e}")
+            print(f"Notification failed: {e}")
             # 如果系统通知失败，回退到弹窗
             QMessageBox.information(self, title, message)
 
     def update_status(self):
         """更新状态栏"""
         total = len(self.tasks_data)
-        completed = sum(1 for t in self.tasks_data if t.get("status") == "已完成")
+        completed = sum(1 for t in self.tasks_data if t.get("status") == "Completed")
         incomplete = total - completed
-        in_progress = sum(1 for t in self.tasks_data if t.get("status") == "进行中")
-        cancelled = sum(1 for t in self.tasks_data if t.get("status") == "已取消")
-        not_started = sum(1 for t in self.tasks_data if t.get("status") == "未开始")
+        in_progress = sum(1 for t in self.tasks_data if t.get("status") == "In Progress")
+        cancelled = sum(1 for t in self.tasks_data if t.get("status") == "Cancelled")
+        not_started = sum(1 for t in self.tasks_data if t.get("status") == "Not Started")
 
         self.status_label.setText(
-            f"总任务数：{total} | 未完成：{incomplete} | 已完成：{completed} | 进行中：{in_progress} | 已取消：{cancelled} | 未开始：{not_started}"
+            _("Total: {} | Incomplete: {} | Completed: {} | In Progress: {} | Cancelled: {} | Not Started: {}").format(
+                total, incomplete, completed, in_progress, cancelled, not_started)
         )
 
     # ==================== API 接口方法（暴露给其他插件调用） ====================
@@ -1129,7 +1169,7 @@ class TasksManagerTab(QWidget):
                 "subcategory": task_data.get("subcategory", ""),
                 "description": task_data.get("description", ""),
                 "due_date": task_data.get("due_date", ""),
-                "reminder_type": task_data.get("reminder_type", "仅一次"),
+                "reminder_type": task_data.get("reminder_type", "Once"),
                 "reminder_time": task_data.get("reminder_time", ""),
                 "status": task_data.get("status", "未开始"),
                 "notes": task_data.get("notes", ""),

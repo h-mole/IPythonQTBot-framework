@@ -30,12 +30,13 @@ def main():
     )
 
     app = QApplication(sys.argv)
-
+    
     # 设置应用信息
     app.setApplicationName("IPythonQTBot")
     app.setOrganizationName("IPythonQTBot")
     app.setApplicationVersion("1.0.0")
-
+    from app_qt.i18n import init_i18n
+    init_i18n()
     # 设置样式
     app.setStyle("Fusion")
     app.setWindowIcon(QIcon("icon.png"))

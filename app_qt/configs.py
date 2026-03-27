@@ -107,14 +107,16 @@ def ensure_app_config_file(
 #     provider_list: list[LLMProvider] = []
 
 
+from app_qt.i18n import _
+
 class LLMProviderSettingsItem(BaseSettings):
     """
     LLM 提供商设置
     """
 
-    name: str = Field(default="", title="Name")
-    api_key: str = Field(default="", title="API Key")
-    base_url: str = Field(default="", title="Base URL")
+    name: str = Field(default="", title=_("Name"))
+    api_key: str = Field(default="", title=_("API Key"))
+    base_url: str = Field(default="", title=_("Base URL"))
 
 
 class LLMConfigSettings(BaseSettings):
@@ -122,15 +124,15 @@ class LLMConfigSettings(BaseSettings):
     LLM 配置设置
     """
 
-    provider: str = Field(default="", title="Provider")
+    provider: str = Field(default="", title=_("Provider"))
     # 当前使用的模型
-    model: str = Field(default="", title="Model")
+    model: str = Field(default="", title=_("Model"))
     # 最大上下文消息数
-    max_context_messages: int = Field(default=50, title="Max Context Messages")
+    max_context_messages: int = Field(default=50, title=_("Max Context Messages"))
     # llm定制的名称,默认为"default",不同定制化名称下面可以用不同的提示词模板
-    customization_name: str = Field(default="default", title="Customization Name")
+    customization_name: str = Field(default="default", title=_("Customization Name"))
     # llm 提供商列表
-    provider_list: list[LLMProviderSettingsItem] = Field(default=[], title="Provider List")
+    provider_list: list[LLMProviderSettingsItem] = Field(default=[], title=_("Provider List"))
 
     class Config:
         arbitrary_types_allowed = True
@@ -149,17 +151,32 @@ class LLMConfigSettings(BaseSettings):
                 return provider
         raise ValueError(f"Provider {self.provider} not found in provider list: {self.format_providers_list()}")
 class OtherSettings(BaseSettings):
-    demo: str = Field(default="", title="some_value")
+    demo: str = Field(default="", title=_("Some Value"))
+
+
+class LanguageSettings(BaseSettings):
+    """
+    语言设置
+    """
+    language: str = Field(
+        default="auto",
+        title=_("Language"),
+        choices=["auto", "en", "zh_CN"],
+        description=_("Select interface language. 'auto' will detect from system locale.")
+    )
 
 class MainAppConfigSettings(BaseSettings):
     # 类属性：设置表单展示模式为选项卡式
     _form_display_mode = "tabs"
     
     llm_config: LLMConfigSettings = Field(
-        default_factory=LLMConfigSettings, title="LLM Config"
+        default_factory=LLMConfigSettings, title=_("LLM Config")
     )
     other_settings: OtherSettings = Field(
-         default_factory=OtherSettings, title="Other Config"
+         default_factory=OtherSettings, title=_("Other Config")
+    )
+    language: LanguageSettings = Field(
+        default_factory=LanguageSettings, title=_("Language Settings")
     )
 
     def is_provider_configured(self) -> bool:
