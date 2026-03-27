@@ -32,10 +32,12 @@ class ThemeManager:
         """获取主题样式表路径"""
         paths = {
             "light": {
+                "colors": os.path.join(self.qss_dir, "colors.qss"),
                 "common": os.path.join(self.qss_dir, "common.qss"),
                 "titlebar": os.path.join(self.qss_dir, "titlebar.qss"),
             },
             "dark": {
+                "colors": os.path.join(self.qss_dir, "colors.qss"),
                 "common": os.path.join(self.qss_dir, "common.qss"),
                 "titlebar": os.path.join(self.qss_dir, "titlebar.qss"),
                 "dark_theme": os.path.join(self.qss_dir, "dark_theme.qss"),
@@ -43,8 +45,24 @@ class ThemeManager:
         }
         return paths.get(theme_name, paths["light"])
     
+    def clear_cache(self):
+        """清除主题缓存（用于开发时更新样式）"""
+        self.theme_cache.clear()
+        print("[ThemeManager] 主题缓存已清除")
+    
+    def reload_theme(self, widget, theme_name: str = None):
+        """强制重新加载主题（忽略缓存）"""
+        if theme_name is None:
+            theme_name = self.current_theme
+        self.clear_cache()
+        self.apply_theme(widget, theme_name)
+        print(f"[ThemeManager] 主题已重新加载：{theme_name}")
+    
     def load_theme(self, theme_name: str) -> str:
         """加载主题样式表"""
+        # 总是更新 current_theme，确保状态一致（即使使用缓存）
+        self.current_theme = theme_name
+        
         if theme_name in self.theme_cache:
             print(f"[ThemeManager] 使用缓存的主题：{theme_name}")
             return self.theme_cache[theme_name]
@@ -55,16 +73,27 @@ class ThemeManager:
         print(f"[ThemeManager] 加载主题：{theme_name}")
         print(f"[ThemeManager] QSS 目录：{self.qss_dir}")
         
-        # 始终先加载公共样式表
+        # 第一步：加载公共样式表（基础样式）
         common_path = qss_paths["common"]
         print(f"[ThemeManager] 加载公共样式：{common_path}")
         if os.path.exists(common_path):
             with open(common_path, 'r', encoding='utf-8') as f:
                 combined_style += f.read()
                 combined_style += "\n"
-            print(f"[ThemeManager] 公共样式加载成功，长度：{len(combined_style)}")
+            print(f"[ThemeManager] 公共样式加载成功")
         else:
             print(f"[ThemeManager] 警告：公共样式文件不存在：{common_path}")
+        
+        # 第二步：加载颜色/组件样式类（覆盖公共样式中的定义）
+        colors_path = qss_paths.get("colors")
+        if colors_path and os.path.exists(colors_path):
+            print(f"[ThemeManager] 加载组件样式类：{colors_path}")
+            with open(colors_path, 'r', encoding='utf-8') as f:
+                combined_style += f.read()
+                combined_style += "\n"
+            print(f"[ThemeManager] 组件样式类加载成功，长度：{len(combined_style)}")
+        else:
+            print(f"[ThemeManager] 警告：组件样式文件不存在：{colors_path}")
         
         # 加载标题栏样式
         titlebar_path = qss_paths.get("titlebar")

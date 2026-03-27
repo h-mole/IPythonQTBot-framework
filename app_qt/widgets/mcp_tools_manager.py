@@ -50,33 +50,15 @@ class MCPToolsManagerWidget(QDialog):
         
         # 搜索框
         search_frame = QFrame()
-        search_frame.setStyleSheet("""
-            QFrame {
-                background-color: #f8f9fa;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-            }
-        """)
+        search_frame.setProperty("cssClass", "card")
         search_layout = QVBoxLayout(search_frame)
         search_layout.setContentsMargins(12, 8, 12, 8)
         
         search_label = QLabel("<b>搜索工具</b>")
-        search_label.setStyleSheet("font-size: 11pt;")
         search_layout.addWidget(search_label)
         
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("输入工具名称进行搜索...")
-        self.search_edit.setStyleSheet("""
-            QLineEdit {
-                padding: 8px 12px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 11pt;
-            }
-            QLineEdit:focus {
-                border-color: #0078D4;
-            }
-        """)
         
         self.completer = QCompleter(self)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
@@ -89,18 +71,11 @@ class MCPToolsManagerWidget(QDialog):
         
         # 工具列表区域
         tools_label = QLabel("<b>MCP 工具列表</b>")
-        tools_label.setStyleSheet("font-size: 12pt; margin-top: 8px;")
         self.main_layout.addWidget(tools_label)
         
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
-        self.scroll.setStyleSheet("""
-            QScrollArea {
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                background-color: white;
-            }
-        """)
+        self.scroll.setProperty("cssClass", "card")
         
         self.scroll_content = QWidget()
         self.tools_layout = QVBoxLayout()
@@ -114,19 +89,12 @@ class MCPToolsManagerWidget(QDialog):
         
         # 快捷操作按钮
         btn_frame = QFrame()
-        btn_frame.setStyleSheet("""
-            QFrame {
-                background-color: #f8f9fa;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-            }
-        """)
+        btn_frame.setProperty("cssClass", "card")
         btn_layout = QVBoxLayout(btn_frame)
         btn_layout.setContentsMargins(12, 8, 12, 8)
         btn_layout.setSpacing(6)
         
         btn_label = QLabel("<b>快捷操作</b>")
-        btn_label.setStyleSheet("font-size: 11pt;")
         btn_layout.addWidget(btn_label)
         
         btn_row = QWidget()
@@ -134,63 +102,27 @@ class MCPToolsManagerWidget(QDialog):
         btn_row_layout.setContentsMargins(0, 0, 0, 0)
         btn_row_layout.setSpacing(8)
         
+        # 全选所有 - 使用 btn-info 样式
         select_all_btn = QPushButton("全选所有")
-        select_all_btn.setStyleSheet("""
-            QPushButton {
-                padding: 6px 16px;
-                background-color: #e3f2fd;
-                border: 1px solid #90caf9;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #bbdefb;
-            }
-        """)
+        select_all_btn.setProperty("cssClass", "btn-info")
         select_all_btn.clicked.connect(lambda: self._set_all_checkboxes(True))
         btn_row_layout.addWidget(select_all_btn)
         
+        # 反选所有 - 使用 btn-warning 样式
         invert_btn = QPushButton("反选所有")
-        invert_btn.setStyleSheet("""
-            QPushButton {
-                padding: 6px 16px;
-                background-color: #fff3e0;
-                border: 1px solid #ffcc80;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #ffe0b2;
-            }
-        """)
+        invert_btn.setProperty("cssClass", "btn-warning")
         invert_btn.clicked.connect(self._invert_all_checkboxes)
         btn_row_layout.addWidget(invert_btn)
         
+        # 展开全部 - 使用 btn-secondary 样式
         expand_all_btn = QPushButton("展开全部")
-        expand_all_btn.setStyleSheet("""
-            QPushButton {
-                padding: 6px 16px;
-                background-color: #f3e5f5;
-                border: 1px solid #ce93d8;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e1bee7;
-            }
-        """)
+        expand_all_btn.setProperty("cssClass", "btn-secondary")
         expand_all_btn.clicked.connect(self._expand_all_groups)
         btn_row_layout.addWidget(expand_all_btn)
         
+        # 折叠全部 - 使用 btn-success 样式
         collapse_all_btn = QPushButton("折叠全部")
-        collapse_all_btn.setStyleSheet("""
-            QPushButton {
-                padding: 6px 16px;
-                background-color: #e8f5e9;
-                border: 1px solid #a5d6a7;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #c8e6c9;
-            }
-        """)
+        collapse_all_btn.setProperty("cssClass", "btn-success")
         collapse_all_btn.clicked.connect(self._collapse_all_groups)
         btn_row_layout.addWidget(collapse_all_btn)
         
@@ -199,25 +131,9 @@ class MCPToolsManagerWidget(QDialog):
         
         self.main_layout.addWidget(btn_frame)
         
-        # 确定按钮
+        # 确定按钮 - 使用 btn-primary 样式
         ok_btn = QPushButton("确定")
-        ok_btn.setStyleSheet("""
-            QPushButton {
-                padding: 10px 24px;
-                background-color: #0078D4;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 11pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #106ebe;
-            }
-            QPushButton:pressed {
-                background-color: #005a9e;
-            }
-        """)
+        ok_btn.setProperty("cssClass", "btn-primary")
         ok_btn.clicked.connect(self._apply_selection)
         self.main_layout.addWidget(ok_btn)
     

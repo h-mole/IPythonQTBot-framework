@@ -1,0 +1,296 @@
+/* =====================================================
+   IPythonQTBot - 颜色定义与组件样式类
+   注意：Qt QSS 不支持 CSS 变量，这里使用直接的 QSS 语法
+   深色主题通过 dark_theme.qss 覆盖这些样式
+   ===================================================== */
+
+/* ==================== Primary 主题按钮/控件（蓝色系） ==================== */
+QPushButton[cssClass="btn-primary"] {
+    background-color: #2563EB;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+QPushButton[cssClass="btn-primary"]:hover {
+    background-color: #1D4ED8;
+}
+
+QPushButton[cssClass="btn-primary"]:pressed {
+    background-color: #1E40AF;
+}
+
+QPushButton[cssClass="btn-primary"]:disabled {
+    background-color: #93C5FD;
+    color: #E5E7EB;
+}
+
+/* ==================== Success 主题按钮/控件（绿色系） ==================== */
+QPushButton[cssClass="btn-success"] {
+    background-color: #16A34A;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+QPushButton[cssClass="btn-success"]:hover {
+    background-color: #15803D;
+}
+
+QPushButton[cssClass="btn-success"]:pressed {
+    background-color: #166534;
+}
+
+QPushButton[cssClass="btn-success"]:disabled {
+    background-color: #86EFAC;
+    color: #E5E7EB;
+}
+
+/* ==================== Warning 主题按钮/控件（琥珀/橙色系） ==================== */
+QPushButton[cssClass="btn-warning"] {
+    background-color: #F59E0B;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+QPushButton[cssClass="btn-warning"]:hover {
+    background-color: #D97706;
+}
+
+QPushButton[cssClass="btn-warning"]:pressed {
+    background-color: #B45309;
+}
+
+QPushButton[cssClass="btn-warning"]:disabled {
+    background-color: #FCD34D;
+    color: #E5E7EB;
+}
+
+/* ==================== Danger/Error 主题按钮/控件（红色系） ==================== */
+QPushButton[cssClass="btn-danger"],
+QPushButton[cssClass="btn-error"] {
+    background-color: #EF4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+QPushButton[cssClass="btn-danger"]:hover,
+QPushButton[cssClass="btn-error"]:hover {
+    background-color: #DC2626;
+}
+
+QPushButton[cssClass="btn-danger"]:pressed,
+QPushButton[cssClass="btn-error"]:pressed {
+    background-color: #B91C1C;
+}
+
+QPushButton[cssClass="btn-danger"]:disabled,
+QPushButton[cssClass="btn-error"]:disabled {
+    background-color: #FCA5A5;
+    color: #E5E7EB;
+}
+
+/* ==================== Info 主题按钮/控件（青色系） ==================== */
+QPushButton[cssClass="btn-info"] {
+    background-color: #06B6D4;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+QPushButton[cssClass="btn-info"]:hover {
+    background-color: #0891B2;
+}
+
+QPushButton[cssClass="btn-info"]:pressed {
+    background-color: #0E7490;
+}
+
+/* ==================== Secondary/Ghost 次要按钮 ==================== */
+QPushButton[cssClass="btn-secondary"] {
+    background-color: transparent;
+    color: #1F2937;
+    border: 1px solid #D1D5DB;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+QPushButton[cssClass="btn-secondary"]:hover {
+    background-color: #F5F5F5;
+    border-color: #E5E7EB;
+}
+
+QPushButton[cssClass="btn-secondary"]:pressed {
+    background-color: #E5E7EB;
+}
+
+/* ==================== 状态标签样式类 ==================== */
+
+/* 空闲状态 - 灰色 */
+QLabel[cssClass="status-idle"] {
+    background-color: #E5E7EB;
+    color: #4B5563;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* 运行中/进行中状态 - 绿色 */
+QLabel[cssClass="status-running"],
+QLabel[cssClass="status-active"] {
+    background-color: #22C55E;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* 完成状态 - 蓝色 */
+QLabel[cssClass="status-completed"],
+QLabel[cssClass="status-done"] {
+    background-color: #3B82F6;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* 警告状态 - 琥珀色 */
+QLabel[cssClass="status-warning"],
+QLabel[cssClass="status-pending"] {
+    background-color: #F59E0B;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* 错误状态 - 红色 */
+QLabel[cssClass="status-error"],
+QLabel[cssClass="status-failed"] {
+    background-color: #EF4444;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* ==================== 信息展示标签样式 ==================== */
+/* Token 计数等数据展示 */
+QLabel[cssClass="info-badge"] {
+    background-color: #FFFFFF;
+    color: #1F2937;
+    border: 1px solid #E5E7EB;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* ==================== 容器/卡片样式 ==================== */
+
+/* 基础卡片 */
+QWidget[cssClass="card"] {
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+/* 高亮容器 - Primary */
+QWidget[cssClass="container-primary"] {
+    background-color: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* 高亮容器 - Success */
+QWidget[cssClass="container-success"] {
+    background-color: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* 高亮容器 - Warning */
+QWidget[cssClass="container-warning"] {
+    background-color: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* 高亮容器 - Danger */
+QWidget[cssClass="container-danger"],
+QWidget[cssClass="container-error"] {
+    background-color: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* 高亮容器 - Info */
+QWidget[cssClass="container-info"] {
+    background-color: #ECFEFF;
+    border: 1px solid #A5F3FC;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* ==================== 文本颜色样式类 ==================== */
+
+QLabel[cssClass="text-primary"] {
+    color: #2563EB;
+}
+
+QLabel[cssClass="text-success"] {
+    color: #16A34A;
+}
+
+QLabel[cssClass="text-warning"] {
+    color: #D97706;
+}
+
+QLabel[cssClass="text-danger"] {
+    color: #DC2626;
+}
+
+QLabel[cssClass="text-info"] {
+    color: #0891B2;
+}
+
+/* ==================== 输入框状态样式类 ==================== */
+
+/* 错误状态的输入框 */
+QLineEdit[cssClass="input-error"],
+QTextEdit[cssClass="input-error"] {
+    border: 2px solid #EF4444;
+    background-color: #FEF2F2;
+}
+
+/* 警告状态的输入框 */
+QLineEdit[cssClass="input-warning"],
+QTextEdit[cssClass="input-warning"] {
+    border: 2px solid #F59E0B;
+    background-color: #FFFBEB;
+}
+
+/* 成功状态的输入框 */
+QLineEdit[cssClass="input-success"],
+QTextEdit[cssClass="input-success"] {
+    border: 2px solid #22C55E;
+    background-color: #F0FDF4;
+}

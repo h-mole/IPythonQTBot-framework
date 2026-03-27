@@ -8,10 +8,10 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QToolButton,
     QFrame,
 )
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QPixmap, QTransform
 
 from app_qt.widgets.custom_checkbox import CustomCheckBox
 
@@ -59,45 +59,30 @@ class CollapsibleGroup(QWidget):
         
         # ===== 标题栏 =====
         self.header = QFrame()
-        self.header.setStyleSheet("""
-            QFrame {
-                background-color: #f5f5f5;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-            }
-        """)
+        # 使用 cssClass 让样式由 QSS 控制
+        self.header.setProperty("cssClass", "card")
         header_layout = QHBoxLayout(self.header)
         header_layout.setContentsMargins(8, 4, 8, 4)
         header_layout.setSpacing(8)
         
-        # 展开/折叠按钮
-        self.toggle_btn = QToolButton()
-        self.toggle_btn.setCheckable(True)
-        self.toggle_btn.setChecked(False)
-        self.toggle_btn.setArrowType(Qt.RightArrow)
-        self.toggle_btn.setStyleSheet("""
-            QToolButton {
-                border: none;
-                background: transparent;
-                padding: 2px;
-            }
-            QToolButton:hover {
-                background-color: #e0e0e0;
-                border-radius: 3px;
-            }
-        """)
-        self.toggle_btn.setFixedSize(20, 20)
-        self.toggle_btn.clicked.connect(self._on_toggle_clicked)
-        header_layout.addWidget(self.toggle_btn)
+        # 展开/折叠图标（使用自定义 SVG）
+        self.arrow_label = QLabel()
+        self.arrow_label.setFixedSize(16, 16)
+        self.arrow_label.setCursor(Qt.PointingHandCursor)
+        self._arrow_pixmap = QPixmap("app_qt/icons/down-triangle.svg")
+        if not self._arrow_pixmap.isNull():
+            self._arrow_pixmap = self._arrow_pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self._update_arrow_icon(False)  # 初始为折叠状态（向右）
+        header_layout.addWidget(self.arrow_label)
         
         # 标题标签
         self.title_label = QLabel(f"<b>{self._group_key}</b>")
-        self.title_label.setStyleSheet("font-size: 11pt; color: #333;")
+        # 不设置颜色，由 QSS 控制
         header_layout.addWidget(self.title_label, stretch=1)
         
         # 工具计数标签
         self.count_label = QLabel("(0)")
-        self.count_label.setStyleSheet("color: #666; font-size: 10pt;")
+        # 不设置颜色，由 QSS 控制
         header_layout.addWidget(self.count_label)
         
         # 全选复选框
@@ -121,6 +106,9 @@ class CollapsibleGroup(QWidget):
         # 设置鼠标点击标题栏也可以展开/折叠
         self.header.setCursor(Qt.PointingHandCursor)
         self.header.mousePressEvent = lambda e: self.toggle()
+        
+        # 箭头点击事件
+        self.arrow_label.mousePressEvent = lambda e: self.toggle()
     
     def add_tool(self, tool_name: str, default_checked: bool = True):
         """
@@ -164,9 +152,25 @@ class CollapsibleGroup(QWidget):
         self._is_content_created = True
         self.first_expanded.emit()
     
-    def _on_toggle_clicked(self):
-        """展开/折叠按钮点击事件"""
-        self.toggle(self.toggle_btn.isChecked())
+    def _update_arrow_icon(self, expanded: bool):
+        """更新箭头图标方向
+        
+        Args:
+            expanded: 是否展开（True=向下，False=向右）
+        """
+        if self._arrow_pixmap.isNull():
+            # 如果图标加载失败，使用 Unicode 字符
+            self.arrow_label.setText("▼" if expanded else "▶")
+            return
+        
+        if expanded:
+            # 展开状态：向下（不旋转）
+            self.arrow_label.setPixmap(self._arrow_pixmap)
+        else:
+            # 折叠状态：向右（旋转90度）
+            transform = QTransform().rotate(270)
+            rotated = self._arrow_pixmap.transformed(transform, Qt.SmoothTransformation)
+            self.arrow_label.setPixmap(rotated)
     
     def toggle(self, expand: bool = None):
         """
@@ -179,8 +183,9 @@ class CollapsibleGroup(QWidget):
             expand = not self._is_expanded
         
         self._is_expanded = expand
-        self.toggle_btn.setChecked(expand)
-        self.toggle_btn.setArrowType(Qt.DownArrow if expand else Qt.RightArrow)
+        
+        # 更新箭头图标方向
+        self._update_arrow_icon(expand)
         
         # 首次展开时创建内容
         if expand and not self._is_content_created:

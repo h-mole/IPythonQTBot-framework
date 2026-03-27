@@ -198,15 +198,13 @@ class IPythonConsoleTab(QWidget):
         toolbar_widget.setLayout(toolbar_layout)
         toolbar_layout.setContentsMargins(5, 5, 5, 5)
 
-        # 设置工具条样式和固定高度
-        toolbar_widget.setStyleSheet("")
         # 设置固定高度（40px），不随窗口拉伸
         toolbar_widget.setMaximumHeight(40)
         toolbar_widget.setMinimumHeight(40)
 
         # 清空按钮
         self.clear_btn = QPushButton("🗑️ 清空")
-        self.clear_btn.setObjectName("dangerBtn")
+        self.clear_btn.setProperty("cssClass", "btn-danger")
         self.clear_btn.clicked.connect(self.clear_console)
         # 按钮固定高度
         self.clear_btn.setMaximumHeight(30)
@@ -215,7 +213,7 @@ class IPythonConsoleTab(QWidget):
 
         # 重启按钮
         self.restart_btn = QPushButton("🔄 重启")
-        self.restart_btn.setObjectName("primaryBtn")
+        self.restart_btn.setProperty("cssClass", "btn-primary")
         self.restart_btn.clicked.connect(self.restart_console)
         # 按钮固定高度
         self.restart_btn.setMaximumHeight(30)
@@ -224,7 +222,7 @@ class IPythonConsoleTab(QWidget):
 
         # 新对话按钮
         self.new_chat_btn = QPushButton("💬 新对话")
-        self.new_chat_btn.setObjectName("successBtn")
+        self.new_chat_btn.setProperty("cssClass", "btn-success")
         self.new_chat_btn.clicked.connect(self.start_new_chat)
         # 按钮固定高度
         self.new_chat_btn.setMaximumHeight(30)
@@ -236,7 +234,7 @@ class IPythonConsoleTab(QWidget):
 
         # MCP 工具管理按钮
         self.mcp_tools_btn = QPushButton("🔧 MCP 工具")
-        self.mcp_tools_btn.setObjectName("warningBtn")
+        self.mcp_tools_btn.setProperty("cssClass", "btn-warning")
         self.mcp_tools_btn.clicked.connect(self.show_mcp_tools_manager)
         # 按钮固定高度
         self.mcp_tools_btn.setMaximumHeight(30)
@@ -256,15 +254,7 @@ class IPythonConsoleTab(QWidget):
 
         # 状态标签
         self.status_label = QLabel("⚪ 空闲")
-        self.status_label.setStyleSheet("""
-            QLabel {
-                padding: 4px 12px;
-                border-radius: 4px;
-                background-color: #e0e0e0;
-                color: #666;
-                font-weight: bold;
-            }
-        """)
+        self.status_label.setProperty("cssClass", "status-idle")
         # 标签固定高度
         self.status_label.setMaximumHeight(30)
         self.status_label.setMinimumHeight(30)
@@ -272,7 +262,7 @@ class IPythonConsoleTab(QWidget):
 
         # 停止生成按钮（默认隐藏）
         self.stop_btn = QPushButton("⏹️ 停止生成")
-        self.stop_btn.setObjectName("warningBtn")
+        self.stop_btn.setProperty("cssClass", "btn-warning")
         self.stop_btn.clicked.connect(self.stop_generation)
         # 按钮固定高度
         self.stop_btn.setMaximumHeight(30)
@@ -282,16 +272,7 @@ class IPythonConsoleTab(QWidget):
 
         # Token 数量显示
         self.token_label = QLabel("📊 Tokens: -1")
-        self.token_label.setStyleSheet("""
-            QLabel {
-                padding: 4px 12px;
-                border-radius: 4px;
-                background-color: #fff;
-                color: #333;
-                font-weight: bold;
-                border: 1px solid #ddd;
-            }
-        """)
+        self.token_label.setProperty("cssClass", "info-badge")
         # 标签固定高度
         self.token_label.setMaximumHeight(30)
         self.token_label.setMinimumHeight(30)
@@ -409,59 +390,46 @@ class IPythonConsoleTab(QWidget):
         from .plugin_manager import exec_main_thread_callback
 
         def update():
-            # 更新状态标签
-            if status == "idle":
-                self.status_label.setText("⚪ 空闲")
-                self.status_label.setStyleSheet("""
-                    QLabel {
-                        padding: 6px 12px;
-                        border-radius: 4px;
-                        background-color: #e0e0e0;
-                        color: #666;
-                        font-weight: bold;
-                    }
-                """)
-                self.stop_btn.setVisible(False)
-                self.new_chat_btn.setEnabled(True)  # 空闲状态启用新对话按钮
-            elif status == "generating":
-                self.status_label.setText("🟢 运行中")
-                self.status_label.setStyleSheet("""
-                    QLabel {
-                        padding: 6px 12px;
-                        border-radius: 4px;
-                        background-color: #4CAF50;
-                        color: white;
-                        font-weight: bold;
-                    }
-                """)
-                self.stop_btn.setVisible(True)
-                self.new_chat_btn.setEnabled(False)  # 生成中禁用新对话按钮
-            elif status == "finished":
-                self.status_label.setText("✅ 生成完毕")
-                self.status_label.setStyleSheet("""
-                    QLabel {
-                        padding: 6px 12px;
-                        border-radius: 4px;
-                        background-color: #2196F3;
-                        color: white;
-                        font-weight: bold;
-                    }
-                """)
-                self.stop_btn.setVisible(False)
-                self.new_chat_btn.setEnabled(True)  # 完成状态启用新对话按钮
-            elif status == "error":
-                self.status_label.setText("🔴 错误")
-                self.status_label.setStyleSheet("""
-                    QLabel {
-                        padding: 6px 12px;
-                        border-radius: 4px;
-                        background-color: #f44336;
-                        color: white;
-                        font-weight: bold;
-                    }
-                """)
-                self.stop_btn.setVisible(False)
-                self.new_chat_btn.setEnabled(True)  # 错误状态也启用新对话按钮
+            # 状态到 QSS 类和文本的映射
+            status_config = {
+                "idle": {
+                    "text": "⚪ 空闲",
+                    "css_class": "status-idle",
+                    "show_stop": False,
+                    "enable_new_chat": True
+                },
+                "generating": {
+                    "text": "🟢 运行中",
+                    "css_class": "status-running",
+                    "show_stop": True,
+                    "enable_new_chat": False
+                },
+                "finished": {
+                    "text": "✅ 生成完毕",
+                    "css_class": "status-completed",
+                    "show_stop": False,
+                    "enable_new_chat": True
+                },
+                "error": {
+                    "text": "🔴 错误",
+                    "css_class": "status-error",
+                    "show_stop": False,
+                    "enable_new_chat": True
+                }
+            }
+            
+            config = status_config.get(status, status_config["idle"])
+            
+            # 更新状态标签文本和样式类
+            self.status_label.setText(config["text"])
+            self.status_label.setProperty("cssClass", config["css_class"])
+            # 刷新样式以应用新的 QSS 类
+            self.status_label.style().unpolish(self.status_label)
+            self.status_label.style().polish(self.status_label)
+            
+            # 更新按钮状态
+            self.stop_btn.setVisible(config["show_stop"])
+            self.new_chat_btn.setEnabled(config["enable_new_chat"])
 
             # 更新 token 数量
             if tokens is not None:
@@ -615,6 +583,43 @@ class IPythonConsoleTab(QWidget):
                 if m.get("extra_data", {}).get("enable_mcp", False)
             ]
             return {"enabled": mcp_tools, "disabled": [], "total": len(mcp_tools)}
+
+    def set_theme(self, theme_name: str):
+        """设置控制台主题
+        
+        Args:
+            theme_name: "light" 或 "dark"
+        """
+        if not self.console_widget:
+            return
+        
+        # RichJupyterWidget 使用 style_sheet 属性设置内部样式
+        if theme_name == "dark":
+            # 深色主题样式
+            self.console_widget.style_sheet = """
+                QPlainTextEdit, QTextEdit {
+                    background-color: #262626;
+                    color: #F5F5F5;
+                    selection-background-color: #2563EB;
+                    selection-color: white;
+                }
+            """
+            # 设置语法高亮样式为 monokai（深色主题友好的配色）
+            self.console_widget.syntax_style = "monokai"
+        else:
+            # 浅色主题样式
+            self.console_widget.style_sheet = """
+                QPlainTextEdit, QTextEdit {
+                    background-color: white;
+                    color: #1F2937;
+                    selection-background-color: #3B82F6;
+                    selection-color: white;
+                }
+            """
+            # 设置语法高亮样式为 default（浅色主题友好的配色）
+            self.console_widget.syntax_style = "default"
+        
+        print(f"[IPythonConsoleTab] 控制台主题已切换为：{theme_name}")
 
     def init_kernel_async(self):
         """在后台线程中异步初始化内核"""

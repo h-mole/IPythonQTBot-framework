@@ -121,16 +121,104 @@ class QuickAssistant(QMainWindow):
             traceback.print_exc()
     
     def toggle_theme(self):
-        """切换主题"""
-        from app_qt.widgets.theme_manager import toggle_theme
+        """切换主题（在浅色和深色之间切换）"""
+        from app_qt.widgets.theme_manager import get_theme_manager
+        manager = get_theme_manager()
+        current_theme = manager.get_current_theme()
+        new_theme = "dark" if current_theme == "light" else "light"
+        self.set_theme(new_theme)
+
+    def set_theme(self, theme_name: str):
+        """设置指定主题
+        
+        Args:
+            theme_name: "light" 或 "dark"
+        """
+        from app_qt.widgets.theme_manager import get_theme_manager
+        
         app = QApplication.instance()
-        if app:
-            new_theme = toggle_theme(app)  # 应用到整个应用
-            print(f"[MainWindow] 主题已切换为：{new_theme}")
-            # 更新标题栏（如果需要）
-            if hasattr(self, 'title_bar'):
-                self.title_bar.style().unpolish(self.title_bar)
-                self.title_bar.style().polish(self.title_bar)
+        if not app:
+            return
+        
+        manager = get_theme_manager()
+        current_theme = manager.get_current_theme()
+        
+        # 如果主题没有变化，不执行操作
+        if current_theme == theme_name:
+            return
+        
+        # 应用新主题
+        manager.apply_theme(app, theme_name)
+        print(f"[MainWindow] 主题已切换为：{theme_name}")
+        
+        # 更新菜单选中状态
+        self._update_theme_menu_check_state()
+        
+        # 刷新所有顶层窗口的样式
+        self._refresh_styles_for_theme_change()
+        
+        # 同步更新 IPython 控制台主题
+        if hasattr(self, 'ipython_console') and self.ipython_console:
+            self.ipython_console.set_theme(theme_name)
+
+    def _on_theme_action_triggered(self, action):
+        """主题菜单项被触发时调用
+        
+        Args:
+            action: 被触发的 QAction
+        """
+        if action == self.light_theme_action:
+            self.set_theme("light")
+        elif action == self.dark_theme_action:
+            self.set_theme("dark")
+
+    def _update_theme_menu_check_state(self):
+        """更新主题菜单的选中状态"""
+        from app_qt.widgets.theme_manager import get_theme_manager
+        
+        manager = get_theme_manager()
+        current_theme = manager.get_current_theme()
+        
+        # 更新菜单项的选中状态（blockSignals 防止触发信号导致循环）
+        self.light_theme_action.blockSignals(True)
+        self.dark_theme_action.blockSignals(True)
+        
+        self.light_theme_action.setChecked(current_theme == "light")
+        self.dark_theme_action.setChecked(current_theme == "dark")
+        
+        self.light_theme_action.blockSignals(False)
+        self.dark_theme_action.blockSignals(False)
+
+    def _refresh_styles_for_theme_change(self):
+        """主题切换后刷新所有控件样式
+        
+        Qt 的样式表机制需要手动触发刷新才能看到主题变化效果。
+        通过遍历所有顶层窗口并调用 unpolish/polish 来强制刷新样式。
+        """
+        app = QApplication.instance()
+        if not app:
+            return
+        
+        # 获取所有顶层窗口并刷新样式
+        for window in app.topLevelWidgets():
+            if window.isVisible():
+                # 递归刷新窗口及其所有子控件
+                self._recursive_refresh_style(window)
+        
+        print(f"[MainWindow] 样式刷新完成")
+
+    def _recursive_refresh_style(self, widget):
+        """递归刷新控件及其子控件的样式"""
+        # 刷新当前控件
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+        widget.update()
+        
+        # 递归刷新子控件
+        for child in widget.findChildren(QWidget):
+            child.style().unpolish(child)
+            child.style().polish(child)
+            child.update()
     
     def _create_menubar(self):
         """创建菜单栏"""
@@ -152,14 +240,37 @@ class QuickAssistant(QMainWindow):
         # 添加拉伸因子，让菜单栏不会占据整个宽度
         # menubar_layout.addStretch()
         self.menu_bar = menubar
-        # 查看菜单 - 主题切换
-        self.theme_menu = QMenu("🌓 主题", self)
-        change_theme_action = QAction("🌓 切换主题", self)
-        self.theme_menu.addAction(change_theme_action)
-        change_theme_action.setToolTip("切换浅色/深色主题")
-        change_theme_action.triggered.connect(self.toggle_theme)
         
-        menubar.addMenu(self.theme_menu)
+        # 视图菜单
+        self.view_menu = QMenu("👁️ 视图", self)
+        menubar.addMenu(self.view_menu)
+        
+        # 视图菜单 - 主题子菜单
+        self.theme_menu = QMenu("🌓 主题", self)
+        self.view_menu.addMenu(self.theme_menu)
+        
+        # 创建 QActionGroup 实现互斥选择
+        from PySide6.QtGui import QActionGroup
+        self.theme_action_group = QActionGroup(self)
+        self.theme_action_group.setExclusive(True)
+        
+        # 浅色主题选项（带选择标记）
+        self.light_theme_action = QAction("☀️ 浅色主题", self)
+        self.light_theme_action.setCheckable(True)
+        self.theme_action_group.addAction(self.light_theme_action)
+        self.theme_menu.addAction(self.light_theme_action)
+        
+        # 深色主题选项（带选择标记）
+        self.dark_theme_action = QAction("🌙 深色主题", self)
+        self.dark_theme_action.setCheckable(True)
+        self.theme_action_group.addAction(self.dark_theme_action)
+        self.theme_menu.addAction(self.dark_theme_action)
+        
+        # 连接 QActionGroup 的 triggered 信号（使用 triggered 而不是 toggled 避免重复触发）
+        self.theme_action_group.triggered.connect(self._on_theme_action_triggered)
+        
+        # 初始化主题菜单的选中状态
+        self._update_theme_menu_check_state()
         
         # 编辑菜单
         self.edit_menu = QMenu("✏️ 编辑", self)
@@ -288,6 +399,11 @@ class QuickAssistant(QMainWindow):
         # 第一标签页：IPython 控制台
         self.ipython_console = IPythonConsoleTab()
         self.notebook.addTab(self.ipython_console, "🐍 IPythonBot")
+        
+        # 同步控制台主题（确保与当前应用主题一致）
+        from app_qt.widgets.theme_manager import get_theme_manager
+        current_theme = get_theme_manager().get_current_theme()
+        self.ipython_console.set_theme(current_theme)
         
         # 更新插件管理器的 notebook 引用（此时已创建）
         from app_qt.plugin_manager import get_plugin_manager

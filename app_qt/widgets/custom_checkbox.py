@@ -66,15 +66,7 @@ class CustomCheckBox(QWidget):
         self.symbol_label.installEventFilter(self)
         self.text_label.installEventFilter(self)
         
-        # 设置样式
-        self.setStyleSheet("""
-            CustomCheckBox {
-                background-color: transparent;
-            }
-            QLabel {
-                color: #333333;
-            }
-        """)
+        # 不设置硬编码样式，由 QSS 控制颜色
     
     def update_symbol(self):
         """更新符号显示"""
@@ -98,12 +90,7 @@ class CustomCheckBox(QWidget):
                 if self._checkable:
                     self.toggle()
                 return True
-        elif event.type() == QEvent.Type.Enter:
-            # 鼠标悬停效果
-            obj.setStyleSheet("color: #0078D4;")
-        elif event.type() == QEvent.Type.Leave:
-            # 恢复默认颜色
-            obj.setStyleSheet("color: #333333;")
+        # 鼠标悬停效果由 QSS 控制，不在这里设置
             
         return super().eventFilter(obj, event)
     

@@ -96,7 +96,10 @@ class EditorToolbar(QFrame):
             self.current_path_label.setText("✓ 已复制")
             # 使用 QTimer 恢复原始文本
             from PySide6.QtCore import QTimer
-            QTimer.singleShot(800, lambda: self.current_path_label.setText(original_text))
+
+            QTimer.singleShot(
+                800, lambda: self.current_path_label.setText(original_text)
+            )
 
     def update_current_path(self, file_path, notes_dir=None):
         """更新当前文件路径显示
@@ -109,13 +112,13 @@ class EditorToolbar(QFrame):
         if file_path:
             # 保存完整路径
             self._current_full_path = file_path
-            
+
             # 转换为相对路径
             if notes_dir:
                 rel_path = os.path.relpath(file_path, notes_dir)
             else:
                 rel_path = file_path
-            
+
             # 保存相对路径
             self._current_rel_path = rel_path
 
@@ -242,7 +245,7 @@ class TextEditorWidget(SyntaxEdit):
     save_requested = Signal()
 
     def __init__(self):
-        super().__init__()
+        super().__init__(use_theme_background=False)
         self.setFont(QFont("Consolas", 10))
         self.setPlaceholderText("在此输入笔记内容...")
         self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -254,6 +257,11 @@ class TextEditorWidget(SyntaxEdit):
         lexer = get_lexer_for_filename(file_path, guess=True)
         if lexer.name.lower() != "text only":
             self.setSyntax(lexer.name)
+
+    def setPlainText(self, text: str) -> None:
+        ret = super().setPlainText(text)
+        self._highlight_slot._do_highlight()
+        return ret
 
     def show_context_menu(self, pos):
         """显示右键菜单"""
