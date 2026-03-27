@@ -2,6 +2,7 @@
 Pandoc Utils Plugin - 提供 Pandoc 文档转换功能
 """
 
+from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -27,6 +28,11 @@ from app_qt.configs import PLUGIN_DATA_DIR
 
 if TYPE_CHECKING:
     from app_qt.plugin_manager import PluginManager
+
+# Initialize plugin i18n
+from app_qt.plugin_i18n import PluginI18n
+_i18n = PluginI18n("pandoc_utils", Path(__file__).parent)
+_ = _i18n.gettext
 
 
 class PandocUtilsWidget(QWidget):
@@ -91,23 +97,23 @@ class PandocUtilsWidget(QWidget):
 
                 # 如果目标文件已存在，跳过
                 if os.path.exists(dst_path):
-                    print(f"[PandocUtils] 跳过已存在的模板：{filename}")
+                    print(_("[PandocUtils] Skipping existing template: {}") + filename)
                     skipped_count += 1
                     continue
 
                 try:
                     # 复制文件
                     shutil.copy2(src_path, dst_path)
-                    print(f"[PandocUtils] 已复制内置模板：{filename}")
+                    print(_("[PandocUtils] Copied built-in template: {}") + filename)
                     copied_count += 1
                 except PermissionError as e:
-                    print(f"[PandocUtils] 权限错误，无法复制 {filename}: {e}")
+                    print(_("[PandocUtils] Permission error copying {}: {}").format(filename, e))
                     import traceback
 
                     traceback.print_exc()
                     error_count += 1
                 except Exception as e:
-                    print(f"[PandocUtils] 复制模板 {filename} 失败：{e}")
+                    print(_("[PandocUtils] Failed to copy template {}: {}").format(filename, e))
                     import traceback
 
                     traceback.print_exc()
@@ -117,7 +123,9 @@ class PandocUtilsWidget(QWidget):
         total = copied_count + skipped_count + error_count
         if total > 0:
             print(
-                f"[PandocUtils] 模板复制完成：共 {total} 个文件，成功复制 {copied_count} 个，跳过 {skipped_count} 个，错误 {error_count} 个"
+                _("[PandocUtils] Template copy completed: {} files total, {} copied, {} skipped, {} errors").format(
+                    total, copied_count, skipped_count, error_count
+                )
             )
 
     def _load_available_templates(self):
@@ -152,7 +160,7 @@ class PandocUtilsWidget(QWidget):
 
         if template_name in self.available_templates:
             self.template_path = self.available_templates[template_name]
-            print(f"[PandocUtils] 已选择模板：{template_name}")
+            print(_("[PandocUtils] Template selected: {}") + template_name)
             return True
         else:
             print(f"[PandocUtils] 模板不存在：{template_name}")
@@ -516,19 +524,19 @@ class PandocUtilsWidget(QWidget):
                     selected = template_list.currentItem()
                     if selected:
                         template_name = selected.text()
-                        if template_name != "（无可用模板）":
+                        if template_name != "(" + _("No templates available") + ")":
                             self.set_template(template_name)
                             print(f"[PandocUtils] 已选择模板：{template_name}")
                         else:
                             self.set_template(None)
 
             # 添加菜单项
-            template_action = QAction("选择模板...", pandoc_menu)
+            template_action = QAction(_("Select Template..."), pandoc_menu)
             template_action.setShortcut(QKeySequence("Ctrl+Alt+T"))
             template_action.triggered.connect(lambda: create_template_submenu())
             pandoc_menu.addAction(template_action)
 
-            convert_to_docx_action = QAction("转换选中文本为 DOCX", pandoc_menu)
+            convert_to_docx_action = QAction(_("Convert Selection to DOCX"), pandoc_menu)
             convert_to_docx_action.setShortcut(QKeySequence("Ctrl+Alt+M"))
             convert_to_docx_action.triggered.connect(
                 self.convert_markdown_to_docx
@@ -536,13 +544,13 @@ class PandocUtilsWidget(QWidget):
             pandoc_menu.addAction(convert_to_docx_action)
 
             # 添加转为html的菜单项
-            convert_to_html_action = QAction("转换选中文本为 HTML", pandoc_menu)
+            convert_to_html_action = QAction(_("Convert Selection to HTML"), pandoc_menu)
             convert_to_html_action.setShortcut(QKeySequence("Ctrl+Alt+H"))
             convert_to_html_action.triggered.connect(self.convert_markdown_to_html)
             pandoc_menu.addAction(convert_to_html_action)
             
             # 添加转为latex的菜单项
-            convert_to_latex_action = QAction("转换选中文本为 LaTeX", pandoc_menu)
+            convert_to_latex_action = QAction(_("Convert Selection to LaTeX"), pandoc_menu)
             convert_to_latex_action.setShortcut(QKeySequence("Ctrl+Alt+L"))
             convert_to_latex_action.triggered.connect(self.convert_markdown_to_latex)
             pandoc_menu.addAction(convert_to_latex_action)
@@ -559,21 +567,21 @@ class PandocUtilsWidget(QWidget):
                 if add_menu:
                     success = add_menu(pandoc_menu)
                     if success:
-                        print("[PandocUtils] 已成功创建 Pandoc 菜单")
+                        print(_("[PandocUtils] Pandoc menu created successfully"))
                         menu_added = True
                     else:
-                        print("[PandocUtils] 创建菜单失败（可能在无 UI 环境下运行）")
+                        print(_("[PandocUtils] Failed to create menu (may be running without UI)"))
                 else:
                     print(
                         "[PandocUtils] 警告：找不到 text_helper.add_menu_to_menubar 方法"
                     )
             else:
-                print("[PandocUtils] 警告：text_helper 未加载，无法创建菜单")
+                print(_("[PandocUtils] Warning: text_helper not loaded, cannot create menu"))
 
             return menu_added
 
         except Exception as e:
-            print(f"[PandocUtils] 创建菜单失败：{e}")
+            print(_("[PandocUtils] Failed to create menu: {}") + str(e))
             import traceback
 
             traceback.print_exc()
@@ -608,9 +616,9 @@ class PandocUtilsWidget(QWidget):
                 QMessageBox.critical(self, "转换失败", result["error"])
 
         except Exception as e:
-            error_msg = f"发生错误：{str(e)}"
+            error_msg = _("Error occurred: {}") + str(e)
             print(error_msg)
-            QMessageBox.critical(self, "错误", error_msg)
+            QMessageBox.critical(self, _("Error"), error_msg)
             return {"success": False, "error": error_msg}
 
         return result
@@ -686,7 +694,7 @@ class PandocUtilsWidget(QWidget):
         from PySide6.QtWidgets import QFileDialog, QMessageBox
 
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "选择 DOCX 文件", "", "Word 文档 (*.docx);;所有文件 (*)"
+            self, _("Select DOCX File"), "", _("Word Documents (*.docx);;All Files (*)")
         )
 
         if file_path:
@@ -783,6 +791,6 @@ def unload_plugin(plugin_manager):
     Args:
         plugin_manager: 插件管理器实例
     """
-    print("[PandocUtils] 正在卸载 Pandoc 工具插件...")
+    print(_("[PandocUtils] Unloading Pandoc plugin..."))
     # 清理资源、保存状态等
-    print("[PandocUtils] Pandoc 工具插件卸载完成")
+    print(_("[PandocUtils] Pandoc plugin unloaded"))

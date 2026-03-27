@@ -3,6 +3,7 @@
 迁移自 tabs/text_helper.py
 """
 
+from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -28,6 +29,11 @@ import subprocess
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Initialize plugin i18n
+from app_qt.plugin_i18n import PluginI18n
+_i18n = PluginI18n("text_helper", Path(__file__).parent)
+_ = _i18n.gettext
 
 
 class TextHelperTab(QWidget):
@@ -64,25 +70,25 @@ class TextHelperTab(QWidget):
         main_layout.setMenuBar(self.menubar)
 
         # 创建文本处理菜单
-        self.text_menu = self.menubar.addMenu("文本处理 (&T)")
+        self.text_menu = self.menubar.addMenu(_("Text Processing") + " (&T)")
 
         # 添加默认菜单项到文本处理菜单
-        self.remove_newlines_action = QAction("去除换行符", self)
+        self.remove_newlines_action = QAction(_("Remove Newlines"), self)
         self.remove_newlines_action.setShortcut(QKeySequence("Ctrl+Alt+L"))
         self.remove_newlines_action.triggered.connect(self.remove_newlines)
         self.text_menu.addAction(self.remove_newlines_action)
 
-        self.double_newlines_action = QAction("添加双重换行符", self)
+        self.double_newlines_action = QAction(_("Add Double Newlines"), self)
         self.double_newlines_action.setShortcut(QKeySequence("Ctrl+Alt+D"))
         self.double_newlines_action.triggered.connect(self.add_double_newlines)
         self.text_menu.addAction(self.double_newlines_action)
 
-        self.remove_illegal_action = QAction("去除非法字符", self)
+        self.remove_illegal_action = QAction(_("Remove Illegal Chars"), self)
         self.remove_illegal_action.setShortcut(QKeySequence("Ctrl+Alt+I"))
         self.remove_illegal_action.triggered.connect(self.remove_illegal_chars)
         self.text_menu.addAction(self.remove_illegal_action)
 
-        self.remove_filename_action = QAction("去除文件名非法字符", self)
+        self.remove_filename_action = QAction(_("Remove Filename Illegal Chars"), self)
         self.remove_filename_action.setShortcut(QKeySequence("Ctrl+Alt+F"))
         self.remove_filename_action.triggered.connect(
             self.remove_filename_illegal_chars
@@ -91,7 +97,7 @@ class TextHelperTab(QWidget):
 
         self.text_menu.addSeparator()
 
-        self.copy_action = QAction("复制结果", self)
+        self.copy_action = QAction(_("Copy Result"), self)
         self.copy_action.setShortcut(QKeySequence("Ctrl+C"))
         self.copy_action.triggered.connect(self.copy_to_clipboard)
         self.text_menu.addAction(self.copy_action)
@@ -106,13 +112,13 @@ class TextHelperTab(QWidget):
         left_widget.setLayout(left_layout)
 
         # 输入文本框
-        input_group = QGroupBox("输入文本")
+        input_group = QGroupBox(_("Input Text"))
         input_layout = QVBoxLayout()
         input_group.setLayout(input_layout)
 
         self.text_input = QTextEdit()
         self.text_input.setFont(QFont("Consolas", 10))
-        self.text_input.setPlaceholderText("在此输入或粘贴文本...")
+        self.text_input.setPlaceholderText(_("Enter or paste text here..."))
         self.text_input.setUndoRedoEnabled(True)  # 启用撤销/重做功能
         input_layout.addWidget(self.text_input)
 
@@ -125,7 +131,7 @@ class TextHelperTab(QWidget):
         right_layout = QVBoxLayout()
         right_widget.setLayout(right_layout)
 
-        clipboard_group = QGroupBox("📋 剪贴板历史")
+        clipboard_group = QGroupBox("📋 " + _("Clipboard History"))
         clipboard_layout = QVBoxLayout()
         clipboard_group.setLayout(clipboard_layout)
 
@@ -134,7 +140,7 @@ class TextHelperTab(QWidget):
         self.clipboard_list.itemDoubleClicked.connect(self.load_clipboard_item)
         clipboard_layout.addWidget(self.clipboard_list)
 
-        self.clear_history_btn = QPushButton("清空历史")
+        self.clear_history_btn = QPushButton(_("Clear History"))
         self.clear_history_btn.clicked.connect(self.clear_clipboard_history)
         clipboard_layout.addWidget(self.clear_history_btn)
 
@@ -171,7 +177,7 @@ class TextHelperTab(QWidget):
             self.text_input.setPlainText(text)
             return True
         except Exception as e:
-            print(f"[TextHelper] 设置文本失败：{e}")
+            print(_("[TextHelper] Failed to set text: {}") + str(e))
             return False
 
     def add_menu_to_menubar_api(self, menu):
@@ -192,11 +198,11 @@ class TextHelperTab(QWidget):
             # 保存菜单引用（使用菜单对象作为 key）
             self.custom_menus[id(menu)] = menu
 
-            print(f"[TextHelper] 已添加菜单到菜单栏")
+            print(_("[TextHelper] Menu added to menubar"))
             return True
 
         except Exception as e:
-            print(f"[TextHelper] 添加菜单失败：{e}")
+            print(_("[TextHelper] Failed to add menu: {}") + str(e))
             import traceback
 
             traceback.print_exc()
@@ -223,7 +229,7 @@ class TextHelperTab(QWidget):
                 try:
                     action.setShortcut(QKeySequence(shortcut))
                 except Exception as e:
-                    print(f"[TextHelper] 设置快捷键失败：{e}")
+                    print(_("[TextHelper] Failed to set shortcut: {}") + str(e))
 
             # 绑定回调函数
             def on_triggered():
@@ -233,7 +239,7 @@ class TextHelperTab(QWidget):
                     if result and isinstance(result, str):
                         self.text_input.setPlainText(result)
                 except Exception as e:
-                    print(f"[TextHelper] 自定义处理函数执行失败：{e}")
+                    print(_("[TextHelper] Custom handler failed: {}") + str(e))
                     import traceback
 
                     traceback.print_exc()
@@ -244,7 +250,7 @@ class TextHelperTab(QWidget):
             # 保存引用
             self.custom_actions.append(action)
 
-            print(f"[TextHelper] 已注册自定义菜单项：{name}")
+            print(_("[TextHelper] Registered custom menu item: {}") + name)
             return True
 
         except Exception as e:
@@ -420,13 +426,13 @@ class TextHelperTab(QWidget):
 
     def _send_to_editor(self, text):
         """
-        将文本发送到主编辑控件
+        Send text to main editor
         
         Args:
-            text: 要发送的文本内容
+            text: Text content to send
         """
         self.text_input.setPlainText(text)
-        print(f"[TextHelper] 已将 {len(text)} 字符的内容发送到编辑器")
+        print(_("[TextHelper] Sent {} characters to editor").format(len(text)))
 
 
 # ==================== 插件入口函数 ====================

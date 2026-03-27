@@ -4,12 +4,18 @@
 """
 
 import os
+from pathlib import Path
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
     QLineEdit, QTextEdit, QPushButton, QMessageBox,
     QGroupBox, QFileDialog
 )
 from PySide6.QtCore import Qt
+
+# Initialize plugin i18n
+from app_qt.plugin_i18n import PluginI18n
+_i18n = PluginI18n("quick_notes", Path(__file__).parent.parent)
+_ = _i18n.gettext
 
 
 class CreateSkillDialog(QDialog):
@@ -18,7 +24,7 @@ class CreateSkillDialog(QDialog):
     def __init__(self, parent=None, skills_dir=None):
         super().__init__(parent)
         self.skills_dir = skills_dir
-        self.setWindowTitle("创建新技能")
+        self.setWindowTitle(_("Create New Skill"))
         self.setMinimumWidth(600)
         self.setMinimumHeight(500)
         
@@ -30,49 +36,49 @@ class CreateSkillDialog(QDialog):
         self.setLayout(layout)
         
         # 技能基本信息
-        info_group = QGroupBox("技能基本信息")
+        info_group = QGroupBox(_("Skill Basic Info"))
         info_layout = QVBoxLayout()
         info_group.setLayout(info_layout)
         
         # 技能名称
         name_row = QHBoxLayout()
-        name_row.addWidget(QLabel("技能名称:"))
+        name_row.addWidget(QLabel(_("Skill Name:") + ":"))
         self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("例如：pdf-processing")
+        self.name_input.setPlaceholderText(_("e.g., pdf-processing"))
         name_row.addWidget(self.name_input)
         info_layout.addLayout(name_row)
         
         # 技能描述
-        desc_label = QLabel("技能描述:")
+        desc_label = QLabel(_("Skill Description:") + ":")
         info_layout.addWidget(desc_label)
         self.desc_input = QTextEdit()
-        self.desc_input.setPlaceholderText("描述技能的用途和使用时机...")
+        self.desc_input.setPlaceholderText(_("Describe skill purpose and usage..."))
         self.desc_input.setMaximumHeight(100)
         info_layout.addWidget(self.desc_input)
         
         layout.addWidget(info_group)
         
         # SKILL.md 内容
-        content_group = QGroupBox("SKILL.md 内容")
+        content_group = QGroupBox(_("SKILL.md Content"))
         content_layout = QVBoxLayout()
         content_group.setLayout(content_layout)
         
-        content_label = QLabel("技能指令内容 (Markdown 格式):")
+        content_label = QLabel(_("Skill Instructions (Markdown format):") + ":")
         content_layout.addWidget(content_label)
         
         self.content_input = QTextEdit()
-        self.content_input.setPlaceholderText("""# 技能名称
+        self.content_input.setPlaceholderText("""# Skill Name
 
-## 何时使用此技能
-描述在什么情况下应该使用这个技能...
+## When to use this skill
+Describe when to use this skill...
 
-## 如何执行任务
-1. 第一步...
-2. 第二步...
+## How to execute tasks
+1. First step...
+2. Second step...
 3. ...
 
-## 示例
-提供一些使用示例...
+## Examples
+Provide usage examples...
 """)
         content_layout.addWidget(self.content_input)
         
@@ -82,11 +88,11 @@ class CreateSkillDialog(QDialog):
         button_row = QHBoxLayout()
         button_row.addStretch()
         
-        self.cancel_btn = QPushButton("取消")
+        self.cancel_btn = QPushButton(_("Cancel"))
         self.cancel_btn.clicked.connect(self.reject)
         button_row.addWidget(self.cancel_btn)
         
-        self.create_btn = QPushButton("创建")
+        self.create_btn = QPushButton(_("Create"))
         self.create_btn.clicked.connect(self.on_create)
         self.create_btn.setDefault(True)
         button_row.addWidget(self.create_btn)
@@ -101,29 +107,29 @@ class CreateSkillDialog(QDialog):
         
         # 验证输入
         if not skill_name:
-            QMessageBox.warning(self, "警告", "请输入技能名称！")
+            QMessageBox.warning(self, _("Warning"), _("Please enter skill name!"))
             return
         
         if not skill_desc:
-            QMessageBox.warning(self, "警告", "请输入技能描述！")
+            QMessageBox.warning(self, _("Warning"), _("Please enter skill description!"))
             return
         
         if not skill_content:
-            QMessageBox.warning(self, "警告", "请输入技能指令内容！")
+            QMessageBox.warning(self, _("Warning"), _("Please enter skill instructions!"))
             return
         
         # 检查技能名称格式（kebab-case）
         import re
         if not re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', skill_name):
             QMessageBox.warning(
-                self, "警告", 
-                "技能名称必须是小写字母、数字和连字符，且不能以连字符开头或结尾！"
+                self, _("Warning"), 
+                _("Skill name must be lowercase letters, numbers and hyphens, cannot start or end with hyphen!")
             )
             return
         
         # 确定技能目录
         if not self.skills_dir:
-            QMessageBox.critical(self, "错误", "未指定 skills 目录路径！")
+            QMessageBox.critical(self, _("Error"), _("Skills directory path not specified!"))
             return
         
         skill_folder_path = os.path.join(self.skills_dir, skill_name)
@@ -131,8 +137,8 @@ class CreateSkillDialog(QDialog):
         # 检查是否已存在
         if os.path.exists(skill_folder_path):
             QMessageBox.warning(
-                self, "警告", 
-                f"技能文件夹已存在：{skill_folder_path}"
+                self, _("Warning"), 
+                _("Skill folder already exists: {}").format(skill_folder_path)
             )
             return
         
@@ -154,15 +160,15 @@ description: {skill_desc}
                 f.write(skill_md_content)
             
             QMessageBox.information(
-                self, "成功", 
-                f"技能创建成功！\n路径：{skill_folder_path}"
+                self, _("Success"), 
+                _("Skill created successfully!\nPath: {}").format(skill_folder_path)
             )
             self.accept()
             
         except Exception as e:
             QMessageBox.critical(
-                self, "错误", 
-                f"创建技能失败：{str(e)}"
+                self, _("Error"), 
+                _("Failed to create skill: {}") + str(e)
             )
     
     def get_skill_info(self):

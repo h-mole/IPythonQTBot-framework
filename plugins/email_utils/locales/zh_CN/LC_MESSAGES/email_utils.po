@@ -1,0 +1,471 @@
+# Chinese (Simplified) translations
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT 1.0.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+#: plugins\email_utils\components\email_detail_dialog.py:123
+msgid "(No content)"
+msgstr "（无正文内容）"
+
+#: plugins\email_utils\components\email_list_widget.py:100
+msgid "Account"
+msgstr "账号"
+
+#: plugins\email_utils\components\account_config_dialog.py:44
+msgid "Account Name:"
+msgstr "账号名称："
+
+#: plugins\email_utils\components\email_list_widget.py:546
+msgid "Account Settings"
+msgstr "账号配置"
+
+#: plugins\email_utils\components\account_config_dialog.py:151
+msgid "Add Account"
+msgstr "添加账号"
+
+#: plugins\email_utils\components\send_email_dialog.py:160
+msgid "Add Attachment"
+msgstr "添加附件"
+
+#: plugins\email_utils\components\email_list_widget.py:578
+msgid "All Accounts"
+msgstr "全部账号"
+
+#: plugins\email_utils\components\email_detail_dialog.py:178
+msgid "All Files (*)"
+msgstr "所有文件 (*)"
+
+#: plugins\email_utils\components\account_config_dialog.py:211
+msgid "Are you sure to delete the selected account?"
+msgstr "确定要删除选中的账号吗？"
+
+#: plugins\email_utils\components\email_list_widget.py:105
+msgid "Attach"
+msgstr "附件"
+
+#: plugins\email_utils\components\email_detail_dialog.py:195
+msgid "Attachment saved to:\n{}"
+msgstr "附件已保存到：\n{}"
+
+#: plugins\email_utils\components\send_email_dialog.py:151
+msgid "Attachments"
+msgstr "附件"
+
+#: plugins\email_utils\components\email_detail_dialog.py:132
+msgid "Attachments ({})"
+msgstr "附件 ({})"
+
+#: plugins\email_utils\components\send_email_dialog.py:139
+msgid "Body (HTML supported):"
+msgstr "正文（支持 HTML）："
+
+#: plugins\email_utils\components\fetch_history_dialog.py:65
+msgid "Cancel"
+msgstr "取消"
+
+#: plugins\email_utils\main.py:100
+msgid "Cannot determine email account!"
+msgstr "无法确定邮件所属账号！"
+
+#: plugins\email_utils\components\email_list_widget.py:566
+msgid "Clear"
+msgstr "清空"
+
+#: plugins\email_utils\components\email_list_widget.py:568
+msgid "Clear search"
+msgstr "清空搜索"
+
+#: plugins\email_utils\components\email_list_widget.py:541
+msgid "Compose"
+msgstr "写邮件"
+
+#: plugins\email_utils\components\account_config_dialog.py:135
+msgid "Configured Accounts"
+msgstr "已配置的账号"
+
+#: plugins\email_utils\components\account_config_dialog.py:210
+msgid "Confirm Delete"
+msgstr "确认删除"
+
+msgid "Copy"
+msgstr "复制"
+
+#: plugins\email_utils\components\email_list_widget.py:103
+msgid "Date"
+msgstr "日期"
+
+#: plugins\email_utils\components\email_detail_dialog.py:100
+msgid "Date:"
+msgstr "日期:"
+
+#: plugins\email_utils\components\fetch_history_dialog.py:80
+msgid "Days must be greater than 0"
+msgstr "天数必须大于0"
+
+#: plugins\email_utils\components\fetch_history_dialog.py:43
+msgid "Days:"
+msgstr "天数："
+
+#: plugins\email_utils\components\account_config_dialog.py:159
+msgid "Delete Account"
+msgstr "删除账号"
+
+#: plugins\email_utils\components\email_detail_dialog.py:148
+msgid "Download Selected"
+msgstr "下载选中附件"
+
+#: plugins\email_utils\components\email_detail_dialog.py:199
+msgid "Download failed: {}"
+msgstr "下载失败：{}"
+
+#: plugins\email_utils\components\account_config_dialog.py:155
+msgid "Edit Account"
+msgstr "编辑账号"
+
+#: plugins\email_utils\components\account_config_dialog.py:33 plugins\email_utils\components\account_config_dialog.py:128
+msgid "Email Account Configuration"
+msgstr "邮箱账号配置"
+
+#: plugins\email_utils\components\account_config_dialog.py:51
+msgid "Email Address:"
+msgstr "邮箱地址"
+
+#: plugins\email_utils\components\email_detail_dialog.py:105
+msgid "Email Body"
+msgstr "邮件内容"
+
+#: plugins\email_utils\components\email_detail_dialog.py:74
+msgid "Email Details"
+msgstr "邮件详情"
+
+#: plugins\email_utils\components\email_detail_dialog.py:81
+msgid "Email Info"
+msgstr "邮件信息"
+
+msgid "Email Manager"
+msgstr "📧 邮箱管理"
+
+#: plugins\email_utils\components\send_email_dialog.py:216
+msgid "Email is being sent, please wait..."
+msgstr "邮件正在发送中，请稍候..."
+
+#: plugins\email_utils\components\account_config_dialog.py:56
+msgid "Email password or auth code"
+msgstr "邮箱密码或授权码"
+
+#: plugins\email_utils\components\send_email_dialog.py:265
+msgid "Email sent successfully!"
+msgstr "邮件发送成功！"
+
+#: plugins\email_utils\components\fetch_history_dialog.py:38
+msgid "Enter days of history to fetch:"
+msgstr "请输入要拉取的历史邮件天数："
+
+#: plugins\email_utils\main.py:117 plugins\email_utils\components\email_detail_dialog.py:199 plugins\email_utils\components\email_list_widget.py:932 plugins\email_utils\components\send_email_dialog.py:276
+msgid "Error"
+msgstr "错误"
+
+msgid "Error occurred: {}"
+msgstr "发生错误：{}"
+
+msgid "Failed to add account: {}"
+msgstr "添加账号失败：{}"
+
+#: plugins\email_utils\components\email_list_widget.py:932
+msgid "Failed to fetch emails: {}"
+msgstr "获取邮件失败：{}"
+
+#: plugins\email_utils\main.py:117
+msgid "Failed to load email details: {}"
+msgstr "无法加载邮件详情：{}"
+
+#: plugins\email_utils\components\send_email_dialog.py:268
+msgid "Failed to send email!"
+msgstr "发送失败！"
+
+#: plugins\email_utils\components\send_email_dialog.py:276
+msgid "Failed to send: {}"
+msgstr "发送失败：{}"
+
+#: plugins\email_utils\components\email_list_widget.py:536
+msgid "Fetch History"
+msgstr "拉取历史"
+
+#: plugins\email_utils\components\fetch_history_dialog.py:26
+msgid "Fetch History Emails"
+msgstr "拉取历史邮件"
+
+#: plugins\email_utils\components\email_list_widget.py:930
+msgid "Fetch failed"
+msgstr "获取失败"
+
+#: plugins\email_utils\components\email_list_widget.py:355
+msgid "Fetch failed: {}"
+msgstr "拉取失败：{}"
+
+#: plugins\email_utils\components\email_list_widget.py:531
+msgid "Fetch latest emails (if any cached in first 10, auto-load 60 days cache)"
+msgstr "拉取最新邮件（如果前10封中有已缓存的，会自动加载60天内的缓存）"
+
+msgid "Fetching [{}]... ({}/{})"
+msgstr "正在拉取 [{}]... ({}/{})"
+
+#: plugins\email_utils\components\email_list_widget.py:734
+msgid "Fetching emails from {} accounts..."
+msgstr "正在获取 {} 个账号的邮件..."
+
+#: plugins\email_utils\components\email_list_widget.py:340
+msgid "Fetching emails..."
+msgstr "正在拉取邮件..."
+
+#: plugins\email_utils\components\email_list_widget.py:786
+msgid "Fetching {} days history from {} accounts..."
+msgstr "正在拉取 {} 个账号最近 {} 天的历史邮件..."
+
+#: plugins\email_utils\components\email_list_widget.py:575
+msgid "Filter:"
+msgstr "筛选："
+
+#: plugins\email_utils\components\email_list_widget.py:102
+msgid "From"
+msgstr "发件人"
+
+#: plugins\email_utils\components\email_detail_dialog.py:92 plugins\email_utils\components\send_email_dialog.py:114
+msgid "From:"
+msgstr "发件人："
+
+#: plugins\email_utils\components\account_config_dialog.py:73
+msgid "IMAP Port:"
+msgstr "IMAP 端口："
+
+#: plugins\email_utils\components\account_config_dialog.py:66
+msgid "IMAP Server:"
+msgstr "IMAP 服务器："
+
+#: plugins\email_utils\components\email_list_widget.py:757 plugins\email_utils\components\email_list_widget.py:1004 plugins\email_utils\components\send_email_dialog.py:216
+msgid "Info"
+msgstr "提示"
+
+#: plugins\email_utils\components\email_list_widget.py:924
+msgid "Loading history cache for accounts: {}"
+msgstr "正在为以下账号加载历史缓存：{}"
+
+#: plugins\email_utils\components\email_list_widget.py:820
+msgid "Loading {} days cache from {} accounts..."
+msgstr "正在加载 {} 个账号 {} 天内的缓存邮件..."
+
+msgid "Loading..."
+msgstr "加载中..."
+
+#: plugins\email_utils\components\send_email_dialog.py:122
+msgid "Multiple recipients separated by commas"
+msgstr "多个收件人用逗号分隔"
+
+#: plugins\email_utils\components\email_list_widget.py:325
+msgid "No account configured"
+msgstr "没有配置账号"
+
+#: plugins\email_utils\components\email_list_widget.py:350
+msgid "No new emails"
+msgstr "没有新邮件"
+
+#: plugins\email_utils\components\fetch_history_dialog.py:69
+msgid "OK"
+msgstr "确定"
+
+#: plugins\email_utils\components\account_config_dialog.py:59
+msgid "Password/Auth Code:"
+msgstr "密码/授权码："
+
+#: plugins\email_utils\components\email_list_widget.py:721 plugins\email_utils\components\email_list_widget.py:762
+msgid "Please configure email account first!"
+msgstr "请先配置邮箱账号！"
+
+#: plugins\email_utils\components\send_email_dialog.py:228
+msgid "Please enter email subject!"
+msgstr "请输入邮件主题！"
+
+#: plugins\email_utils\components\send_email_dialog.py:224
+msgid "Please enter recipient address!"
+msgstr "请输入收件人地址！"
+
+#: plugins\email_utils\components\account_config_dialog.py:205
+msgid "Please select an account to delete!"
+msgstr "请先选择要删除的账号！"
+
+#: plugins\email_utils\components\account_config_dialog.py:188
+msgid "Please select an account to edit!"
+msgstr "请先选择要编辑的账号！"
+
+#: plugins\email_utils\components\email_detail_dialog.py:171
+msgid "Please select an attachment to download!"
+msgstr "请先选择要下载的附件！"
+
+#: plugins\email_utils\components\email_list_widget.py:104
+msgid "Preview"
+msgstr "预览"
+
+#: plugins\email_utils\components\email_list_widget.py:623
+msgid "Ready"
+msgstr "就绪"
+
+#: plugins\email_utils\components\email_list_widget.py:530
+msgid "Refresh Emails"
+msgstr "刷新邮件"
+
+#: plugins\email_utils\components\email_list_widget.py:988
+msgid "Refresh This Email"
+msgstr "刷新此邮件"
+
+#: plugins\email_utils\components\email_list_widget.py:1004
+msgid "Refresh email {}"
+msgstr "刷新邮件 {}"
+
+#: plugins\email_utils\components\email_list_widget.py:757
+msgid "Refreshing, please wait..."
+msgstr "正在刷新，请稍候..."
+
+msgid "Remove Account"
+msgstr "删除账号"
+
+#: plugins\email_utils\components\send_email_dialog.py:164
+msgid "Remove Attachment"
+msgstr "移除附件"
+
+#: plugins\email_utils\components\email_list_widget.py:983 plugins\email_utils\components\send_email_dialog.py:97
+msgid "Reply Email"
+msgstr "回复邮件"
+
+#: plugins\email_utils\components\account_config_dialog.py:87
+msgid "SMTP Port:"
+msgstr "SMTP 端口："
+
+#: plugins\email_utils\components\account_config_dialog.py:80
+msgid "SMTP Server:"
+msgstr "SMTP 服务器："
+
+#: plugins\email_utils\components\email_detail_dialog.py:178
+msgid "Save Attachment"
+msgstr "保存附件"
+
+#: plugins\email_utils\components\email_list_widget.py:558
+msgid "Search subject, sender, content... (Press Enter)"
+msgstr "搜索主题、发件人、内容... (按Enter)"
+
+#: plugins\email_utils\components\send_email_dialog.py:99 plugins\email_utils\components\send_email_dialog.py:174
+msgid "Send Email"
+msgstr "发送邮件"
+
+msgid "Sending..."
+msgstr "发送中..."
+
+#: plugins\email_utils\components\email_list_widget.py:704
+msgid "Showing {} / {} emails"
+msgstr "显示 {} / 共 {} 封邮件"
+
+#: plugins\email_utils\components\email_list_widget.py:101
+msgid "Subject"
+msgstr "主题"
+
+#: plugins\email_utils\components\email_detail_dialog.py:88 plugins\email_utils\components\send_email_dialog.py:134
+msgid "Subject:"
+msgstr "主题："
+
+#: plugins\email_utils\components\email_detail_dialog.py:195 plugins\email_utils\components\send_email_dialog.py:265
+msgid "Success"
+msgstr "成功"
+
+#: plugins\email_utils\components\email_list_widget.py:347
+msgid "Successfully fetched {} emails"
+msgstr "成功拉取 {} 封邮件"
+
+#: plugins\email_utils\components\email_detail_dialog.py:96 plugins\email_utils\components\send_email_dialog.py:123
+msgid "To:"
+msgstr "收件人："
+
+#: plugins\email_utils\components\email_list_widget.py:362
+msgid "Total emails fetched from all accounts: {}"
+msgstr "所有账号共拉取 {} 封邮件"
+
+#: plugins\email_utils\components\email_list_widget.py:706
+msgid "Total {} emails"
+msgstr "共 {} 封邮件"
+
+#: plugins\email_utils\components\account_config_dialog.py:90
+msgid "Use SSL/TLS"
+msgstr "使用 SSL/TLS"
+
+#: plugins\email_utils\components\email_list_widget.py:979
+msgid "View Email Details"
+msgstr "查看邮件详情"
+
+#: plugins\email_utils\main.py:100 plugins\email_utils\components\account_config_dialog.py:188 plugins\email_utils\components\account_config_dialog.py:205 plugins\email_utils\components\email_detail_dialog.py:171 plugins\email_utils\components\email_list_widget.py:721
+msgid "Warning"
+msgstr "警告"
+
+#: plugins\email_utils\components\email_list_widget.py:720
+msgid "Warning: Please configure email account first!"
+msgstr "警告：请先配置邮箱账号！"
+
+#: plugins\email_utils\components\fetch_history_dialog.py:54
+msgid "Will fetch all emails from last {} days, this may take some time."
+msgstr "将拉取最近 {} 天内的所有邮件，这可能需要一些时间。"
+
+#: plugins\email_utils\main.py:81
+msgid "[EmailUtils] Email plugin loaded"
+msgstr "[EmailUtils] 邮箱工具插件加载完成"
+
+#: plugins\email_utils\main.py:129
+msgid "[EmailUtils] Email plugin unloaded"
+msgstr "[EmailUtils] 邮箱工具插件卸载完成"
+
+#: plugins\email_utils\main.py:31
+msgid "[EmailUtils] Loading email plugin..."
+msgstr "[EmailUtils] 正在加载邮箱工具插件..."
+
+#: plugins\email_utils\main.py:127
+msgid "[EmailUtils] Unloading email plugin..."
+msgstr "[EmailUtils] 正在卸载邮箱工具插件..."
+
+#: plugins\email_utils\components\email_list_widget.py:857
+msgid "[{}] Failed: {}..."
+msgstr "[{}] 失败：{}..."
+
+#: plugins\email_utils\components\email_list_widget.py:853
+msgid "[{}] Fetch completed: no new emails"
+msgstr "[{}] 拉取完成：无新邮件"
+
+#: plugins\email_utils\components\email_list_widget.py:851
+msgid "[{}] Fetch completed: {} emails"
+msgstr "[{}] 拉取完成：{} 封邮件"
+
+#: plugins\email_utils\components\email_list_widget.py:855
+msgid "[{}] Fetch failed: {}"
+msgstr "[{}] 拉取失败：{}"
+
+#: plugins\email_utils\components\email_list_widget.py:913
+msgid "[{}] {} cached in first 10, loading 60 days cache"
+msgstr "[{}] 前10封中有 {} 封已缓存，将加载60天内的缓存"
+
+#: plugins\email_utils\components\fetch_history_dialog.py:48
+msgid "days"
+msgstr "天"
+
+#: plugins\email_utils\components\account_config_dialog.py:41
+msgid "e.g., Work Email, Personal Gmail"
+msgstr "例如：公司邮箱、个人 Gmail"
+
+#: plugins\email_utils\components\account_config_dialog.py:63
+msgid "e.g., imap.gmail.com"
+msgstr "例如：imap.gmail.com"
+
+#: plugins\email_utils\components\account_config_dialog.py:77
+msgid "e.g., smtp.gmail.com"
+msgstr "例如：smtp.gmail.com"
+
+#: plugins\email_utils\main.py:79
+msgid "📧 Email Manager"
+msgstr "📧 邮箱管理"

@@ -3,6 +3,7 @@
 """
 
 import os
+from pathlib import Path
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QGroupBox,
     QListWidget, QPushButton, QLabel, QTextBrowser,
@@ -13,6 +14,11 @@ from PySide6.QtCore import Qt, Signal, QThread
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Initialize plugin i18n
+from app_qt.plugin_i18n import PluginI18n
+_i18n = PluginI18n("email_utils", Path(__file__).parent.parent)
+_ = _i18n.gettext
 
 
 class DownloadAttachmentWorker(QThread):
@@ -65,38 +71,38 @@ class EmailDetailDialog(QDialog):
     
     def init_ui(self):
         """初始化界面"""
-        self.setWindowTitle("邮件详情")
+        self.setWindowTitle(_("Email Details"))
         self.setMinimumSize(800, 600)
         
         layout = QVBoxLayout()
         self.setLayout(layout)
         
         # 邮件信息区域
-        info_group = QGroupBox("邮件信息")
+        info_group = QGroupBox(_("Email Info"))
         info_layout = QFormLayout()
         info_group.setLayout(info_layout)
         
         # 主题
         subject_label = QLabel(self.email_detail.get('subject', ''))
         subject_label.setWordWrap(True)
-        info_layout.addRow("主题:", subject_label)
+        info_layout.addRow(_("Subject:") + ":", subject_label)
         
         # 发件人
         from_label = QLabel(self.email_detail.get('from', ''))
-        info_layout.addRow("发件人:", from_label)
+        info_layout.addRow(_("From:") + ":", from_label)
         
         # 收件人
         to_label = QLabel(self.email_detail.get('to', ''))
-        info_layout.addRow("收件人:", to_label)
+        info_layout.addRow(_("To:") + ":", to_label)
         
         # 日期
         date_label = QLabel(self.email_detail.get('date', ''))
-        info_layout.addRow("日期:", date_label)
+        info_layout.addRow(_("Date:") + ":", date_label)
         
         layout.addWidget(info_group)
         
         # 邮件正文（使用富文本浏览器）
-        body_group = QGroupBox("邮件正文")
+        body_group = QGroupBox(_("Email Body"))
         body_layout = QVBoxLayout()
         body_group.setLayout(body_layout)
         
@@ -114,7 +120,7 @@ class EmailDetailDialog(QDialog):
             # 纯文本模式，保留换行和格式
             self.body_browser.setPlainText(body_plain)
         else:
-            self.body_browser.setPlainText("(无正文内容)")
+            self.body_browser.setPlainText(_("(No content)"))
         
         body_layout.addWidget(self.body_browser)
         
@@ -123,7 +129,7 @@ class EmailDetailDialog(QDialog):
         # 附件区域
         attachments = self.email_detail.get('attachments', [])
         if attachments:
-            attach_group = QGroupBox(f"附件 ({len(attachments)})")
+            attach_group = QGroupBox(_("Attachments ({})") + ":").format(len(attachments))
             attach_layout = QVBoxLayout()
             attach_group.setLayout(attach_layout)
             
@@ -139,7 +145,7 @@ class EmailDetailDialog(QDialog):
             attach_layout.addWidget(self.attach_list)
             
             # 下载按钮
-            download_btn = QPushButton("⬇️ 下载选中附件")
+            download_btn = QPushButton("⬇️ " + _("Download Selected"))
             download_btn.clicked.connect(self.start_download)
             attach_layout.addWidget(download_btn)
             
@@ -162,14 +168,14 @@ class EmailDetailDialog(QDialog):
         """开始下载（在后台线程中）"""
         selected_items = self.attach_list.selectedItems()
         if not selected_items:
-            QMessageBox.warning(self, "警告", "请先选择要下载的附件！")
+            QMessageBox.warning(self, _("Warning"), _("Please select an attachment to download!"))
             return
         
         filename = selected_items[0].data(Qt.UserRole)
         
         # 选择保存路径
         save_path, _ = QFileDialog.getSaveFileName(
-            self, "保存附件", filename, "All Files (*)"
+            self, _("Save Attachment"), filename, _("All Files (*)")
         )
         
         if save_path:
@@ -186,8 +192,8 @@ class EmailDetailDialog(QDialog):
     
     def on_download_completed(self, save_path):
         """下载完成的回调"""
-        QMessageBox.information(self, "成功", f"附件已保存到:\n{save_path}")
+        QMessageBox.information(self, _("Success"), _("Attachment saved to:\n{}") + save_path)
     
     def on_download_error(self, error_msg):
         """下载错误的回调"""
-        QMessageBox.critical(self, "错误", f"下载失败：{error_msg}")
+        QMessageBox.critical(self, _("Error"), _("Download failed: {}") + error_msg)

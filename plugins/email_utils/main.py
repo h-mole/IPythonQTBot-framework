@@ -6,8 +6,14 @@
 """
 
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# Initialize plugin i18n
+from app_qt.plugin_i18n import PluginI18n
+_i18n = PluginI18n("email_utils", Path(__file__).parent)
+_ = _i18n.gettext
 
 
 # ==================== 插件入口函数 ====================
@@ -22,7 +28,7 @@ def load_plugin(plugin_manager):
     Returns:
         dict: 包含插件组件的字典
     """
-    print("[EmailUtils] 正在加载邮箱工具插件...")
+    print(_("[EmailUtils] Loading email plugin..."))
     
     # 创建标签页实例
     from .components.email_list_widget import EmailListWidget
@@ -70,9 +76,9 @@ def load_plugin(plugin_manager):
     )
     
     # 添加到标签页
-    plugin_manager.add_plugin_tab("email_utils", "📧 邮箱管理", email_tab, position=2)
+    plugin_manager.add_plugin_tab("email_utils", _("📧 Email Manager"), email_tab, position=2)
     
-    print("[EmailUtils] 邮箱工具插件加载完成")
+    print(_("[EmailUtils] Email plugin loaded"))
     return {"tab": email_tab, "namespace": "email_utils"}
 
 
@@ -91,7 +97,7 @@ def show_email_detail_dialog(email_tab, email_id, account_name):
         
         if not account_name:
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(email_tab, "警告", "无法确定邮件所属账号！")
+            QMessageBox.warning(email_tab, _("Warning"), _("Cannot determine email account!"))
             return
         
         # 获取邮件详情
@@ -108,7 +114,7 @@ def show_email_detail_dialog(email_tab, email_id, account_name):
     except Exception as e:
         logger.error(f"显示邮件详情失败：{e}", exc_info=True)
         from PySide6.QtWidgets import QMessageBox
-        QMessageBox.critical(email_tab, "错误", f"无法加载邮件详情：{str(e)}")
+        QMessageBox.critical(email_tab, _("Error"), _("Failed to load email details: {}") + str(e))
 
 
 def unload_plugin(plugin_manager):
@@ -118,6 +124,6 @@ def unload_plugin(plugin_manager):
     Args:
         plugin_manager: 插件管理器实例
     """
-    print("[EmailUtils] 正在卸载邮箱工具插件...")
+    print(_("[EmailUtils] Unloading email plugin..."))
     # 清理资源、保存状态等
-    print("[EmailUtils] 邮箱工具插件卸载完成")
+    print(_("[EmailUtils] Email plugin unloaded"))

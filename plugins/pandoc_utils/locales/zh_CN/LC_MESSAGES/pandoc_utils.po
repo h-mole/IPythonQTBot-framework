@@ -1,0 +1,110 @@
+# Chinese (Simplified) translations
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT 1.0.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+msgid "&Pandoc"
+msgstr "&Pandoc"
+
+msgid "(No templates available)"
+msgstr "（无可用模板）"
+
+msgid "Conversion Failed"
+msgstr "转换失败"
+
+#: plugins\pandoc_utils\main.py:539
+msgid "Convert Selection to DOCX"
+msgstr "转换选中文本为 DOCX"
+
+#: plugins\pandoc_utils\main.py:547
+msgid "Convert Selection to HTML"
+msgstr "转换选中文本为 HTML"
+
+#: plugins\pandoc_utils\main.py:553
+msgid "Convert Selection to LaTeX"
+msgstr "转换选中文本为 LaTeX"
+
+#: plugins\pandoc_utils\main.py:621
+msgid "Error"
+msgstr "错误"
+
+#: plugins\pandoc_utils\main.py:619
+msgid "Error occurred: {}"
+msgstr "发生错误：{}"
+
+#: plugins\pandoc_utils\main.py:527
+msgid "No templates available"
+msgstr ""
+
+#: plugins\pandoc_utils\main.py:697
+msgid "Select DOCX File"
+msgstr "选择 DOCX 文件"
+
+#: plugins\pandoc_utils\main.py:534
+msgid "Select Template..."
+msgstr "选择模板..."
+
+#: plugins\pandoc_utils\main.py:697
+msgid "Word Documents (*.docx);;All Files (*)"
+msgstr "Word 文档 (*.docx);;所有文件 (*)"
+
+msgid "[PandocUtils] Conversion failed: {}"
+msgstr "[PandocUtils] 转换失败：{}"
+
+#: plugins\pandoc_utils\main.py:107
+msgid "[PandocUtils] Copied built-in template: {}"
+msgstr "[PandocUtils] 已复制内置模板：{}"
+
+#: plugins\pandoc_utils\main.py:116
+msgid "[PandocUtils] Failed to copy template {}: {}"
+msgstr "[PandocUtils] 复制模板 {} 失败：{}"
+
+#: plugins\pandoc_utils\main.py:573
+msgid "[PandocUtils] Failed to create menu (may be running without UI)"
+msgstr "[PandocUtils] 创建菜单失败（可能在无 UI 环境下运行）"
+
+#: plugins\pandoc_utils\main.py:584
+msgid "[PandocUtils] Failed to create menu: {}"
+msgstr "[PandocUtils] 创建菜单失败：{}"
+
+#: plugins\pandoc_utils\main.py:570
+msgid "[PandocUtils] Pandoc menu created successfully"
+msgstr "[PandocUtils] 已成功创建 Pandoc 菜单"
+
+msgid "[PandocUtils] Pandoc plugin loaded"
+msgstr "[PandocUtils] Pandoc 工具插件加载完成"
+
+#: plugins\pandoc_utils\main.py:796
+msgid "[PandocUtils] Pandoc plugin unloaded"
+msgstr "[PandocUtils] Pandoc 工具插件卸载完成"
+
+#: plugins\pandoc_utils\main.py:110
+msgid "[PandocUtils] Permission error copying {}: {}"
+msgstr "[PandocUtils] 权限错误，无法复制 {}: {}"
+
+#: plugins\pandoc_utils\main.py:100
+msgid "[PandocUtils] Skipping existing template: {}"
+msgstr "[PandocUtils] 跳过已存在的模板：{}"
+
+#: plugins\pandoc_utils\main.py:126
+msgid "[PandocUtils] Template copy completed: {} files total, {} copied, {} skipped"
+", {} errors"
+msgstr "[PandocUtils] 模板复制完成：共 {} 个文件，成功复制 {} 个，跳过 {} 个，错误 {} 个"
+
+#: plugins\pandoc_utils\main.py:163
+msgid "[PandocUtils] Template selected: {}"
+msgstr "[PandocUtils] 已选择模板：{}"
+
+#: plugins\pandoc_utils\main.py:794
+msgid "[PandocUtils] Unloading Pandoc plugin..."
+msgstr "[PandocUtils] 正在卸载 Pandoc 工具插件..."
+
+#: plugins\pandoc_utils\main.py:579
+msgid "[PandocUtils] Warning: text_helper not loaded, cannot create menu"
+msgstr "[PandocUtils] 警告：text_helper 未加载，无法创建菜单"
+
+msgid "[PandocUtils] Warning: text_helper.add_menu_to_menubar method not found"
+msgstr "[PandocUtils] 警告：找不到 text_helper.add_menu_to_menubar 方法"

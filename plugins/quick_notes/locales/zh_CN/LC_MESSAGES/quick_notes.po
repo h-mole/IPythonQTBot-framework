@@ -1,0 +1,344 @@
+# Chinese (Simplified) translations
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT 1.0.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+#: plugins\quick_notes\main.py:591
+msgid "'{}' not found"
+msgstr "未找到 '{}'"
+
+#: plugins\quick_notes\main.py:360
+msgid "All Files (*)"
+msgstr ""
+
+#: plugins\quick_notes\main.py:467 plugins\quick_notes\components\note_tree_widget.py:903
+msgid "Are you sure to delete \"{}\"?\nThis action cannot be undone!"
+msgstr ""
+
+#: plugins\quick_notes\components\note_tree_widget.py:619
+msgid "Can only copy files"
+msgstr "只能复制文件"
+
+#: plugins\quick_notes\components\note_tree_widget.py:634
+msgid "Can only cut files"
+msgstr "只能剪切文件"
+
+#: plugins\quick_notes\components\skill_creator.py:91
+msgid "Cancel"
+msgstr "取消"
+
+#: plugins\quick_notes\components\editor_widget.py:91
+msgid "Click to copy path"
+msgstr "点击复制路径"
+
+#: plugins\quick_notes\components\editor_widget.py:200
+msgid "Close"
+msgstr "关闭"
+
+#: plugins\quick_notes\main.py:466 plugins\quick_notes\components\note_tree_widget.py:902
+msgid "Confirm Delete"
+msgstr "确认删除"
+
+#: plugins\quick_notes\components\note_tree_widget.py:666
+msgid "Confirm Overwrite"
+msgstr "确认覆盖"
+
+#: plugins\quick_notes\components\editor_widget.py:102
+msgid "Copied"
+msgstr "已复制"
+
+#: plugins\quick_notes\components\editor_widget.py:295 plugins\quick_notes\components\note_tree_widget.py:577
+msgid "Copy"
+msgstr "复制"
+
+#: plugins\quick_notes\components\note_tree_widget.py:563
+msgid "Copy Full Path"
+msgstr "复制完整路径"
+
+#: plugins\quick_notes\components\note_tree_widget.py:569
+msgid "Copy Relative Path"
+msgstr "复制相对路径"
+
+#: plugins\quick_notes\components\skill_creator.py:95
+msgid "Create"
+msgstr "创建"
+
+#: plugins\quick_notes\components\skill_creator.py:27
+msgid "Create New Skill"
+msgstr "创建新技能"
+
+#: plugins\quick_notes\main.py:200 plugins\quick_notes\components\note_tree_widget.py:542
+msgid "Create Skill"
+msgstr "创建技能"
+
+#: plugins\quick_notes\main.py:247
+msgid "Current note has unsaved changes, save?"
+msgstr "当前笔记有未保存的修改，是否保存？"
+
+#: plugins\quick_notes\components\editor_widget.py:290 plugins\quick_notes\components\note_tree_widget.py:582
+msgid "Cut"
+msgstr "剪切"
+
+#: plugins\quick_notes\main.py:188 plugins\quick_notes\components\note_tree_widget.py:554
+msgid "Delete"
+msgstr "删除"
+
+#: plugins\quick_notes\components\skill_creator.py:55
+msgid "Describe skill purpose and usage..."
+msgstr "描述技能的用途和使用时机..."
+
+#: plugins\quick_notes\main.py:428 plugins\quick_notes\components\note_tree_widget.py:828
+msgid "Enter folder name:"
+msgstr "请输入文件夹名称："
+
+#: plugins\quick_notes\components\note_tree_widget.py:703
+msgid "Enter new name:"
+msgstr "请输入新名称："
+
+#: plugins\quick_notes\components\editor_widget.py:256
+msgid "Enter note content here..."
+msgstr "在此输入笔记内容..."
+
+#: plugins\quick_notes\main.py:384 plugins\quick_notes\components\note_tree_widget.py:798
+msgid "Enter note name:"
+msgstr "请输入笔记名称："
+
+#: plugins\quick_notes\main.py:352 plugins\quick_notes\main.py:411 plugins\quick_notes\main.py:446 plugins\quick_notes\main.py:494 plugins\quick_notes\main.py:734
+msgid "Error"
+msgstr "错误"
+
+#: plugins\quick_notes\main.py:446 plugins\quick_notes\components\note_tree_widget.py:839
+msgid "Failed to create folder: {}"
+msgstr "无法创建文件夹：{}"
+
+#: plugins\quick_notes\main.py:411 plugins\quick_notes\components\note_tree_widget.py:811
+msgid "Failed to create note: {}"
+msgstr "无法创建笔记：{}"
+
+#: plugins\quick_notes\main.py:734 plugins\quick_notes\components\skill_creator.py:171
+msgid "Failed to create skill: {}"
+msgstr "创建技能失败：{}"
+
+#: plugins\quick_notes\main.py:494 plugins\quick_notes\components\note_tree_widget.py:882
+msgid "Failed to delete: {}"
+msgstr "无法删除：{}"
+
+#: plugins\quick_notes\components\note_tree_widget.py:718
+msgid "Failed to rename: {}"
+msgstr "无法重命名：{}"
+
+#: plugins\quick_notes\main.py:352
+msgid "Failed to save note: {}"
+msgstr "无法保存笔记：{}"
+
+#: plugins\quick_notes\components\note_tree_widget.py:667
+msgid "File \"{}\" already exists, overwrite?"
+msgstr ""
+
+#: plugins\quick_notes\main.py:397
+msgid "File with same name already exists!"
+msgstr "同名文件已存在!"
+
+#: plugins\quick_notes\components\editor_widget.py:60 plugins\quick_notes\components\editor_widget.py:314
+msgid "Find"
+msgstr "查找"
+
+#: plugins\quick_notes\main.py:591
+msgid "Find Complete"
+msgstr "查找完成"
+
+#: plugins\quick_notes\components\editor_widget.py:196
+msgid "Find Next"
+msgstr "查找下一个"
+
+#: plugins\quick_notes\components\editor_widget.py:189
+msgid "Find:"
+msgstr "查找："
+
+#: plugins\quick_notes\main.py:437
+msgid "Folder with same name already exists!"
+msgstr "同名文件夹已存在!"
+
+#: plugins\quick_notes\main.py:453
+msgid "Info"
+msgstr "提示"
+
+#: plugins\quick_notes\main.py:150 plugins\quick_notes\main.py:182 plugins\quick_notes\main.py:428 plugins\quick_notes\components\note_tree_widget.py:537 plugins\quick_notes\components\note_tree_widget.py:828
+msgid "New Folder"
+msgstr "新建文件夹"
+
+#: plugins\quick_notes\main.py:144 plugins\quick_notes\main.py:176 plugins\quick_notes\main.py:384 plugins\quick_notes\components\note_tree_widget.py:532 plugins\quick_notes\components\note_tree_widget.py:798
+msgid "New Note"
+msgstr "新建笔记"
+
+#: plugins\quick_notes\main.py:171
+msgid "Note Manager"
+msgstr "笔记管理"
+
+#: plugins\quick_notes\main.py:330
+msgid "Note already saved, no need to save again"
+msgstr "笔记已保存，无需重复保存"
+
+#: plugins\quick_notes\main.py:349
+msgid "Note saved"
+msgstr "笔记已保存"
+
+#: plugins\quick_notes\main.py:141
+msgid "Notes"
+msgstr "笔记操作"
+
+#: plugins\quick_notes\components\note_tree_widget.py:158
+msgid "Notes Directory"
+msgstr "笔记目录"
+
+#: plugins\quick_notes\components\note_tree_widget.py:595
+msgid "Open in File Manager"
+msgstr "在文件管理器中打开"
+
+#: plugins\quick_notes\components\note_tree_widget.py:689
+msgid "Operation failed: {}"
+msgstr "操作失败：{}"
+
+#: plugins\quick_notes\components\editor_widget.py:300 plugins\quick_notes\components\note_tree_widget.py:588
+msgid "Paste"
+msgstr "粘贴"
+
+#: plugins\quick_notes\components\skill_creator.py:114
+msgid "Please enter skill description!"
+msgstr "请输入技能描述！"
+
+#: plugins\quick_notes\components\skill_creator.py:118
+msgid "Please enter skill instructions!"
+msgstr "请输入技能指令内容！"
+
+#: plugins\quick_notes\components\skill_creator.py:110
+msgid "Please enter skill name!"
+msgstr "请输入技能名称！"
+
+#: plugins\quick_notes\main.py:453
+msgid "Please select an item to delete"
+msgstr "请先选择要删除的项目"
+
+#: plugins\quick_notes\components\editor_widget.py:282
+msgid "Redo"
+msgstr "重做"
+
+#: plugins\quick_notes\main.py:157 plugins\quick_notes\main.py:194 plugins\quick_notes\components\note_tree_widget.py:600
+msgid "Refresh"
+msgstr "刷新"
+
+#: plugins\quick_notes\components\note_tree_widget.py:549 plugins\quick_notes\components\note_tree_widget.py:703
+msgid "Rename"
+msgstr "重命名"
+
+#: plugins\quick_notes\components\editor_widget.py:65 plugins\quick_notes\components\editor_widget.py:214 plugins\quick_notes\components\editor_widget.py:320
+msgid "Replace"
+msgstr "替换"
+
+#: plugins\quick_notes\components\editor_widget.py:218
+msgid "Replace All"
+msgstr "全部替换"
+
+msgid "Replace Complete"
+msgstr "替换完成"
+
+#: plugins\quick_notes\components\editor_widget.py:208
+msgid "Replace:"
+msgstr "替换："
+
+msgid "Replaced {} occurrences of '{}'"
+msgstr "已替换 {} 处 '{}'"
+
+#: plugins\quick_notes\components\skill_creator.py:62
+msgid "SKILL.md Content"
+msgstr "SKILL.md 内容"
+
+#: plugins\quick_notes\components\editor_widget.py:55 plugins\quick_notes\components\editor_widget.py:329
+msgid "Save"
+msgstr "保存"
+
+#: plugins\quick_notes\main.py:358
+msgid "Save As"
+msgstr "另存为"
+
+#: plugins\quick_notes\main.py:246
+msgid "Save Prompt"
+msgstr "保存提示"
+
+#: plugins\quick_notes\components\editor_widget.py:156
+msgid "Saved"
+msgstr "已保存"
+
+#: plugins\quick_notes\components\editor_widget.py:307
+msgid "Select All"
+msgstr "全选"
+
+#: plugins\quick_notes\components\skill_creator.py:39
+msgid "Skill Basic Info"
+msgstr "技能基本信息"
+
+#: plugins\quick_notes\components\skill_creator.py:52
+msgid "Skill Description:"
+msgstr "技能描述："
+
+#: plugins\quick_notes\components\skill_creator.py:66
+msgid "Skill Instructions (Markdown format):"
+msgstr "技能指令内容 (Markdown 格式)："
+
+#: plugins\quick_notes\components\skill_creator.py:45
+msgid "Skill Name:"
+msgstr "技能名称："
+
+#: plugins\quick_notes\components\skill_creator.py:164
+msgid "Skill created successfully!\nPath: {}"
+msgstr ""
+
+msgid "Skill created successfully!\\\nPath: {}"
+msgstr "技能创建成功！\\\n路径：{}"
+
+msgid "Skill created!\\\nLocation: {}\\\n\\\nTip: Skill folder can be viewed and ma"
+"naged in the file tree."
+msgstr "技能已创建！\\\n位置：{}\\\n\\\n提示：技能文件夹可以在文件树中查看和管理。"
+
+#: plugins\quick_notes\components\skill_creator.py:141
+msgid "Skill folder already exists: {}"
+msgstr "技能文件夹已存在：{}"
+
+#: plugins\quick_notes\components\skill_creator.py:126
+msgid "Skill name must be lowercase letters, numbers and hyphens, cannot start or e"
+"nd with hyphen!"
+msgstr "技能名称必须是小写字母、数字和连字符，且不能以连字符开头或结尾！"
+
+#: plugins\quick_notes\components\skill_creator.py:132
+msgid "Skills directory path not specified!"
+msgstr "未指定 skills 目录路径！"
+
+#: plugins\quick_notes\components\skill_creator.py:163
+msgid "Success"
+msgstr "成功"
+
+#: plugins\quick_notes\main.py:360
+msgid "Text Files (*"
+msgstr ""
+
+msgid "Text Files (*.md, *.txt, *.py, *.json, *.csv);;All Files (*)"
+msgstr "文本文件 (*.md, *.txt, *.py, *.json, *.csv);;所有文件 (*)"
+
+#: plugins\quick_notes\components\editor_widget.py:277
+msgid "Undo"
+msgstr "撤销"
+
+#: plugins\quick_notes\components\editor_widget.py:152
+msgid "Unsaved"
+msgstr "未保存"
+
+#: plugins\quick_notes\main.py:397 plugins\quick_notes\main.py:437 plugins\quick_notes\components\note_tree_widget.py:619 plugins\quick_notes\components\note_tree_widget.py:634 plugins\quick_notes\components\note_tree_widget.py:809
+msgid "Warning"
+msgstr "警告"
+
+#: plugins\quick_notes\components\skill_creator.py:47
+msgid "e.g., pdf-processing"
+msgstr "例如：pdf-processing"

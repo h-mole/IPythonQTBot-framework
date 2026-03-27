@@ -6,6 +6,7 @@
 
 import os
 import shutil
+from pathlib import Path
 from PySide6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox,
     QApplication, QStyle
@@ -16,6 +17,11 @@ from PySide6.QtGui import QKeySequence, QShortcut, QIcon
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 WATCHDOG_AVAILABLE = True
+
+# Initialize plugin i18n
+from app_qt.plugin_i18n import PluginI18n
+_i18n = PluginI18n("quick_notes", Path(__file__).parent.parent)
+_ = _i18n.gettext
 
 
 class FileSystemEventHandlerSignals(QObject):
@@ -149,7 +155,7 @@ class NoteTreeWidget(QTreeWidget):
         self.itemCollapsed.connect(self._on_item_collapsed)
         
         # 配置树的基本属性
-        self.setHeaderLabel("笔记目录")
+        self.setHeaderLabel(_("Notes Directory"))
         self.setFont(self.font())
         self.itemClicked.connect(self.on_item_clicked)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -523,29 +529,29 @@ class NoteTreeWidget(QTreeWidget):
             selected_path = selected_items[0].data(0, Qt.ItemDataRole.UserRole)
         
         # 新建笔记
-        new_note_action = menu.addAction("📄 新建笔记")
+        new_note_action = menu.addAction("📄 " + _("New Note"))
         new_note_action.triggered.connect(self.context_new_note)
         new_note_action.setShortcut(QKeySequence.New)
         
         # 新建文件夹
-        new_folder_action = menu.addAction("📁 新建文件夹")
+        new_folder_action = menu.addAction("📁 " + _("New Folder"))
         new_folder_action.triggered.connect(self.context_new_folder)
         new_folder_action.setShortcut(QKeySequence("Ctrl+Shift+N"))
         
         # 创建技能
-        create_skill_action = menu.addAction("✨ 创建技能")
+        create_skill_action = menu.addAction("✨ " + _("Create Skill"))
         create_skill_action.triggered.connect(self.context_create_skill)
         create_skill_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
         
         menu.addSeparator()
         
         # 重命名
-        rename_action = menu.addAction("✏️ 重命名")
+        rename_action = menu.addAction("✏️ " + _("Rename"))
         rename_action.triggered.connect(self.rename_selected)
         rename_action.setShortcut(QKeySequence("F2"))
         
         # 删除
-        delete_action = menu.addAction("🗑️ 删除")
+        delete_action = menu.addAction("🗑️ " + _("Delete"))
         delete_action.triggered.connect(self.delete_selected_with_confirm)
         delete_action.setShortcut(QKeySequence("Delete"))
         
@@ -554,13 +560,13 @@ class NoteTreeWidget(QTreeWidget):
             menu.addSeparator()
             
             # 复制完整路径
-            copy_full_path_action = menu.addAction("📋 复制完整路径")
+            copy_full_path_action = menu.addAction("📋 " + _("Copy Full Path"))
             copy_full_path_action.triggered.connect(
                 lambda: self._copy_to_clipboard(selected_path)
             )
             
             # 复制相对路径
-            copy_rel_path_action = menu.addAction("📋 复制相对路径")
+            copy_rel_path_action = menu.addAction("📋 " + _("Copy Relative Path"))
             copy_rel_path_action.triggered.connect(
                 lambda: self._copy_to_clipboard(
                     os.path.relpath(selected_path, self.notes_dir)
@@ -568,30 +574,30 @@ class NoteTreeWidget(QTreeWidget):
             )
             
             # 复制文件（用于粘贴）
-            copy_file_action = menu.addAction("📄 复制")
+            copy_file_action = menu.addAction("📄 " + _("Copy"))
             copy_file_action.triggered.connect(self.copy_selected_file)
             copy_file_action.setShortcut(QKeySequence.Copy)
             
             # 剪切文件
-            cut_file_action = menu.addAction("✂️ 剪切")
+            cut_file_action = menu.addAction("✂️ " + _("Cut"))
             cut_file_action.triggered.connect(self.cut_selected_file)
             cut_file_action.setShortcut(QKeySequence.Cut)
         
         # 粘贴文件（无论是否有选中项都可以粘贴）
         if NoteTreeWidget._clipboard_path:
-            paste_action = menu.addAction("📋 粘贴")
+            paste_action = menu.addAction("📋 " + _("Paste"))
             paste_action.triggered.connect(self.paste_file)
             paste_action.setShortcut(QKeySequence.Paste)
         
         menu.addSeparator()
         
         # 在文件管理器中打开
-        open_location_action = menu.addAction("📂 在文件管理器中打开")
+        open_location_action = menu.addAction("📂 " + _("Open in File Manager"))
         open_location_action.triggered.connect(self.open_in_explorer)
         
         # 手动刷新（保留）
         menu.addSeparator()
-        refresh_action = menu.addAction("🔄 刷新")
+        refresh_action = menu.addAction("🔄 " + _("Refresh"))
         refresh_action.triggered.connect(self._on_refresh_button_clicked)
         refresh_action.setShortcut(QKeySequence.Refresh)
         
@@ -610,7 +616,7 @@ class NoteTreeWidget(QTreeWidget):
         
         path = selected_items[0].data(0, Qt.ItemDataRole.UserRole)
         if not path or not os.path.isfile(path):
-            QMessageBox.warning(self, "警告", "只能复制文件")
+            QMessageBox.warning(self, _("Warning"), _("Can only copy files"))
             return
         
         NoteTreeWidget._clipboard_path = path
@@ -625,7 +631,7 @@ class NoteTreeWidget(QTreeWidget):
         
         path = selected_items[0].data(0, Qt.ItemDataRole.UserRole)
         if not path or not os.path.isfile(path):
-            QMessageBox.warning(self, "警告", "只能剪切文件")
+            QMessageBox.warning(self, _("Warning"), _("Can only cut files"))
             return
         
         NoteTreeWidget._clipboard_path = path
@@ -657,8 +663,8 @@ class NoteTreeWidget(QTreeWidget):
         if os.path.exists(target_file_path):
             reply = QMessageBox.question(
                 self,
-                "确认覆盖",
-                f'文件 "{file_name}" 已存在，是否覆盖？',
+                _("Confirm Overwrite"),
+                _('File "{}" already exists, overwrite?').format(file_name),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if reply != QMessageBox.StandardButton.Yes:
@@ -680,7 +686,7 @@ class NoteTreeWidget(QTreeWidget):
             # 静默操作，不弹出成功对话框，只在出错时提示
             
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"操作失败：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Operation failed: {}") + str(e))
     
     def rename_selected(self):
         """重命名选中的项目"""
@@ -694,7 +700,7 @@ class NoteTreeWidget(QTreeWidget):
         old_name = item.text(0)
         
         new_name, ok = QInputDialog.getText(
-            self, "重命名", "请输入新名称:", text=old_name
+            self, _("Rename"), _("Enter new name:") + ":", text=old_name
         )
         
         if not ok or not new_name.strip() or new_name == old_name:
@@ -709,7 +715,7 @@ class NoteTreeWidget(QTreeWidget):
             self.refresh_requested.emit()
             
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法重命名：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to rename: {}") + str(e))
     
     def open_in_explorer(self):
         """在文件管理器中打开"""
@@ -789,7 +795,7 @@ class NoteTreeWidget(QTreeWidget):
             parent_path = self.notes_dir
         
         # 输入文件名
-        name, ok = QInputDialog.getText(self, "新建笔记", "请输入笔记名称:")
+        name, ok = QInputDialog.getText(self, _("New Note"), _("Enter note name:") + ":")
         if not ok or not name.strip():
             return
         
@@ -800,9 +806,9 @@ class NoteTreeWidget(QTreeWidget):
             # 通知主窗口加载新笔记
             self.note_clicked.emit(file_path)
         except FileExistsError as e:
-            QMessageBox.warning(self, "警告", str(e))
+            QMessageBox.warning(self, _("Warning"), str(e))
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法创建笔记：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to create note: {}") + str(e))
     
     def context_new_folder(self):
         """上下文菜单 - 新建文件夹"""
@@ -819,7 +825,7 @@ class NoteTreeWidget(QTreeWidget):
             parent_path = self.notes_dir
         
         # 输入文件夹名
-        name, ok = QInputDialog.getText(self, "新建文件夹", "请输入文件夹名称:")
+        name, ok = QInputDialog.getText(self, _("New Folder"), _("Enter folder name:") + ":")
         if not ok or not name.strip():
             return
         
@@ -828,9 +834,9 @@ class NoteTreeWidget(QTreeWidget):
             # 发射刷新信号
             self.refresh_requested.emit()
         except FileExistsError as e:
-            QMessageBox.warning(self, "警告", str(e))
+            QMessageBox.warning(self, _("Warning"), str(e))
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法创建文件夹：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to create folder: {}") + str(e))
     
     def context_create_skill(self):
         """上下文菜单 - 创建技能"""
@@ -873,7 +879,7 @@ class NoteTreeWidget(QTreeWidget):
             return path
             
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法删除：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to delete: {}") + str(e))
             return None
     
     def delete_selected_with_confirm(self):
@@ -893,8 +899,8 @@ class NoteTreeWidget(QTreeWidget):
         name = os.path.basename(path)
         reply = QMessageBox.warning(
             self,
-            "确认删除",
-            f'确定要删除 "{name}" 吗？\n此操作不可恢复!',
+            _("Confirm Delete"),
+            _('Are you sure to delete "{}"?\nThis action cannot be undone!').format(name),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         

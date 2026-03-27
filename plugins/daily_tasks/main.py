@@ -107,10 +107,11 @@ class MultiSelectFilter(QWidget):
 
     filterChanged = Signal()
 
-    def __init__(self, label_text, items=None, parent=None):
+    def __init__(self, label_text, items=None, parent=None, item_display_mapper=None):
         super().__init__(parent)
         self.items = items or []
         self.all_option = _("All")
+        self.item_display_mapper = item_display_mapper  # 可选的显示文本映射函数
 
         # 创建布局
         layout = QHBoxLayout()
@@ -148,7 +149,9 @@ class MultiSelectFilter(QWidget):
         # 其他选项
         self.item_actions = {}
         for item in self.items:
-            action = menu.addAction(item)
+            # 使用映射函数翻译显示文本（如果有）
+            display_text = self.item_display_mapper(item) if self.item_display_mapper else item
+            action = menu.addAction(display_text)
             action.setCheckable(True)
             # 如果是全选模式，所有项都勾选
             is_selected = self.select_all or item in self.selected_items
@@ -196,7 +199,12 @@ class MultiSelectFilter(QWidget):
         elif len(self.selected_items) == 0:
             self.filter_btn.setText(_("No items selected"))
         elif len(self.selected_items) <= 3:
-            self.filter_btn.setText(", ".join(sorted(self.selected_items)))
+            # 使用映射函数翻译显示文本（如果有）
+            if self.item_display_mapper:
+                display_items = [self.item_display_mapper(item) for item in sorted(self.selected_items)]
+            else:
+                display_items = sorted(self.selected_items)
+            self.filter_btn.setText(", ".join(display_items))
         else:
             self.filter_btn.setText(_("Selected {} items").format(len(self.selected_items)))
 
@@ -412,19 +420,6 @@ class TaskDialog(QDialog):
 class TasksManagerTab(QWidget):
     """任务管理器标签页"""
 
-    # 表格列定义
-    COLUMNS = [
-        "ID",
-        _("Category"),
-        _("Subcategory"),
-        _("Description"),
-        _("Due Date"),
-        _("Reminder"),
-        _("Reminder Time"),
-        _("Status"),
-        _("Notes"),
-    ]
-
     def __init__(self, plugin_manager=None):
         super().__init__()
         self.plugin_manager = plugin_manager
@@ -456,17 +451,22 @@ class TasksManagerTab(QWidget):
         control_frame.setLayout(control_layout)
 
         # 筛选控件 - 使用独立的多选筛选组件
-        self.category_filter = MultiSelectFilter(_("Category:"), DEFAULT_CATEGORIES.copy())
+        # 传入 item_display_mapper 函数用于翻译显示文本
+        self.category_filter = MultiSelectFilter(
+            _("Category:"), DEFAULT_CATEGORIES.copy(), item_display_mapper=tr_category
+        )
         self.category_filter.filterChanged.connect(self.apply_filters)
         control_layout.addWidget(self.category_filter)
 
         self.subcategory_filter = MultiSelectFilter(
-            _("Subcategory:"), DEFAULT_SUBCATEGORIES.copy()
+            _("Subcategory:"), DEFAULT_SUBCATEGORIES.copy(), item_display_mapper=tr_category
         )
         self.subcategory_filter.filterChanged.connect(self.apply_filters)
         control_layout.addWidget(self.subcategory_filter)
 
-        self.status_filter = MultiSelectFilter(_("Status:"), DEFAULT_STATUSES.copy())
+        self.status_filter = MultiSelectFilter(
+            _("Status:"), DEFAULT_STATUSES.copy(), item_display_mapper=tr_status
+        )
         self.status_filter.filterChanged.connect(self.apply_filters)
         control_layout.addWidget(self.status_filter)
 
@@ -519,8 +519,20 @@ class TasksManagerTab(QWidget):
 
         # 任务表格
         self.table = QTableWidget()
-        self.table.setColumnCount(len(self.COLUMNS))
-        self.table.setHorizontalHeaderLabels(self.COLUMNS)
+        # 表格列定义（在 init_ui 中定义以确保翻译生效）
+        columns = [
+            "ID",
+            _("Category"),
+            _("Subcategory"),
+            _("Description"),
+            _("Due Date"),
+            _("Reminder"),
+            _("Reminder Time"),
+            _("Status"),
+            _("Notes"),
+        ]
+        self.table.setColumnCount(len(columns))
+        self.table.setHorizontalHeaderLabels(columns)
 
         # 设置表格属性
         self.table.horizontalHeader().setSectionResizeMode(
@@ -1460,7 +1472,7 @@ def load_plugin(plugin_manager: PluginManager):
     )
 
     # 添加到标签页（由插件管理器统一管理）
-    plugin_manager.add_plugin_tab("daily_tasks", "📋 任务管理", tasks_tab, position=1)
+    plugin_manager.add_plugin_tab("daily_tasks", _("📋 Task Management"), tasks_tab, position=1)
 
     print("[DailyTasks] 每日任务提醒器插件加载完成")
     return {"tab": tasks_tab, "namespace": "daily_tasks"}

@@ -14,6 +14,7 @@ import json
 import re
 import logging
 from typing import Any
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 from PySide6.QtWidgets import (
@@ -45,6 +46,11 @@ from app_qt.plugin_manager import PluginManager
 from .components.note_tree_widget import NoteTreeWidget
 from .components.editor_widget import EditorToolbar, FindReplacePanel, TextEditorWidget
 from .components.skill_creator import CreateSkillDialog
+
+# Initialize plugin i18n
+from app_qt.plugin_i18n import PluginI18n
+_i18n = PluginI18n("quick_notes", Path(__file__).parent)
+_ = _i18n.gettext
 
 allowed_file_extensions = (".md", ".txt", ".py", ".json", ".csv")
 
@@ -132,23 +138,23 @@ class QuickNotesTab(QWidget):
         menu_bar = main_window.menu_bar
         
         # 笔记操作菜单
-        notes_menu = menu_bar.addMenu("📝 笔记操作")
+        notes_menu = menu_bar.addMenu("📝 " + _("Notes"))
         
         # 新建笔记
-        self.new_note_action = QAction("📄 新建笔记", self)
+        self.new_note_action = QAction("📄 " + _("New Note"), self)
         self.new_note_action.setShortcut(QKeySequence.New)
         self.new_note_action.triggered.connect(self.create_new_note)
         notes_menu.addAction(self.new_note_action)
         
         # 新建文件夹
-        self.new_folder_action = QAction("📁 新建文件夹", self)
+        self.new_folder_action = QAction("📁 " + _("New Folder"), self)
         self.new_folder_action.triggered.connect(self.create_new_folder)
         notes_menu.addAction(self.new_folder_action)
         
         notes_menu.addSeparator()
         
         # 刷新
-        self.refresh_action = QAction("🔄 刷新", self)
+        self.refresh_action = QAction("🔄 " + _("Refresh"), self)
         self.refresh_action.setShortcut(QKeySequence.Refresh)
         self.refresh_action.triggered.connect(self.load_note_tree)
         notes_menu.addAction(self.refresh_action)
@@ -162,36 +168,36 @@ class QuickNotesTab(QWidget):
         tree_toolbar.setFrameShadow(QFrame.Shadow.Raised)
         
         # 树状标题
-        tree_label = QLabel("📁 笔记管理")
+        tree_label = QLabel("📁 " + _("Note Manager"))
         tree_label.setFont(QFont("Microsoft YaHei UI", 11, QFont.Bold))
         
         # 新建笔记按钮
         self.new_note_btn = QPushButton("📄")
-        self.new_note_btn.setToolTip("新建笔记")
+        self.new_note_btn.setToolTip(_("New Note"))
         self.new_note_btn.clicked.connect(self.create_new_note)
         tree_toolbar_layout.addWidget(self.new_note_btn)
 
         # 新建文件夹按钮
         self.new_folder_btn = QPushButton("📁")
-        self.new_folder_btn.setToolTip("新建文件夹")
+        self.new_folder_btn.setToolTip(_("New Folder"))
         self.new_folder_btn.clicked.connect(self.create_new_folder)
         tree_toolbar_layout.addWidget(self.new_folder_btn)
 
         # 删除按钮
         self.delete_btn = QPushButton("🗑️")
-        self.delete_btn.setToolTip("删除")
+        self.delete_btn.setToolTip(_("Delete"))
         self.delete_btn.clicked.connect(self.delete_selected)
         tree_toolbar_layout.addWidget(self.delete_btn)
 
         # 刷新按钮
         self.refresh_btn = QPushButton("🔄")
-        self.refresh_btn.setToolTip("刷新")
+        self.refresh_btn.setToolTip(_("Refresh"))
         self.refresh_btn.clicked.connect(self.load_note_tree)
         tree_toolbar_layout.addWidget(self.refresh_btn)
         
         # 创建技能按钮（新增功能）
         self.create_skill_btn = QPushButton("✨")
-        self.create_skill_btn.setToolTip("创建技能")
+        self.create_skill_btn.setToolTip(_("Create Skill"))
         self.create_skill_btn.clicked.connect(self.create_new_skill)
         tree_toolbar_layout.addWidget(self.create_skill_btn)
 
@@ -237,8 +243,8 @@ class QuickNotesTab(QWidget):
         if self.is_modified and self.current_note_path:
             reply = QMessageBox.question(
                 self,
-                "保存提示",
-                "当前笔记有未保存的修改，是否保存？",
+                _("Save Prompt"),
+                _("Current note has unsaved changes, save?"),
                 QMessageBox.StandardButton.Save
                 | QMessageBox.StandardButton.Discard
                 | QMessageBox.StandardButton.Cancel,
@@ -321,7 +327,7 @@ class QuickNotesTab(QWidget):
         """保存当前笔记"""
         # 如果没有修改，直接返回
         if not self.is_modified:
-            self.statusBar_show_message("笔记已保存，无需重复保存")
+            self.statusBar_show_message(_("Note already saved, no need to save again"))
             return
 
         if not self.current_note_path:
@@ -340,18 +346,18 @@ class QuickNotesTab(QWidget):
 
             self.is_modified = False
             self.editor_toolbar.set_save_status(False)
-            self.statusBar_show_message("笔记已保存")
+            self.statusBar_show_message(_("Note saved"))
 
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法保存笔记：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to save note: {}") + str(e))
 
     def save_as_note(self):
         """另存为笔记"""
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "另存为",
+            _("Save As"),
             self.notes_dir,
-            "文本文件 (*".join(allowed_file_extensions) + ");;所有文件 (*)",
+            _("Text Files (*") + "*.md, *.txt, *.py, *.json, *.csv);;" + _("All Files (*)")
         )
 
         if file_path:
@@ -375,7 +381,7 @@ class QuickNotesTab(QWidget):
             parent_path = self.notes_dir
 
         # 输入文件名
-        name, ok = QInputDialog.getText(self, "新建笔记", "请输入笔记名称:")
+        name, ok = QInputDialog.getText(self, _("New Note"), _("Enter note name:") + ":")
         if not ok or not name.strip():
             return
 
@@ -388,7 +394,7 @@ class QuickNotesTab(QWidget):
 
         # 检查是否已存在
         if os.path.exists(file_path):
-            QMessageBox.warning(self, "警告", "同名文件已存在!")
+            QMessageBox.warning(self, _("Warning"), _("File with same name already exists!"))
             return
 
         # 创建空文件
@@ -402,7 +408,7 @@ class QuickNotesTab(QWidget):
             self.editor.setFocus()
 
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法创建笔记：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to create note: {}") + str(e))
 
     def create_new_folder(self):
         """创建新文件夹"""
@@ -419,7 +425,7 @@ class QuickNotesTab(QWidget):
             parent_path = self.notes_dir
 
         # 输入文件夹名
-        name, ok = QInputDialog.getText(self, "新建文件夹", "请输入文件夹名称:")
+        name, ok = QInputDialog.getText(self, _("New Folder"), _("Enter folder name:") + ":")
         if not ok or not name.strip():
             return
 
@@ -428,7 +434,7 @@ class QuickNotesTab(QWidget):
 
         # 检查是否已存在
         if os.path.exists(folder_path):
-            QMessageBox.warning(self, "警告", "同名文件夹已存在!")
+            QMessageBox.warning(self, _("Warning"), _("Folder with same name already exists!"))
             return
 
         # 创建文件夹
@@ -437,14 +443,14 @@ class QuickNotesTab(QWidget):
             # 文件系统监听会自动添加节点到树
 
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法创建文件夹：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to create folder: {}") + str(e))
 
     def delete_selected(self):
         """删除选中的节点"""
         selected_items = self.note_tree.selectedItems()
 
         if not selected_items:
-            QMessageBox.information(self, "提示", "请先选择要删除的项目")
+            QMessageBox.information(self, _("Info"), _("Please select an item to delete"))
             return
 
         item = selected_items[0]
@@ -457,8 +463,8 @@ class QuickNotesTab(QWidget):
         name = os.path.basename(path)
         reply = QMessageBox.warning(
             self,
-            "确认删除",
-            f'确定要删除 "{name}" 吗？\n此操作不可恢复!',
+            _("Confirm Delete"),
+            _('Are you sure to delete "{}"?\nThis action cannot be undone!').format(name),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -485,7 +491,7 @@ class QuickNotesTab(QWidget):
             # 文件系统监听会自动移除节点
 
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法删除：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to delete: {}") + str(e))
 
     def show_context_menu(self, pos):
         """显示右键菜单"""
@@ -582,7 +588,7 @@ class QuickNotesTab(QWidget):
             # 如果没找到，从头开始查找
             pos = content.find(search_term, 0)
             if pos == -1:
-                QMessageBox.information(self, "查找完成", f"未找到 '{search_term}'")
+                QMessageBox.information(self, _("Find Complete"), _("'{}' not found").format(search_term))
                 return
 
         # 计算结束位置
@@ -725,7 +731,7 @@ class QuickNotesTab(QWidget):
         
         except Exception as e:
             logger.error(f"创建技能失败：{e}", exc_info=True)
-            QMessageBox.critical(self, "错误", f"创建技能失败：{str(e)}")
+            QMessageBox.critical(self, _("Error"), _("Failed to create skill: {}") + str(e))
 
     def create_note_api(self, name, folder=None):
         """

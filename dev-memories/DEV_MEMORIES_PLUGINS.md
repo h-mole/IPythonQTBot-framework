@@ -48,6 +48,9 @@
 
 **关键设计**：状态颜色和日期颜色分离，状态列始终显示状态颜色，日期列显示紧迫性颜色，避免同一状态显示不同颜色的问题。
 
+**翻译注意事项**：任务完成状态、任务期限等固定名词，存储时都用英文，界面展示时候进行翻译。
+
+
 #### 插件国际化（Plugin i18n）
 
 **独立翻译系统**（`app_qt/plugin_i18n.py`）：
@@ -63,5 +66,15 @@
 
 **状态颜色兼容**：
 - `TaskColorManager` 同时支持英文和中文状态键，兼容新旧数据
+
+**翻译实现细节修复**（`plugins/daily_tasks/main.py`）：
+- **表头翻译失效问题**：`COLUMNS` 作为全局或者类属性在类定义时就被翻译，此时插件翻译系统可能尚未初始化，导致翻译失效（显示英文）。解决：将表头定义移到 `init_ui()` 方法中作为局部变量，确保翻译系统已就绪后再进行翻译
+- **筛选器按钮显示英文问题**：`MultiSelectFilter` 组件直接显示原始英文值。解决：为组件添加 `item_display_mapper` 参数（可选的显示文本映射函数），在 `show_menu()` 和 `update_button_text()` 中使用该函数翻译显示文本。状态筛选器传入 `tr_status`，分类筛选器传入 `tr_category`
+
+**翻译文件维护工具**（`update_translations.py`）：
+- 纯 Python 实现，无需外部 gettext 工具
+- 功能：自动从 Python 代码提取 `_()`/`gettext()` 调用 → 合并到现有 .po 文件（保留已有翻译）→ 编译为 .mo 文件
+- 支持主应用和所有插件的批量更新
+- 使用：`python update_translations.py [--main|--plugins|--plugin NAME]`
 
 ---

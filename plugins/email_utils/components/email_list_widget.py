@@ -5,6 +5,7 @@
 
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 from PySide6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QFrame, QTableView, QHeaderView, QMessageBox, QProgressBar, QMenu,
@@ -14,6 +15,11 @@ from PySide6.QtCore import Qt, Signal, QThread, QAbstractTableModel, QModelIndex
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Initialize plugin i18n
+from app_qt.plugin_i18n import PluginI18n
+_i18n = PluginI18n("email_utils", Path(__file__).parent.parent)
+_ = _i18n.gettext
 
 
 def clean_preview_text(text: str) -> str:
@@ -91,12 +97,12 @@ class EmailTableModel(QAbstractTableModel):
     """邮件列表数据模型 - 高性能处理大量数据"""
     
     COLUMNS = [
-        ("账号", 80),
-        ("主题", 250),
-        ("发件人", 300),
-        ("日期", 120),
-        ("预览", 350),
-        ("附件", 50),
+        (_("Account"), 80),
+        (_("Subject"), 250),
+        (_("From"), 300),
+        (_("Date"), 120),
+        (_("Preview"), 350),
+        (_("Attach"), 50),
     ]
     
     def __init__(self, parent=None):
@@ -132,7 +138,7 @@ class EmailTableModel(QAbstractTableModel):
             elif col == 4:  # 预览（清理后的文本）
                 preview = email.get('preview', '')
                 return clean_preview_text(preview)
-            elif col == 5:  # 附件
+            elif col == 5:  # Attach
                 return "📎" if email.get('has_attachment') else ""
             return ""
         
@@ -316,7 +322,7 @@ class EmailFetchWorker(QThread):
             accounts = self.accounts_config or []
         
         if not accounts:
-            self.error_occurred.emit("没有配置账号")
+            self.error_occurred.emit(_("No account configured"))
             self.fetch_finished.emit()
             return
         
@@ -331,29 +337,29 @@ class EmailFetchWorker(QThread):
             username = account_config.get('username', '')
             
             try:
-                logger.info(f"[{account_name}] 开始拉取邮件...")
+                logger.info(f"[{account_name}] " + _("Fetching emails..."))
                 self.account_progress.emit(account_name, idx + 1, total_accounts)
                 
                 account_emails = self._fetch_single_account(account_config)
                 
                 if account_emails:
                     all_emails.extend(account_emails)
-                    logger.info(f"[{account_name}] 成功拉取 {len(account_emails)} 封邮件")
+                    logger.info(f"[{account_name}] " + _("Successfully fetched {} emails").format(len(account_emails)))
                     self.account_finished.emit(account_name, len(account_emails), True, "")
                 else:
-                    logger.info(f"[{account_name}] 没有新邮件")
+                    logger.info(f"[{account_name}] " + _("No new emails"))
                     self.account_finished.emit(account_name, 0, True, "")
                     
             except Exception as e:
                 error_msg = str(e)
-                logger.error(f"[{account_name}] 拉取失败: {error_msg}", exc_info=True)
+                logger.error(f"[{account_name}] " + _("Fetch failed: {}") + error_msg, exc_info=True)
                 self.account_finished.emit(account_name, 0, False, error_msg)
                 # 继续处理下一个账号，不中断
         
         if self._is_running:
             # 按日期排序
             all_emails.sort(key=self._sort_key, reverse=True)
-            logger.info(f"所有账号共拉取 {len(all_emails)} 封邮件")
+            logger.info(_("Total emails fetched from all accounts: {}").format(len(all_emails)))
             self.emails_fetched.emit(all_emails)
             self.result = all_emails
         
@@ -521,23 +527,23 @@ class EmailListWidget(QWidget):
         control_frame.setLayout(control_layout)
         
         # 刷新按钮
-        self.refresh_btn = QPushButton("🔄 刷新邮件")
-        self.refresh_btn.setToolTip("拉取最新邮件（如果前10封中有已缓存的，会自动加载60天内的缓存）")
+        self.refresh_btn = QPushButton("🔄 " + _("Refresh Emails"))
+        self.refresh_btn.setToolTip(_("Fetch latest emails (if any cached in first 10, auto-load 60 days cache)"))
         self.refresh_btn.clicked.connect(self.fetch_emails_with_cache_check)
         control_layout.addWidget(self.refresh_btn)
         
         # 拉取历史邮件按钮
-        self.history_btn = QPushButton("📜 拉取历史")
+        self.history_btn = QPushButton("📜 " + _("Fetch History"))
         self.history_btn.clicked.connect(self.fetch_history_emails)
         control_layout.addWidget(self.history_btn)
         
         # 写邮件按钮
-        self.compose_btn = QPushButton("📝 写邮件")
+        self.compose_btn = QPushButton("📝 " + _("Compose"))
         self.compose_btn.clicked.connect(self.compose_email)
         control_layout.addWidget(self.compose_btn)
         
         # 账号配置按钮
-        self.config_btn = QPushButton("⚙️ 账号配置")
+        self.config_btn = QPushButton("⚙️ " + _("Account Settings"))
         self.config_btn.clicked.connect(self.show_account_config)
         control_layout.addWidget(self.config_btn)
         
@@ -549,7 +555,7 @@ class EmailListWidget(QWidget):
         search_layout.addWidget(QLabel("🔍"))
         
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("搜索主题、发件人、内容... (按Enter)")
+        self.search_edit.setPlaceholderText(_("Search subject, sender, content... (Press Enter)"))
         self.search_edit.setMinimumWidth(220)
         # 按 Enter 触发搜索，避免输入时卡顿
         self.search_edit.returnPressed.connect(self.on_search_triggered)
@@ -557,19 +563,19 @@ class EmailListWidget(QWidget):
         search_layout.addWidget(self.search_edit)
         
         # 清空搜索按钮
-        self.clear_search_btn = QPushButton("清空")
+        self.clear_search_btn = QPushButton(_("Clear"))
         self.clear_search_btn.setFixedWidth(50)
-        self.clear_search_btn.setToolTip("清空搜索条件")
+        self.clear_search_btn.setToolTip(_("Clear search"))
         self.clear_search_btn.clicked.connect(self.clear_search)
         search_layout.addWidget(self.clear_search_btn)
         
         control_layout.addLayout(search_layout)
         
         # 账号筛选（下拉框）
-        control_layout.addWidget(QLabel("筛选:"))
+        control_layout.addWidget(QLabel(_("Filter:") + ":"))
         self.filter_combo = QComboBox()
         self.filter_combo.setMinimumWidth(100)
-        self.filter_combo.addItem("全部账号")
+        self.filter_combo.addItem(_("All Accounts"))
         self.filter_combo.currentTextChanged.connect(self.on_filter_changed)
         control_layout.addWidget(self.filter_combo)
         
@@ -614,7 +620,7 @@ class EmailListWidget(QWidget):
         status_layout = QHBoxLayout()
         status_frame.setLayout(status_layout)
         
-        self.status_label = QLabel("就绪")
+        self.status_label = QLabel(_("Ready"))
         status_layout.addWidget(self.status_label)
         
         status_layout.addStretch()
@@ -695,9 +701,9 @@ class EmailListWidget(QWidget):
         filtered = self.email_model.rowCount()
         
         if filtered != total:
-            self.status_label.setText(f"显示 {filtered} / 共 {total} 封邮件")
+            self.status_label.setText(_("Showing {} / {} emails").format(filtered, total))
         else:
-            self.status_label.setText(f"共 {total} 封邮件")
+            self.status_label.setText(_("Total {} emails").format(total))
     
     def fetch_emails_with_cache_check(self):
         """
@@ -711,8 +717,8 @@ class EmailListWidget(QWidget):
         
         # 检查是否有配置的账号
         if not self.accounts_config or len(self.accounts_config) == 0:
-            logger.warning("警告：请先配置邮箱账号，才能拉取！")
-            QMessageBox.warning(self, "警告", "请先配置邮箱账号！")
+            logger.warning(_("Warning: Please configure email account first!"))
+            QMessageBox.warning(self, _("Warning"), _("Please configure email account first!"))
             return
         
         # 停止之前的工作线程
@@ -725,7 +731,7 @@ class EmailListWidget(QWidget):
         self.history_btn.setEnabled(False)
         
         # 显示进度
-        self.status_label.setText(f"正在获取 {len(self.accounts_config)} 个账号的邮件...")
+        self.status_label.setText(_("Fetching emails from {} accounts...").format(len(self.accounts_config)))
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)  # 不确定进度
         
@@ -748,12 +754,12 @@ class EmailListWidget(QWidget):
         """拉取历史邮件（弹出对话框）- 所有账号"""
         # 防重复刷新检查
         if self.is_fetching:
-            QMessageBox.information(self, "提示", "正在刷新中，请稍后再试")
+            QMessageBox.information(self, _("Info"), _("Refreshing, please wait..."))
             return
         
         # 检查是否有配置的账号
         if not self.accounts_config or len(self.accounts_config) == 0:
-            QMessageBox.warning(self, "警告", "请先配置邮箱账号！")
+            QMessageBox.warning(self, _("Warning"), _("Please configure email account first!"))
             return
         
         # 显示历史邮件拉取对话框
@@ -777,7 +783,7 @@ class EmailListWidget(QWidget):
         self.history_btn.setEnabled(False)
         
         # 显示进度
-        self.status_label.setText(f"正在拉取 {len(self.accounts_config)} 个账号最近 {days} 天的历史邮件...")
+        self.status_label.setText(_("Fetching {} days history from {} accounts...").format(days, len(self.accounts_config)))
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)
         
@@ -811,7 +817,7 @@ class EmailListWidget(QWidget):
         self.refresh_btn.setEnabled(False)
         self.history_btn.setEnabled(False)
         
-        self.status_label.setText(f"正在加载 {len(self.accounts_config)} 个账号 {days} 天内的缓存邮件...")
+        self.status_label.setText(_("Loading {} days cache from {} accounts...").format(days, len(self.accounts_config)))
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)
         
@@ -842,13 +848,13 @@ class EmailListWidget(QWidget):
         """单个账号拉取完成"""
         if success:
             if count > 0:
-                logger.info(f"[{account_name}] 拉取完成: {count} 封邮件")
+                logger.info(_("[{}] Fetch completed: {} emails").format(account_name, count))
             else:
-                logger.info(f"[{account_name}] 拉取完成: 无新邮件")
+                logger.info(_("[{}] Fetch completed: no new emails").format(account_name))
         else:
-            logger.warning(f"[{account_name}] 拉取失败: {error_msg}")
+            logger.warning(_("[{}] Fetch failed: {}").format(account_name, error_msg))
             # 显示在状态栏但不中断其他账号
-            self.status_label.setText(f"[{account_name}] 失败: {error_msg[:30]}...")
+            self.status_label.setText(_("[{}] Failed: {}...").format(account_name, error_msg[:30]))
     
     def on_email_found_realtime(self, email_info):
         """
@@ -904,7 +910,7 @@ class EmailListWidget(QWidget):
                     # 如果该账号前10封中有缓存的，需要加载该账号的历史缓存
                     if cached_count > 0:
                         accounts_to_load_cache.add(account_name)
-                        logger.info(f"[{account_name}] 前10封中有 {cached_count} 封已缓存，将加载其60天内的缓存")
+                        logger.info(_("[{}] {} cached in first 10, loading 60 days cache").format(account_name, cached_count))
                         
                 except Exception as e:
                     logger.warning(f"检查 [{account_name}] 缓存状态失败：{e}")
@@ -915,15 +921,15 @@ class EmailListWidget(QWidget):
         
         # 如果需要，加载相关账号的历史缓存邮件
         if accounts_to_load_cache:
-            logger.info(f"将为以下账号加载历史缓存: {accounts_to_load_cache}")
+            logger.info(_("Loading history cache for accounts: {}").format(accounts_to_load_cache))
             # 直接调用加载缓存的方法，它会加载所有账号的缓存
             self.load_cached_emails(days=60)
     
     def on_fetch_error(self, error_msg):
         """获取邮件错误的回调"""
-        self.status_label.setText("获取失败")
+        self.status_label.setText(_("Fetch failed"))
         self.progress_bar.setVisible(False)
-        QMessageBox.critical(self, "错误", f"获取邮件失败：{error_msg}")
+        QMessageBox.critical(self, _("Error"), _("Failed to fetch emails: {}") + error_msg)
     
     def on_fetch_finished(self):
         """拉取完成的回调（无论成功或失败）"""
@@ -970,16 +976,16 @@ class EmailListWidget(QWidget):
         
         menu = QMenu(self)
         
-        view_action = menu.addAction("查看邮件详情")
+        view_action = menu.addAction(_("View Email Details"))
         view_action.triggered.connect(lambda: self.view_email_detail(index))
         
         # 添加回复邮件选项
-        reply_action = menu.addAction("📧 回复邮件")
+        reply_action = menu.addAction("📧 " + _("Reply Email"))
         reply_action.triggered.connect(lambda: self.reply_email(row))
         
         menu.addSeparator()
         
-        refresh_action = menu.addAction("刷新此邮件")
+        refresh_action = menu.addAction(_("Refresh This Email"))
         refresh_action.triggered.connect(lambda: self.refresh_single_email(row))
         
         menu.exec_(self.table.viewport().mapToGlobal(pos))
@@ -995,7 +1001,7 @@ class EmailListWidget(QWidget):
             return
         
         # TODO: 实现单封邮件的刷新逻辑
-        QMessageBox.information(self, "提示", f"刷新邮件 {email_id}")
+        QMessageBox.information(self, _("Info"), _("Refresh email {}") + email_id)
     
     def compose_email(self):
         """撰写新邮件"""
