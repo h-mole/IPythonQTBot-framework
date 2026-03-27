@@ -37,7 +37,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, QTime, Signal
 from PySide6.QtGui import QFont, QAction, QColor
 from PySide6.QtCore import QDateTime as QtCore_QDateTime
-from app_qt.plugin_manager import PluginManager
+from app_qt.plugin_manager import PluginManager, exec_main_thread_callback
 import openpyxl
 from openpyxl.utils import get_column_letter
 import plyer
@@ -692,7 +692,7 @@ class TasksManagerTab(QWidget):
             wb.save(self.tasks_file)
             wb.close()
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"保存任务失败：{str(e)}")
+            exec_main_thread_callback(lambda : QMessageBox.critical(self, "错误", f"保存任务失败：{str(e)}"))
 
     def refresh_table(self, filtered_data=None):
         """刷新表格显示"""
@@ -874,9 +874,12 @@ class TasksManagerTab(QWidget):
 
                 self.tasks_data.append(task_data)
                 self.save_tasks()
-                self.save_categories()
-                self.load_categories_to_filters()
-                self.load_tasks()
+                
+                def save_and_load():
+                    self.save_categories()
+                    self.load_categories_to_filters()
+                    self.load_tasks()
+                exec_main_thread_callback(save_and_load)
                 QMessageBox.information(self, "成功", "任务添加成功！")
         return True
 
