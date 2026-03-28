@@ -1308,7 +1308,7 @@ def load_plugin(plugin_manager: "PluginManager"):
     )
 
     # 添加到标签页（由插件管理器统一管理）
-    plugin_manager.add_plugin_tab("quick_notes", "📝 快速笔记", notes_tab, position=2)
+    plugin_manager.add_plugin_tab("quick_notes", _("📝 Quick Notes"), notes_tab, position=2)
 
     print("[QuickNotes] 快速笔记插件加载完成")
     return {"tab": notes_tab, "namespace": "quick_notes"}

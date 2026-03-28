@@ -342,3 +342,7 @@ msgstr "警告"
 #: plugins\quick_notes\components\skill_creator.py:47
 msgid "e.g., pdf-processing"
 msgstr "例如：pdf-processing"
+
+#: plugins\quick_notes\main.py:1311
+msgid "📝 Quick Notes"
+msgstr "📝 快捷笔记"

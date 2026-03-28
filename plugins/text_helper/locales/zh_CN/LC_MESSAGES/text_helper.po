@@ -79,3 +79,7 @@ msgstr "[TextHelper] 已注册自定义菜单项：{}"
 #: plugins\text_helper\main.py:435
 msgid "[TextHelper] Sent {} characters to editor"
 msgstr "[TextHelper] 已将 {} 字符的内容发送到编辑器"
+
+#: plugins\text_helper\main.py:467
+msgid "📝 Text Processing"
+msgstr "📝 文本处理"

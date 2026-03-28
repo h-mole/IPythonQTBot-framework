@@ -5,7 +5,7 @@
 ---
 ## 📷 Interface Screenshot
 
-![Main Interface Screenshot](./pics/主界面示意图.png)
+![Main Interface Screenshot](./pics/main-page-en.png)
 
 ## ✨ Project Advantages
 

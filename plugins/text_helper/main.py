@@ -464,7 +464,7 @@ def load_plugin(plugin_manager):
     plugin_manager.register_method("text_helper", "set_text", text_tab.set_text_api)
 
     # 添加到标签页（由插件管理器统一管理）
-    plugin_manager.add_plugin_tab("text_helper", "📝 文本处理", text_tab, position=0)
+    plugin_manager.add_plugin_tab("text_helper", _("📝 Text Processing"), text_tab, position=0)
 
     print("[TextHelper] 文本处理插件加载完成")
     return {"tab": text_tab, "namespace": "text_helper"}
